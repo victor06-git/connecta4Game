@@ -43,7 +43,7 @@ public class Main extends WebSocketServer {
 
     /** Llista de colors disponibles per als clients connectats. */
     private static final List<String> PLAYER_COLORS = Arrays.asList(
-        "GREEN", "ORANGE", "RED", "GRAY", "PURPLE", "YELLOW", "BLUE"
+        "RED", "YELLOW"
     );
 
     /** Nombre de clients necessaris per iniciar el compte enrere. */
@@ -114,9 +114,10 @@ public class Main extends WebSocketServer {
      * @return color assignat
      */
     private synchronized String getColorForName(String name) {
-        int idx = PLAYER_NAMES.indexOf(name);
-        if (idx < 0) idx = 0; // fallback si el nom no està a la llista
-        return PLAYER_COLORS.get(idx % PLAYER_COLORS.size());
+        //int idx = PLAYER_NAMES.indexOf(name);
+        //if (idx < 0) idx = 0; // fallback si el nom no està a la llista
+        //return PLAYER_COLORS.get(idx % PLAYER_COLORS.size());
+        return clients.snapshot().isEmpty() ? PLAYER_COLORS.get(0) : PLAYER_COLORS.get(1);
     }
 
     /** Envia un compte enrere (5..0) com a part del mateix STATE.
