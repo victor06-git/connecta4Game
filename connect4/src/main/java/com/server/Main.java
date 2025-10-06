@@ -57,10 +57,13 @@ public class Main extends WebSocketServer {
     private static final String K_OBJECTS_LIST = "objectsList"; 
 
     // Tipus de missatge nous i (alguns) heretats
-    private static final String T_CLIENT_MOUSE_MOVING = "clientMouseMoving";  // client -> server
-    private static final String T_CLIENT_OBJECT_MOVING = "clientObjectMoving";// client -> server
-    private static final String T_SERVER_DATA = "serverData";                 // server -> clients
-    private static final String T_COUNTDOWN = "countdown";                    // server -> clients
+    private static final String T_CLIENT_MOUSE_MOVING = "clientMouseMoving";            // client -> server
+    private static final String T_CLIENT_PIECE_MOVING = "clientPieceMoving";            // client -> server
+    private static final String T_CLIENT_PLAY = "clientPlay";                           // client -> server
+    private static final String T_CLIENT_SEND_INVITATION = "clientSendInvitation";      // client -> server
+    private static final String T_CLIENT_ANSWER_INVITATION = "clientAnswerInvitation";  // client -> server
+    private static final String T_SERVER_DATA = "serverData";                           // server -> clients
+    private static final String T_COUNTDOWN = "countdown";                              // server -> clients
 
     /** Registre de clients i assignació de noms (pool integrat). */
     private final ClientRegistry clients;
@@ -113,27 +116,27 @@ public class Main extends WebSocketServer {
      *
      * @return color assignat
      */
-    private synchronized String getColorForName(String name) {
+    private synchronized String getColor() {
         //int idx = PLAYER_NAMES.indexOf(name);
         //if (idx < 0) idx = 0; // fallback si el nom no està a la llista
         //return PLAYER_COLORS.get(idx % PLAYER_COLORS.size());
         return clients.snapshot().size() == 1 ? PLAYER_COLORS.get(0) : PLAYER_COLORS.get(1);
     }
 
-    /** Envia un compte enrere (5..0) com a part del mateix STATE.
+    /** Envia un compte enrere (3..0) com a part del mateix STATE.
      *  Evita comptes simultanis i es cancel·la si baixa el nombre de clients. */
     private void sendCountdown() {
         synchronized (this) {
             if (countdownRunning) return;
-            if (clients.snapshot().size() != REQUIRED_CLIENTS) return;
+            if (clientsData.size() != REQUIRED_CLIENTS) return;
             countdownRunning = true;
         }
 
         new Thread(() -> {
             try {
-                for (int i = 5; i >= 0; i--) {
+                for (int i = 3; i >= 0; i--) {
                     // Si durant el compte enrere ja no hi ha els clients requerits, cancel·la
-                    if (clients.snapshot().size() < REQUIRED_CLIENTS) {
+                    if (clientsData.size() < REQUIRED_CLIENTS) {
                         break;
                     }
 
@@ -173,6 +176,9 @@ public class Main extends WebSocketServer {
     private void broadcastExcept(WebSocket sender, String payload) {
         for (Map.Entry<WebSocket, String> e : clients.snapshot().entrySet()) {
             WebSocket conn = e.getKey();
+
+            if (!clientsData.containsKey(e.getValue())) continue;
+
             if (!Objects.equals(conn, sender)) sendSafe(conn, payload);
         }
     }
@@ -213,12 +219,11 @@ public class Main extends WebSocketServer {
     @Override
     public void onOpen(WebSocket conn, ClientHandshake handshake) {
         String name = clients.add(conn);
-        String color = getColorForName(name);
 
-        clientsData.put(name, new ClientData(name, color));
+        clientsData.put(name, new ClientData(name));
 
-        System.out.println("WebSocket client connected: " + name + " (" + color + ")");
-        sendCountdown();
+        System.out.println("WebSocket client connected: " + name);
+        //sendCountdown();
     }
 
     /** Elimina el client del registre i envia l’STATE complet. */
@@ -246,9 +251,36 @@ public class Main extends WebSocketServer {
                 clientsData.put(clientName, ClientData.fromJSON(obj.getJSONObject(K_VALUE))); 
             }
 
-            case T_CLIENT_OBJECT_MOVING -> {
+            case T_CLIENT_PIECE_MOVING -> {
                 GameObject objData = GameObject.fromJSON(obj.getJSONObject(K_VALUE));
                 gameObjects.put(objData.id, objData);
+            }
+
+            case T_CLIENT_PLAY -> {
+                // Fer compte enrere
+
+                // Assignar colors als jugadors
+
+                // Enviar dades als jugadors
+            }
+
+            case T_CLIENT_SEND_INVITATION -> {
+                // Revem un value amb el nom de l'usuari a enviar la petició
+
+                // Formatem la resposta
+
+                // Enviem a l'usuari rebut, la petició d'invitació
+            }
+
+            case T_CLIENT_ANSWER_INVITATION -> {
+                // Revem un value amb el nom de l'usuari respondre la petició i un valor booleà amb la resposta
+
+                // SI ACCEPTA
+                // Comencen countdown per a la partida
+
+                // SI NO ACCEPTA
+                // Formatem la resposta
+                // Enviem a l'usuari rebut, la resposta de la petició d'invitació
             }
 
             default -> {
