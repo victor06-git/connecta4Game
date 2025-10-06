@@ -174,6 +174,9 @@ public class Main extends WebSocketServer {
     private void broadcastExcept(WebSocket sender, String payload) {
         for (Map.Entry<WebSocket, String> e : clients.snapshot().entrySet()) {
             WebSocket conn = e.getKey();
+
+            if (!clientsData.containsKey(e.getValue())) continue;
+            
             if (!Objects.equals(conn, sender)) sendSafe(conn, payload);
         }
     }
