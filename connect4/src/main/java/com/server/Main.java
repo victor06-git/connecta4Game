@@ -120,7 +120,7 @@ public class Main extends WebSocketServer {
         return clients.snapshot().size() == 1 ? PLAYER_COLORS.get(0) : PLAYER_COLORS.get(1);
     }
 
-    /** Envia un compte enrere (5..0) com a part del mateix STATE.
+    /** Envia un compte enrere (3..0) com a part del mateix STATE.
      *  Evita comptes simultanis i es cancel·la si baixa el nombre de clients. */
     private void sendCountdown() {
         synchronized (this) {
@@ -131,7 +131,7 @@ public class Main extends WebSocketServer {
 
         new Thread(() -> {
             try {
-                for (int i = 5; i >= 0; i--) {
+                for (int i = 3; i >= 0; i--) {
                     // Si durant el compte enrere ja no hi ha els clients requerits, cancel·la
                     if (clients.snapshot().size() < REQUIRED_CLIENTS) {
                         break;
