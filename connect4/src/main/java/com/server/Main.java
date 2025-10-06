@@ -117,7 +117,7 @@ public class Main extends WebSocketServer {
         //int idx = PLAYER_NAMES.indexOf(name);
         //if (idx < 0) idx = 0; // fallback si el nom no està a la llista
         //return PLAYER_COLORS.get(idx % PLAYER_COLORS.size());
-        return clients.snapshot().isEmpty() ? PLAYER_COLORS.get(0) : PLAYER_COLORS.get(1);
+        return clients.snapshot().size() == 1 ? PLAYER_COLORS.get(0) : PLAYER_COLORS.get(1);
     }
 
     /** Envia un compte enrere (5..0) com a part del mateix STATE.
