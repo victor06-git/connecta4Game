@@ -10,7 +10,7 @@ public class ClientData {
     public int row;
     public int col;
 
-    public ClientData(String name, String color) {
+    public ClientData(String name) {
         this.name = name;
         this.color = color;
         this.mouseX = -1;
@@ -26,6 +26,10 @@ public class ClientData {
         this.mouseY = mouseY;
         this.row = row;
         this.col = col;
+    }
+
+    public void SetColor(String color) {
+        this.color = color;
     }
 
     @Override
