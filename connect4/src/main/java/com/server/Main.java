@@ -57,11 +57,13 @@ public class Main extends WebSocketServer {
     private static final String K_OBJECTS_LIST = "objectsList"; 
 
     // Tipus de missatge nous i (alguns) heretats
-    private static final String T_CLIENT_MOUSE_MOVING = "clientMouseMoving";        // client -> server
-    private static final String T_CLIENT_PIECE_MOVING = "clientPieceMoving";        // client -> server
-    private static final String T_CLIENT_PLAY = "clientPlay";                       // client -> server
-    private static final String T_SERVER_DATA = "serverData";                       // server -> clients
-    private static final String T_COUNTDOWN = "countdown";                          // server -> clients
+    private static final String T_CLIENT_MOUSE_MOVING = "clientMouseMoving";            // client -> server
+    private static final String T_CLIENT_PIECE_MOVING = "clientPieceMoving";            // client -> server
+    private static final String T_CLIENT_PLAY = "clientPlay";                           // client -> server
+    private static final String T_CLIENT_SEND_INVITATION = "clientSendInvitation";      // client -> server
+    private static final String T_CLIENT_ANSWER_INVITATION = "clientAnswerInvitation";  // client -> server
+    private static final String T_SERVER_DATA = "serverData";                           // server -> clients
+    private static final String T_COUNTDOWN = "countdown";                              // server -> clients
 
     /** Registre de clients i assignació de noms (pool integrat). */
     private final ClientRegistry clients;
@@ -176,7 +178,7 @@ public class Main extends WebSocketServer {
             WebSocket conn = e.getKey();
 
             if (!clientsData.containsKey(e.getValue())) continue;
-            
+
             if (!Objects.equals(conn, sender)) sendSafe(conn, payload);
         }
     }
@@ -260,6 +262,25 @@ public class Main extends WebSocketServer {
                 // Assignar colors als jugadors
 
                 // Enviar dades als jugadors
+            }
+
+            case T_CLIENT_SEND_INVITATION -> {
+                // Revem un value amb el nom de l'usuari a enviar la petició
+
+                // Formatem la resposta
+
+                // Enviem a l'usuari rebut, la petició d'invitació
+            }
+
+            case T_CLIENT_ANSWER_INVITATION -> {
+                // Revem un value amb el nom de l'usuari respondre la petició i un valor booleà amb la resposta
+
+                // SI ACCEPTA
+                // Comencen countdown per a la partida
+
+                // SI NO ACCEPTA
+                // Formatem la resposta
+                // Enviem a l'usuari rebut, la resposta de la petició d'invitació
             }
 
             default -> {
