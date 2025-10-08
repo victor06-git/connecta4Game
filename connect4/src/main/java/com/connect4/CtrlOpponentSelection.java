@@ -9,5 +9,6 @@ public class CtrlOpponentSelection {
     private VBox list_send, list_receive;
 
     // Cargar las subviews en cada VBox
+    
 
 }

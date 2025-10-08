@@ -2,6 +2,8 @@ package com.connect4;
 
 import java.util.Objects;
 
+import org.json.JSONObject;
+
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
 import javafx.scene.image.Image;
@@ -34,11 +36,32 @@ public class CtrlSubViewReceive {
     }
 
     public void rejectInvitation() {
-        // Dar paso a eliminar invitación
+
+        //Conectar al servidor y envio acción denegar
+        if (Main.wsClient != null && Main.wsClient.isOpen()) {
+            
+            JSONObject json = new JSONObject();
+            json.put("type", "clientAnswerInvitation");
+            json.put("value", false);
+
+            Main.wsClient.safeSend(json.toString());
+
+            //Eliminar subView del ControllerOpponentSelection (VBox)
+            CtrlOpponentSelection ctrl = (CtrlOpponentSelection) UtilsViews.getController("opponent_selection");
+        }
     }
 
     public void acceptInvitation() {
         // Hacer cambio al counter y comenzar partida
+        //Conectar al servidor
+        if (Main.wsClient != null && Main.wsClient.isOpen()) {
+            
+            JSONObject json = new JSONObject();
+            json.put("type", "clientAnswerInvitation");
+            json.put("value", true);
+
+            Main.wsClient.safeSend(json.toString());
+        }
     }
 
 }
