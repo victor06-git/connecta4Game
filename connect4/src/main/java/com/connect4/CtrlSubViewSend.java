@@ -2,6 +2,8 @@ package com.connect4;
 
 import java.util.Objects;
 
+import org.json.JSONObject;
+
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
 import javafx.scene.image.Image;
@@ -35,5 +37,20 @@ public class CtrlSubViewSend {
 
     public void sendInvitation() {
         // Crear invitación y enviarla
+        // Enviar json  al servidor
+
+        if (Main.wsClient != null && Main.wsClient.isOpen()) {
+            String user  = userName.getText();
+            if (!user.isEmpty()) {
+                JSONObject json = new JSONObject();
+                json.put("type", "clientSendInvitation");
+                json.put("value", user);
+
+                Main.wsClient.safeSend(json.toString());
+            }
+            
+        } else {
+            System.out.println("No hay conexión");
+        }
     }
 }

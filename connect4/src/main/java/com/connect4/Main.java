@@ -23,7 +23,7 @@ public class Main extends Application {
     public static UtilsWS wsClient;
 
     public static String clientName = "";
-    public static List<ClientData> clients;
+    public static List<ClientData> clients; //Usuarios conectados
     public static List<GameObject> objects;
 
     public static CtrlConfig ctrlConfig;
@@ -32,10 +32,10 @@ public class Main extends Application {
 
     public static void main(String[] args) {
 
-        // Iniciar app JavaFX   
+        // Iniciar app JavaFX
         launch(args);
     }
-    
+
     @Override
     public void start(Stage stage) throws Exception {
 
@@ -44,15 +44,17 @@ public class Main extends Application {
 
         UtilsViews.parentContainer.setStyle("-fx-font: 14 arial;");
         UtilsViews.addView(getClass(), "ViewConfig", "/assets/viewConfig.fxml"); 
+        UtilsViews.addView(getClass(), "ViewOpponentSelection", "/assets/opponent_selection");
         UtilsViews.addView(getClass(), "ViewWait", "/assets/viewWait.fxml");
         UtilsViews.addView(getClass(), "ViewPlay", "/assets/viewPlay.fxml");
 
         ctrlConfig = (CtrlConfig) UtilsViews.getController("ViewConfig");
         ctrlWait = (CtrlWait) UtilsViews.getController("ViewWait");
         ctrlPlay = (CtrlPlay) UtilsViews.getController("ViewPlay");
+        //CtrlOpponentSelection = (CtrlOpponentSelection) UtilsViews.getController("ViewOpponentSelection");
 
         Scene scene = new Scene(UtilsViews.parentContainer);
-        
+
         stage.setScene(scene);
         stage.onCloseRequestProperty(); // Call close method when closing window
         stage.setTitle("JavaFX");
@@ -68,7 +70,7 @@ public class Main extends Application {
     }
 
     @Override
-    public void stop() { 
+    public void stop() {
         if (wsClient != null) {
             wsClient.forceExit();
         }
@@ -94,23 +96,31 @@ public class Main extends Application {
 
         ctrlConfig.txtMessage.setTextFill(Color.BLACK);
         ctrlConfig.txtMessage.setText("Connecting ...");
-    
+
         pauseDuring(1500, () -> { // Give time to show connecting message ...
 
             String protocol = ctrlConfig.txtProtocol.getText();
             String host = ctrlConfig.txtHost.getText();
             String port = ctrlConfig.txtPort.getText();
             wsClient = UtilsWS.getSharedInstance(protocol + "://" + host + ":" + port);
-    
-            wsClient.onMessage((response) -> { Platform.runLater(() -> { wsMessage(response); }); });
-            wsClient.onError((response) -> { Platform.runLater(() -> { wsError(response); }); });
+
+            wsClient.onMessage((response) -> {
+                Platform.runLater(() -> {
+                    wsMessage(response);
+                });
+            });
+            wsClient.onError((response) -> {
+                Platform.runLater(() -> {
+                    wsError(response);
+                });
+            });
         });
     }
-   
+
     private static void wsMessage(String response) {
-        
+
         // System.out.println(response);
-        
+
         JSONObject msgObj = new JSONObject(response);
         switch (msgObj.getString("type")) {
             case "serverData":
@@ -142,13 +152,13 @@ public class Main extends Application {
                     ctrlWait.txtPlayer1.setText(clients.get(1).name);
                     ctrlPlay.title.setText(clients.get(0).name + " vs " + clients.get(1).name);
                 }
-                
+
                 if (UtilsViews.getActiveView().equals("ViewConfig")) {
                     UtilsViews.setViewAnimating("ViewWait");
                 }
 
                 break;
-            
+
             case "countdown":
                 int value = msgObj.getInt("value");
                 String txt = String.valueOf(value);
