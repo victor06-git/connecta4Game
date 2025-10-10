@@ -23,7 +23,7 @@ public class Main extends Application {
     public static UtilsWS wsClient;
 
     public static String clientName = "";
-    public static List<ClientData> clients;
+    public static List<ClientData> clients; //Usuarios conectados
     public static List<GameObject> objects;
 
     public static CtrlConfig ctrlConfig;
@@ -43,11 +43,15 @@ public class Main extends Application {
         final int windowHeight = 300;
 
         UtilsViews.parentContainer.setStyle("-fx-font: 14 arial;");
+        UtilsViews.addView(getClass(), "ViewConfig", "/assets/viewConfig.fxml"); 
         UtilsViews.addView(getClass(), "ViewOpponentSelection", "/assets/opponent_selection");
+        UtilsViews.addView(getClass(), "ViewWait", "/assets/viewWait.fxml");
+        UtilsViews.addView(getClass(), "ViewPlay", "/assets/viewPlay.fxml");
 
-        // ctrlConfig = (CtrlConfig) UtilsViews.getController("ViewConfig");
-        // ctrlWait = (CtrlWait) UtilsViews.getController("ViewWait");
-        // ctrlPlay = (CtrlPlay) UtilsViews.getController("ViewPlay");
+        ctrlConfig = (CtrlConfig) UtilsViews.getController("ViewConfig");
+        ctrlWait = (CtrlWait) UtilsViews.getController("ViewWait");
+        ctrlPlay = (CtrlPlay) UtilsViews.getController("ViewPlay");
+        //CtrlOpponentSelection = (CtrlOpponentSelection) UtilsViews.getController("ViewOpponentSelection");
 
         Scene scene = new Scene(UtilsViews.parentContainer);
 
