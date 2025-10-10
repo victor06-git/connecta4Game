@@ -1,13 +1,5 @@
 package com.server;
 
-import org.java_websocket.server.WebSocketServer;
-import org.java_websocket.WebSocket;
-import org.java_websocket.handshake.ClientHandshake;
-import org.java_websocket.exceptions.WebsocketNotConnectedException;
-
-import org.json.JSONArray;
-import org.json.JSONObject;
-
 import java.net.InetSocketAddress;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -19,6 +11,13 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
+
+import org.java_websocket.WebSocket;
+import org.java_websocket.exceptions.WebsocketNotConnectedException;
+import org.java_websocket.handshake.ClientHandshake;
+import org.java_websocket.server.WebSocketServer;
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 import com.shared.ClientData;
 import com.shared.GameObject;
@@ -233,7 +232,8 @@ public class Main extends WebSocketServer {
         clientsData.put(name, new ClientData(name));
 
         System.out.println("WebSocket client connected: " + name);
-        // sendCountdown();
+        // Comentar sendCountDown
+        sendCountdown();
     }
 
     /** Elimina el client del registre i envia l’STATE complet. */

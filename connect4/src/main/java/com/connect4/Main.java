@@ -9,12 +9,12 @@ import org.json.JSONObject;
 import com.shared.ClientData;
 import com.shared.GameObject;
 
+import javafx.animation.PauseTransition;
 import javafx.application.Application;
 import javafx.application.Platform;
-import javafx.animation.PauseTransition;
-import javafx.scene.paint.Color;
 import javafx.scene.Scene;
 import javafx.scene.image.Image;
+import javafx.scene.paint.Color;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 
@@ -23,12 +23,13 @@ public class Main extends Application {
     public static UtilsWS wsClient;
 
     public static String clientName = "";
-    public static List<ClientData> clients; //Usuarios conectados
+    public static List<ClientData> clients; // Usuarios conectados
     public static List<GameObject> objects;
 
     public static CtrlConfig ctrlConfig;
     public static CtrlWait ctrlWait;
     public static CtrlPlay ctrlPlay;
+    public static CtrlOpponentSelection ctrlOpponentSelection;
 
     public static void main(String[] args) {
 
@@ -43,15 +44,18 @@ public class Main extends Application {
         final int windowHeight = 300;
 
         UtilsViews.parentContainer.setStyle("-fx-font: 14 arial;");
-        UtilsViews.addView(getClass(), "ViewConfig", "/assets/viewConfig.fxml"); 
-        UtilsViews.addView(getClass(), "ViewOpponentSelection", "/assets/opponent_selection");
+
+        UtilsViews.addView(getClass(), "ViewConfig", "/assets/viewConfig.fxml");
         UtilsViews.addView(getClass(), "ViewWait", "/assets/viewWait.fxml");
         UtilsViews.addView(getClass(), "ViewPlay", "/assets/viewPlay.fxml");
+        // UtilsViews.addView(getClass(), "ViewOpponentSelection",
+        // "/assets/opponent_selection");
 
         ctrlConfig = (CtrlConfig) UtilsViews.getController("ViewConfig");
         ctrlWait = (CtrlWait) UtilsViews.getController("ViewWait");
         ctrlPlay = (CtrlPlay) UtilsViews.getController("ViewPlay");
-        //CtrlOpponentSelection = (CtrlOpponentSelection) UtilsViews.getController("ViewOpponentSelection");
+        // ctrlOpponentSelection = (CtrlOpponentSelection)
+        // UtilsViews.getController("ViewOpponentSelection");
 
         Scene scene = new Scene(UtilsViews.parentContainer);
 
