@@ -40,16 +40,20 @@ public class CtrlPlay implements Initializable {
         this.gc = canvas.getGraphicsContext2D();
 
         // Set listeners
-        UtilsViews.parentContainer.heightProperty().addListener((observable, oldValue, newvalue) -> { onSizeChanged(); });
-        UtilsViews.parentContainer.widthProperty().addListener((observable, oldValue, newvalue) -> { onSizeChanged(); });
-        
+        UtilsViews.parentContainer.heightProperty().addListener((observable, oldValue, newvalue) -> {
+            onSizeChanged();
+        });
+        UtilsViews.parentContainer.widthProperty().addListener((observable, oldValue, newvalue) -> {
+            onSizeChanged();
+        });
+
         canvas.setOnMouseMoved(this::setOnMouseMoved);
         canvas.setOnMousePressed(this::onMousePressed);
         canvas.setOnMouseDragged(this::onMouseDragged);
         canvas.setOnMouseReleased(this::onMouseReleased);
 
         // Define grid
-        grid = new PlayGrid(25, 25, 25, 10, 10);
+        grid = new PlayGrid(100, 100, 100, 6, 7);
 
         // Start run/draw timer bucle
         animationTimer = new PlayTimer(this::run, this::draw, 0);
@@ -80,19 +84,18 @@ public class CtrlPlay implements Initializable {
         double mouseY = event.getY();
 
         String color = Main.clients.stream()
-            .filter(c -> c.name.equals(Main.clientName))
-            .map(c -> c.color)
-            .findFirst()
-            .orElse("gray");
+                .filter(c -> c.name.equals(Main.clientName))
+                .map(c -> c.color)
+                .findFirst()
+                .orElse("gray");
 
         ClientData cd = new ClientData(
-            Main.clientName, 
-            color,
-            (int)mouseX, 
-            (int)mouseY,  
-            grid.isPositionInsideGrid(mouseX, mouseY) ? grid.getRow(mouseY) : -1,
-            grid.isPositionInsideGrid(mouseX, mouseY) ? grid.getCol(mouseX) : -1
-        );
+                Main.clientName,
+                color,
+                (int) mouseX,
+                (int) mouseY,
+                grid.isPositionInsideGrid(mouseX, mouseY) ? grid.getRow(mouseY) : -1,
+                grid.isPositionInsideGrid(mouseX, mouseY) ? grid.getCol(mouseX) : -1);
 
         JSONObject msg = new JSONObject();
         msg.put("type", "clientMouseMoving");
@@ -103,6 +106,7 @@ public class CtrlPlay implements Initializable {
         }
     }
 
+    // Función para eventos de presionar el mouse
     private void onMousePressed(MouseEvent event) {
 
         double mouseX = event.getX();
@@ -122,12 +126,14 @@ public class CtrlPlay implements Initializable {
         }
     }
 
+    // Función para cuando arrastrar el mouse con la ficha
     private void onMouseDragged(MouseEvent event) {
         if (mouseDragging) {
             double objX = event.getX() - mouseOffsetX;
             double objY = event.getY() - mouseOffsetY;
 
-            selectedObject = new GameObject(selectedObject.id, (int)objX, (int)objY, (int)selectedObject.col, (int)selectedObject.row);
+            selectedObject = new GameObject(selectedObject.id, (int) objX, (int) objY, (int) selectedObject.col,
+                    (int) selectedObject.row);
 
             JSONObject msg = new JSONObject();
             msg.put("type", "clientObjectMoving");
@@ -140,6 +146,7 @@ public class CtrlPlay implements Initializable {
         setOnMouseMoved(event);
     }
 
+    // Función cuando deja ir el ratón
     private void onMouseReleased(MouseEvent event) {
         if (selectedObject != null) {
             double objX = event.getX() - mouseOffsetX; // left tip X
@@ -147,12 +154,11 @@ public class CtrlPlay implements Initializable {
 
             // build object with dragged position (size stays in col/row)
             selectedObject = new GameObject(
-                selectedObject.id,
-                (int) objX,
-                (int) objY,
-                selectedObject.col,
-                selectedObject.row
-            );
+                    selectedObject.id,
+                    (int) objX,
+                    (int) objY,
+                    selectedObject.col,
+                    selectedObject.row);
 
             // snap by left-top corner to underlying cell
             if (grid.isPositionInsideGrid(objX, objY)) {
@@ -162,17 +168,19 @@ public class CtrlPlay implements Initializable {
             JSONObject msg = new JSONObject();
             msg.put("type", "clientObjectMoving");
             msg.put("value", selectedObject.toJSON());
-            if (Main.wsClient != null) Main.wsClient.safeSend(msg.toString());
+            if (Main.wsClient != null)
+                Main.wsClient.safeSend(msg.toString());
 
             mouseDragging = false;
             selectedObject = null;
         }
     }
 
-    // Snap piece so its left-top corner sits exactly on the grid cell under its left tip.
+    // Snap piece so its left-top corner sits exactly on the grid cell under its
+    // left tip.
     private void snapObjectLeftTop(GameObject obj) {
         int col = grid.getCol(obj.x); // left X -> column
-        int row = grid.getRow(obj.y); // top Y  -> row
+        int row = grid.getRow(obj.y); // top Y -> row
 
         // clamp inside grid
         col = (int) Math.max(0, Math.min(col, grid.getCols() - 1));
@@ -182,6 +190,7 @@ public class CtrlPlay implements Initializable {
         obj.y = grid.getCellY(row);
     }
 
+    // Función validación si el objeto se encuentra dentro de la celda
     public Boolean isPositionInsideObject(double positionX, double positionY, int objX, int objY, int cols, int rows) {
         double cellSize = grid.getCellSize();
         double objectWidth = cols * cellSize;
@@ -193,21 +202,26 @@ public class CtrlPlay implements Initializable {
         double objectBottomY = objY + objectHeight;
 
         return positionX >= objectLeftX && positionX < objectRightX &&
-               positionY >= objectTopY && positionY < objectBottomY;
+                positionY >= objectTopY && positionY < objectBottomY;
     }
 
     // Run game (and animations)
     private void run(double fps) {
 
-        if (animationTimer.fps < 1) { return; }
+        if (animationTimer.fps < 1) {
+            return;
+        }
 
         // Update objects and animations here
     }
 
     // Draw game to canvas
+    // Dibujar celdas con background azul, interior blanco y borde en gris
     public void draw() {
 
-        if (Main.clients == null) { return; }
+        if (Main.clients == null) {
+            return;
+        }
 
         // Clean drawing area
         gc.clearRect(0, 0, canvas.getWidth(), canvas.getHeight());
@@ -218,8 +232,9 @@ public class CtrlPlay implements Initializable {
             if (clientData.row >= 0 && clientData.col >= 0) {
                 Color base = getColor(clientData.color);
                 Color alpha = new Color(base.getRed(), base.getGreen(), base.getBlue(), 0.5);
-                gc.setFill(alpha); 
-                gc.fillRect(grid.getCellX(clientData.col), grid.getCellY(clientData.row), grid.getCellSize(), grid.getCellSize());
+                gc.setFill(alpha);
+                gc.fillRect(grid.getCellX(clientData.col), grid.getCellY(clientData.row), grid.getCellSize(),
+                        grid.getCellSize());
             }
         }
 
@@ -228,8 +243,8 @@ public class CtrlPlay implements Initializable {
 
         // Draw mouse circles
         for (ClientData clientData : Main.clients) {
-            gc.setFill(getColor(clientData.color)); 
-            gc.fillOval(clientData.mouseX - 5, clientData.mouseY - 5, 10, 10);
+            gc.setFill(getColor(clientData.color));
+            gc.fillOval(clientData.mouseX - 5, clientData.mouseY - 5, 20, 20);
         }
 
         // Draw objects
@@ -242,9 +257,12 @@ public class CtrlPlay implements Initializable {
         }
 
         // Draw FPS if needed
-        if (showFPS) { animationTimer.drawFPS(gc); }   
+        if (showFPS) {
+            animationTimer.drawFPS(gc);
+        }
     }
 
+    // Dibuja la celda
     public void drawGrid() {
         gc.setStroke(Color.BLACK);
 
@@ -258,6 +276,7 @@ public class CtrlPlay implements Initializable {
         }
     }
 
+    // Dibujar fichas
     public void drawObject(GameObject obj) {
         double cellSize = grid.getCellSize();
 
@@ -282,6 +301,7 @@ public class CtrlPlay implements Initializable {
         gc.fillText(obj.id, x + 5, y + 15);
     }
 
+    // Conseguir color
     public Color getColor(String colorName) {
         switch (colorName.toLowerCase()) {
             case "red":
