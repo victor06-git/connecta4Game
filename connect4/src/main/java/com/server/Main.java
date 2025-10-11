@@ -268,9 +268,15 @@ public class Main extends WebSocketServer {
 
             case T_CLIENT_PLAY -> {
                 // Fer compte enrere
-                System.out.println("Cliente empezó partida");
+                //System.out.println("Cliente empezó partida");
+                int index = 0;
+                for (ClientData data : clientsData.values()) {
+                    String color = PLAYER_COLORS.get(index % PLAYER_COLORS.size());
+                    data.SetColor(color);
+                    index++;
+                }
+
                 sendCountdown();
-                // Assignar colors als jugadors
 
                 // Enviar dades als jugadors
             }
