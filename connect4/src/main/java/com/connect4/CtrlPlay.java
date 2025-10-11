@@ -333,7 +333,7 @@ public class CtrlPlay implements Initializable {
                 double centerY = cellY + cellSize / 2;
 
                 // Radio del círculo (un poco más pequeño que la celda para dejar margen)
-                double holeRadius = cellSize * 0.9;
+                double holeRadius = cellSize * 0.5;
 
                 // Dibujar el círculo blanco (agujero)
                 gc.setFill(Color.GRAY);
@@ -352,7 +352,7 @@ public class CtrlPlay implements Initializable {
                 double centerY = cellY + cellSize / 2;
 
                 // Radio del círculo (un poco más pequeño que la celda para dejar margen)
-                double holeRadius = cellSize * 0.8;
+                double holeRadius = cellSize * 0.4;
 
                 // Dibujar el círculo blanco (agujero)
                 gc.setFill(Color.WHITE);
