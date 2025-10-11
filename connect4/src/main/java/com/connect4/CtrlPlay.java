@@ -211,15 +211,18 @@ public class CtrlPlay implements Initializable {
      */
 
     // Add pieces to the pool
-    private void addPieceToPool(String color, double x, double y) {
-        double radius = 20;
-
-        String id = "pool_" + System.currentTimeMillis() + "_" + random.nextInt(10000);
-        GameObject piece = new GameObject(id, x, y, radius, -1, -1);
-        piece.color = color;
-
-        piecePool.add(piece);
-    }
+    /*
+     * private void addPieceToPool(String color, double x, double y) {
+     * double radius = 20;
+     * 
+     * String id = "pool_" + System.currentTimeMillis() + "_" +
+     * random.nextInt(10000);
+     * GameObject piece = new GameObject(id, x, y, radius, -1, -1);
+     * piece.color = color;
+     * 
+     * piecePool.add(piece);
+     * }
+     */
 
     // Reposicionar fichas del pool
     private void repositionPoolPieces() {
@@ -232,12 +235,6 @@ public class CtrlPlay implements Initializable {
                 piece.center_y = poolAreaY + poolAreaHeight / 2;
             }
         }
-    }
-
-    // Verificar si una posición está dentro del pool
-    private boolean isPositionInPool(double x, double y) {
-        return x >= poolAreaX && x <= poolAreaX + poolAreaWidth &&
-                y >= poolAreaY && y <= poolAreaY + poolAreaHeight;
     }
 
     // Verificar si una posición está en la zona de drop
@@ -322,28 +319,13 @@ public class CtrlPlay implements Initializable {
         selectedObject = null;
         mouseDragging = false;
 
-        // Solo buscar en el pool de fichas
-        for (int i = piecePool.size() - 1; i >= 0; i--) {
-            GameObject go = piecePool.get(i);
-            double dx = mouseX - go.center_x;
-            double dy = mouseY - go.center_y;
-            double distancia = Math.sqrt(dx * dx + dy * dy);
-
-            if (distancia <= go.radius) {
-                // Guardar posición original para volver si es necesario
-                selectedObject = new GameObject(go.id, go.center_x, go.center_y, go.radius, go.row, go.col);
-                selectedObject.color = go.color;
-                selectedObject.originalX = go.center_x;
-                selectedObject.originalY = go.center_y;
-
+        for (GameObject go : Main.objects) {
+            if (isPositionInsideObject(mouseX, mouseY, go.center_x, go.center_y, go.col, go.row)) {
+                selectedObject = new GameObject(go.id, go.center_x, go.center_y, 20, go.col, go.row);
                 mouseDragging = true;
-                mouseOffsetX = mouseX - go.center_x;
-                mouseOffsetY = mouseY - go.center_y;
-
-                // Generar nueva ficha en la misma posición
-                addPieceToPool(go.color, go.center_x, go.center_y);
-
-                return;
+                mouseOffsetX = event.getX() - go.center_x;
+                mouseOffsetY = event.getY() - go.center_y;
+                break;
             }
         }
     }
@@ -397,7 +379,6 @@ public class CtrlPlay implements Initializable {
                 // La ficha desaparece, el servidor responderá con serverData
                 // y entonces animaremos la caída basándonos en lastMove
             }
-            // Si no se soltó en drop zone, la ficha simplemente desaparece
 
             selectedObject = null;
             mouseDragging = false;
@@ -444,22 +425,21 @@ public class CtrlPlay implements Initializable {
      */
 
     // Función validación si el objeto se encuentra dentro de la celda
-    /*
-     * public Boolean isPositionInsideObject(double positionX, double positionY, int
-     * objX, int objY, int cols, int rows) {
-     * double cellSize = grid.getCellSize();
-     * double objectWidth = cols * cellSize;
-     * double objectHeight = rows * cellSize;
-     * 
-     * double objectLeftX = objX;
-     * double objectRightX = objX + objectWidth;
-     * double objectTopY = objY;
-     * double objectBottomY = objY + objectHeight;
-     * 
-     * return positionX >= objectLeftX && positionX < objectRightX &&
-     * positionY >= objectTopY && positionY < objectBottomY;
-     * }
-     */
+
+    public Boolean isPositionInsideObject(double positionX, double positionY, double objX, double objY, int cols,
+            int rows) {
+        double cellSize = grid.getCellSize();
+        double objectWidth = cols * cellSize;
+        double objectHeight = rows * cellSize;
+
+        double objectLeftX = objX;
+        double objectRightX = objX + objectWidth;
+        double objectTopY = objY;
+        double objectBottomY = objY + objectHeight;
+
+        return positionX >= objectLeftX && positionX < objectRightX &&
+                positionY >= objectTopY && positionY < objectBottomY;
+    }
 
     // Run game (and animations)
     private void run(double fps) {
@@ -540,7 +520,7 @@ public class CtrlPlay implements Initializable {
 
         // Draw objects (fichas en el tablero)
         for (GameObject go : Main.objects) {
-            if (selectedObject != null && go.id.equals(selectedObject.id)) {
+            if (selectedObject != null && go.id.equals(selectedObject.id)) { // <- Esto filtra TODO
                 drawObject(go);
             }
         }

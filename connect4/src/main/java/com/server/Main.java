@@ -108,8 +108,8 @@ public class Main extends WebSocketServer {
         for (int i = 0; i < 21; i++) {
             String id_yellow = "Y_" + i;
             String id_red = "R_" + i;
-            GameObject obj_yellow = new GameObject(id_yellow, 400, 10 + i, 20, i, i);
-            GameObject obj_red = new GameObject(id_red, 450, 10 + i, 20, i, i);
+            GameObject obj_yellow = new GameObject(id_yellow, 300, 10 + i, 20, i, i);
+            GameObject obj_red = new GameObject(id_red, 320, 10 + i, 20, i, i);
             fichas.add(obj_yellow);
             fichas.add(obj_red);
         }
