@@ -38,7 +38,7 @@ public class CtrlPlay implements Initializable {
     private GameObject selectedObject = null;
     private GameObject animatingPiece = null;
     private double animationTargetY = 0;
-    private double animationSpeed = 800;
+    private double animationSpeed = 300; // velocidad de caida
 
     private List<GameObject> piecePool = new ArrayList<>();
     private double poolAreaX = 100;
@@ -49,7 +49,7 @@ public class CtrlPlay implements Initializable {
     private Random random = new Random();
 
     // Zona del tablero para dejar caer la ficha
-    private double dropZoneHeight = 80;
+    private double dropZoneHeight = 30;
     private int hoveredColumn = -1;
 
     // Matriz de las posiciones de las fichas
@@ -69,12 +69,16 @@ public class CtrlPlay implements Initializable {
         }
 
         // Set listeners
-        UtilsViews.parentContainer.heightProperty().addListener((observable, oldValue, newvalue) -> {
-            onSizeChanged();
-        });
-        UtilsViews.parentContainer.widthProperty().addListener((observable, oldValue, newvalue) -> {
-            onSizeChanged();
-        });
+        /*
+         * UtilsViews.parentContainer.heightProperty().addListener((observable,
+         * oldValue, newvalue) -> {
+         * onSizeChanged();
+         * });
+         * UtilsViews.parentContainer.widthProperty().addListener((observable, oldValue,
+         * newvalue) -> {
+         * onSizeChanged();
+         * });
+         */
 
         canvas.setOnMouseMoved(this::setOnMouseMoved);
         canvas.setOnMousePressed(this::onMousePressed);
@@ -94,19 +98,7 @@ public class CtrlPlay implements Initializable {
         start();
     }
 
-    // When window changes its size
-    public void onSizeChanged() {
-
-        double width = UtilsViews.parentContainer.getWidth();
-        double height = UtilsViews.parentContainer.getHeight();
-        canvas.setWidth(width);
-        canvas.setHeight(height);
-
-        updateGridSize(width, height);
-        updatePoolArea(width, height);
-    }
-
-    // Updates the cell size
+    // Updates the cell sizem (borrar)
     // Hacer que tenga una medida concreta y que la vista no se haga más pequeña
     private void updateGridSize(double canvasWidth, double canvasHeight) {
         int rows = 6;
@@ -131,67 +123,58 @@ public class CtrlPlay implements Initializable {
         grid = new PlayGrid(startX, startY, cellSize, rows, cols);
     }
 
-    // Update pool area
-    private void updatePoolArea(double canvasWidth, double canvasHeight) {
-        // Calcular posición del pool a la derecha del tablero
-        double gridRightEdge = grid.getStartX() + (grid.getCols() * grid.getCellSize());
-        double availableSpace = canvasWidth - gridRightEdge - 40; // margen de 40px
-
-        poolAreaWidth = Math.min(200, availableSpace * 0.8);
-
-        // Misma altura y posición vertical que el tablero
-        poolAreaY = grid.getStartY();
-        poolAreaHeight = grid.getRows() * grid.getCellSize();
-
-        // Centrar horizontalmente en el espacio disponible
-        poolAreaX = gridRightEdge + (availableSpace - poolAreaWidth) / 2;
-
-        // Reposicionar fichas si es necesario
-        repositionPoolPieces();
-    }
-
     // Initialize fichas en el pool
     private void initializePiecePool() {
         piecePool.clear();
 
-        int piecesPerColor = maxPoolPieces / 2;
         double radius = 20;
+        double minDistance = radius * 3; // Distancia mínima entre fichas (3 veces el radio)
 
-        // Crear grid de posiciones dentro del pool
-        int cols = 2;
-        int rows = (int) Math.ceil((double) maxPoolPieces / cols);
+        List<String> colors = new ArrayList<>();
+        // Crear lista de colores alternados
+        for (int i = 0; i < maxPoolPieces / 2; i++) {
+            colors.add("RED");
+            colors.add("YELLOW");
+        }
 
-        double spacingX = (poolAreaWidth - 40) / cols;
-        double spacingY = (poolAreaHeight - 40) / rows;
+        // Mezclar los colores para distribución aleatoria
+        java.util.Collections.shuffle(colors);
 
-        int pieceIndex = 0;
+        int attempts = 0;
+        int maxAttempts = 100; // Máximo de intentos por ficha
 
-        for (int row = 0; row < rows && pieceIndex < maxPoolPieces; row++) {
-            for (int col = 0; col < cols && pieceIndex < maxPoolPieces; col++) {
-                // Alternar colores
-                String color = (pieceIndex < piecesPerColor) ? "RED" : "YELLOW";
+        for (int i = 0; i < maxPoolPieces; i++) {
+            boolean validPosition = false;
+            double x = 0, y = 0;
 
-                // Posición fija en el grid del pool
-                double x = poolAreaX + 20 + spacingX * col + spacingX / 2;
-                double y = poolAreaY + 20 + spacingY * row + spacingY / 2;
+            // Intentar encontrar una posición válida
+            while (!validPosition && attempts < maxAttempts) {
+                // Posición aleatoria dentro del área del pool con márgenes
+                x = poolAreaX + radius + 20 + random.nextDouble() * (poolAreaWidth - 2 * radius - 40);
+                y = poolAreaY + radius + 20 + random.nextDouble() * (poolAreaHeight - 2 * radius - 40);
 
-                // Pequeña variación aleatoria para que no se vea tan rígido
-                x += (random.nextDouble() - 0.5) * 10;
-                y += (random.nextDouble() - 0.5) * 10;
+                // Verificar que no esté muy cerca de otras fichas
+                validPosition = true;
+                for (GameObject existingPiece : piecePool) {
+                    double dx = x - existingPiece.center_x;
+                    double dy = y - existingPiece.center_y;
+                    double distance = Math.sqrt(dx * dx + dy * dy);
 
-                String id = "pool_" + System.currentTimeMillis() + "_" + pieceIndex;
-                GameObject piece = new GameObject(id, x, y, radius, -1, -1);
-                piece.color = color;
-
-                piecePool.add(piece);
-                pieceIndex++;
-
-                // Pequeño delay para que los IDs sean únicos
-                try {
-                    Thread.sleep(1);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
+                    if (distance < minDistance) {
+                        validPosition = false;
+                        break;
+                    }
                 }
+                attempts++;
+            }
+
+            // Si encontró posición válida, crear la ficha
+            if (validPosition) {
+                String id = "pool_" + i + "_" + System.currentTimeMillis();
+                GameObject piece = new GameObject(id, x, y, radius, -1, -1);
+                piece.color = colors.get(i);
+                piecePool.add(piece);
+                attempts = 0; // Reset para la siguiente ficha
             }
         }
     }
@@ -207,20 +190,8 @@ public class CtrlPlay implements Initializable {
         piecePool.add(piece);
     }
 
-    // Reposicionar fichas del pool
-    private void repositionPoolPieces() {
-        for (GameObject piece : piecePool) {
-            // Mantener dentro de los límites del pool
-            if (piece.center_x < poolAreaX || piece.center_x > poolAreaX + poolAreaWidth) {
-                piece.center_x = poolAreaX + poolAreaWidth / 2;
-            }
-            if (piece.center_y < poolAreaY || piece.center_y > poolAreaY + poolAreaHeight) {
-                piece.center_y = poolAreaY + poolAreaHeight / 2;
-            }
-        }
-    }
-
     // Verificar si una posición está dentro del pool
+    // Opcional, por si necesito mirar si una ficha no se coloca
     private boolean isPositionInPool(double x, double y) {
         return x >= poolAreaX && x <= poolAreaX + poolAreaWidth &&
                 y >= poolAreaY && y <= poolAreaY + poolAreaHeight;
@@ -244,16 +215,6 @@ public class CtrlPlay implements Initializable {
         }
         int col = (int) ((x - grid.getStartX()) / grid.getCellSize());
         return Math.max(0, Math.min(col, grid.getCols() - 1));
-    }
-
-    // Encontrar la fila más baja disponible en una columna
-    private int getLowestAvailableRow(int col) {
-        for (int row = grid.getRows() - 1; row >= 0; row--) {
-            if (boardState[row][col] == null) {
-                return row;
-            }
-        }
-        return -1; // Columna llena
     }
 
     // Start animation timer
@@ -406,46 +367,6 @@ public class CtrlPlay implements Initializable {
 
         selectedObject = null;
     }
-
-    // Snap piece so its left-top corner sits exactly on the grid cell under its
-    // left tip.
-    /*
-     * private void snapObjectCenter(GameObject obj) {
-     * int col = grid.getCol(obj.center_x); // centerX -> columna
-     * int row = grid.getRow(obj.center_y); // centerY -> fila
-     * 
-     * // mantener dentro del grid
-     * col = (int) Math.max(0, Math.min(col, grid.getCols() - 1));
-     * row = (int) Math.max(0, Math.min(row, grid.getRows() - 1));
-     * 
-     * // Centrar el círculo en la celda
-     * double cellSize = grid.getCellSize();
-     * obj.center_x = grid.getCellX(col) + cellSize / 2;
-     * obj.center_y = grid.getCellY(row) + cellSize / 2;
-     * 
-     * // Guardar posición de celda
-     * obj.col = col;
-     * obj.row = row;
-     * }
-     */
-
-    // Función validación si el objeto se encuentra dentro de la celda
-    /*
-     * public Boolean isPositionInsideObject(double positionX, double positionY, int
-     * objX, int objY, int cols, int rows) {
-     * double cellSize = grid.getCellSize();
-     * double objectWidth = cols * cellSize;
-     * double objectHeight = rows * cellSize;
-     * 
-     * double objectLeftX = objX;
-     * double objectRightX = objX + objectWidth;
-     * double objectTopY = objY;
-     * double objectBottomY = objY + objectHeight;
-     * 
-     * return positionX >= objectLeftX && positionX < objectRightX &&
-     * positionY >= objectTopY && positionY < objectBottomY;
-     * }
-     */
 
     // Run game (and animations)
     private void run(double fps) {
