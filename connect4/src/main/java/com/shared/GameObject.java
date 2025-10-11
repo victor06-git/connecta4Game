@@ -10,6 +10,8 @@ public class GameObject {
     public int col;
     public int row;
     public String color;
+    public double originalX;
+    public double originalY;
 
     public GameObject(String id, double center_x, double center_y, double radius, int col, int row) {
         this.id = id;
@@ -19,6 +21,8 @@ public class GameObject {
         this.col = col;
         this.row = row;
         this.color = "red";
+        this.originalX = center_x;
+        this.originalY = center_y;
     }
 
     @Override

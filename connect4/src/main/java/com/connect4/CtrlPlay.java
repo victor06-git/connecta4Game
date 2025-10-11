@@ -36,6 +36,9 @@ public class CtrlPlay implements Initializable {
     private double mouseOffsetX, mouseOffsetY;
 
     private GameObject selectedObject = null;
+    private GameObject animatingPiece = null;
+    private double animationTargetY = 0;
+    private double animationSpeed = 800;
 
     private List<GameObject> piecePool = new ArrayList<>();
     private double poolAreaX = 100;
@@ -45,11 +48,25 @@ public class CtrlPlay implements Initializable {
     private int maxPoolPieces = 15; // Máximo de fichas visibles
     private Random random = new Random();
 
+    // Zona del tablero para dejar caer la ficha
+    private double dropZoneHeight = 80;
+    private int hoveredColumn = -1;
+
+    // Matriz de las posiciones de las fichas
+    private String[][] boardState = new String[6][7];
+
     @Override
     public void initialize(URL url, ResourceBundle rb) {
 
         // Get drawing context
         this.gc = canvas.getGraphicsContext2D();
+
+        // Inicializar estado del tablero
+        for (int i = 0; i < 6; i++) {
+            for (int j = 0; j < 7; j++) {
+                boardState[i][j] = null;
+            }
+        }
 
         // Set listeners
         UtilsViews.parentContainer.heightProperty().addListener((observable, oldValue, newvalue) -> {
@@ -96,8 +113,8 @@ public class CtrlPlay implements Initializable {
         int cols = 7;
 
         // Calcular tamaño de celda según espacio
-        double availableWidth = (canvasWidth - poolAreaWidth) * 0.8;
-        double availableHeight = canvasHeight * 0.8;
+        double availableWidth = canvasWidth * 0.8;
+        double availableHeight = (canvasHeight - dropZoneHeight) * 0.8;
 
         // El tamaño de celda será el menor entre ancho y alto disponible
         double cellSizeByWidth = availableWidth / cols;
@@ -107,8 +124,8 @@ public class CtrlPlay implements Initializable {
         // Centrar el grid en el canvas
         double gridWidth = cellSize * cols;
         double gridHeight = cellSize * rows;
-        double startX = ((canvasWidth - poolAreaWidth) - gridWidth) / 2;
-        double startY = (canvasHeight - gridHeight) / 2;
+        double startX = (canvasWidth - gridWidth) / 2;
+        double startY = dropZoneHeight + (canvasHeight - gridHeight) / 2;
 
         // Actualizar el grid
         grid = new PlayGrid(startX, startY, cellSize, rows, cols);
@@ -116,11 +133,20 @@ public class CtrlPlay implements Initializable {
 
     // Update pool area
     private void updatePoolArea(double canvasWidth, double canvasHeight) {
-        poolAreaX = canvasWidth - poolAreaWidth - 20;
-        poolAreaY = 50;
-        poolAreaHeight = canvasHeight - 100;
+        // Calcular posición del pool a la derecha del tablero
+        double gridRightEdge = grid.getStartX() + (grid.getCols() * grid.getCellSize());
+        double availableSpace = canvasWidth - gridRightEdge - 40; // margen de 40px
 
-        // Reposicionar fichas
+        poolAreaWidth = Math.min(200, availableSpace * 0.8);
+
+        // Misma altura y posición vertical que el tablero
+        poolAreaY = grid.getStartY();
+        poolAreaHeight = grid.getRows() * grid.getCellSize();
+
+        // Centrar horizontalmente en el espacio disponible
+        poolAreaX = gridRightEdge + (availableSpace - poolAreaWidth) / 2;
+
+        // Reposicionar fichas si es necesario
         repositionPoolPieces();
     }
 
@@ -128,29 +154,51 @@ public class CtrlPlay implements Initializable {
     private void initializePiecePool() {
         piecePool.clear();
 
-        // Obtener color del jugador
-        /*
-         * String playerColor = Main.clients.stream()
-         * .filter(c -> c.name.equals(Main.clientName))
-         * .map(c -> c.color)
-         * .findFirst()
-         * .orElse("red");
-         */
+        int piecesPerColor = maxPoolPieces / 2;
+        double radius = 20;
 
-        // Get color of player
-        for (int i = 0; i < maxPoolPieces / 2; i++) {
-            addPieceToPool("RED");
-            addPieceToPool("YELLOW");
-            // addPieceToPool(playerColor);
+        // Crear grid de posiciones dentro del pool
+        int cols = 2;
+        int rows = (int) Math.ceil((double) maxPoolPieces / cols);
+
+        double spacingX = (poolAreaWidth - 40) / cols;
+        double spacingY = (poolAreaHeight - 40) / rows;
+
+        int pieceIndex = 0;
+
+        for (int row = 0; row < rows && pieceIndex < maxPoolPieces; row++) {
+            for (int col = 0; col < cols && pieceIndex < maxPoolPieces; col++) {
+                // Alternar colores
+                String color = (pieceIndex < piecesPerColor) ? "RED" : "YELLOW";
+
+                // Posición fija en el grid del pool
+                double x = poolAreaX + 20 + spacingX * col + spacingX / 2;
+                double y = poolAreaY + 20 + spacingY * row + spacingY / 2;
+
+                // Pequeña variación aleatoria para que no se vea tan rígido
+                x += (random.nextDouble() - 0.5) * 10;
+                y += (random.nextDouble() - 0.5) * 10;
+
+                String id = "pool_" + System.currentTimeMillis() + "_" + pieceIndex;
+                GameObject piece = new GameObject(id, x, y, radius, -1, -1);
+                piece.color = color;
+
+                piecePool.add(piece);
+                pieceIndex++;
+
+                // Pequeño delay para que los IDs sean únicos
+                try {
+                    Thread.sleep(1);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
         }
     }
 
     // Add pieces to the pool
-    private void addPieceToPool(String color) {
+    private void addPieceToPool(String color, double x, double y) {
         double radius = 20;
-
-        double x = poolAreaX + radius + random.nextDouble() * (poolAreaWidth - 2 * radius);
-        double y = poolAreaY + radius + random.nextDouble() * (poolAreaHeight - 2 * radius);
 
         String id = "pool_" + System.currentTimeMillis() + "_" + random.nextInt(10000);
         GameObject piece = new GameObject(id, x, y, radius, -1, -1);
@@ -178,6 +226,36 @@ public class CtrlPlay implements Initializable {
                 y >= poolAreaY && y <= poolAreaY + poolAreaHeight;
     }
 
+    // Verificar si una posición está en la zona de drop
+    private boolean isPositionInDropZone(double x, double y) {
+        double gridStartX = grid.getStartX();
+        double gridEndX = gridStartX + (grid.getCols() * grid.getCellSize());
+        double dropZoneStartY = grid.getStartY() - dropZoneHeight;
+        double dropZoneEndY = grid.getStartY();
+
+        return x >= gridStartX && x <= gridEndX &&
+                y >= dropZoneStartY && y <= dropZoneEndY;
+    }
+
+    // Obtener columna sobre la que está el mouse en la drop zone
+    private int getDropZoneColumn(double x) {
+        if (x < grid.getStartX() || x > grid.getStartX() + grid.getCols() * grid.getCellSize()) {
+            return -1;
+        }
+        int col = (int) ((x - grid.getStartX()) / grid.getCellSize());
+        return Math.max(0, Math.min(col, grid.getCols() - 1));
+    }
+
+    // Encontrar la fila más baja disponible en una columna
+    private int getLowestAvailableRow(int col) {
+        for (int row = grid.getRows() - 1; row >= 0; row--) {
+            if (boardState[row][col] == null) {
+                return row;
+            }
+        }
+        return -1; // Columna llena
+    }
+
     // Start animation timer
     public void start() {
         animationTimer.start();
@@ -191,6 +269,13 @@ public class CtrlPlay implements Initializable {
     private void setOnMouseMoved(MouseEvent event) {
         double mouseX = event.getX();
         double mouseY = event.getY();
+
+        // Actualizar columna hover
+        if (isPositionInDropZone(mouseX, mouseY)) {
+            hoveredColumn = getDropZoneColumn(mouseX);
+        } else {
+            hoveredColumn = -1;
+        }
 
         String color = Main.clients.stream()
                 .filter(c -> c.name.equals(Main.clientName))
@@ -217,14 +302,13 @@ public class CtrlPlay implements Initializable {
 
     // Función para eventos de presionar el mouse
     private void onMousePressed(MouseEvent event) {
-
         double mouseX = event.getX();
         double mouseY = event.getY();
 
         selectedObject = null;
         mouseDragging = false;
 
-        // Primero buscar en el pool de fichas
+        // Solo buscar en el pool de fichas
         for (int i = piecePool.size() - 1; i >= 0; i--) {
             GameObject go = piecePool.get(i);
             double dx = mouseX - go.center_x;
@@ -232,69 +316,42 @@ public class CtrlPlay implements Initializable {
             double distancia = Math.sqrt(dx * dx + dy * dy);
 
             if (distancia <= go.radius) {
-                // Crear una copia de la ficha para arrastrar
+                // Guardar posición original para volver si es necesario
                 selectedObject = new GameObject(go.id, go.center_x, go.center_y, go.radius, go.row, go.col);
                 selectedObject.color = go.color;
+                selectedObject.originalX = go.center_x;
+                selectedObject.originalY = go.center_y;
+
                 mouseDragging = true;
                 mouseOffsetX = mouseX - go.center_x;
                 mouseOffsetY = mouseY - go.center_y;
 
-                // Generar una nueva ficha en el pool en la misma posición aproximada
-                String playerColor = Main.clients.stream()
-                        .filter(c -> c.name.equals(Main.clientName))
-                        .map(c -> c.color)
-                        .findFirst()
-                        .orElse("red");
-
-                // Añadir nueva ficha con ligera variación de posición
-                double newX = go.center_x + (random.nextDouble() - 0.5) * 40;
-                double newY = go.center_y + (random.nextDouble() - 0.5) * 40;
-                newX = Math.max(poolAreaX + go.radius, Math.min(poolAreaX + poolAreaWidth - go.radius, newX));
-                newY = Math.max(poolAreaY + go.radius, Math.min(poolAreaY + poolAreaHeight - go.radius, newY));
-
-                String newId = "pool_" + System.currentTimeMillis() + "_" + random.nextInt(10000);
-                GameObject newPiece = new GameObject(newId, newX, newY, go.radius, -1, -1);
-                newPiece.color = playerColor;
-                piecePool.add(newPiece);
+                // Generar nueva ficha en la misma posición
+                addPieceToPool(go.color, go.center_x, go.center_y);
 
                 return;
-            }
-
-        }
-        // Fichas tablero (eliminar cuando se aplique la animación)
-        for (GameObject go : Main.objects) {
-            double dx = mouseX - go.center_x;
-            double dy = mouseY - go.center_y;
-            double distancia = Math.sqrt(dx * dx + dy * dy);
-
-            if (distancia <= go.radius) {
-                selectedObject = new GameObject(go.id, go.center_x, go.center_y, go.radius, go.row, go.col);
-                selectedObject.color = go.color;
-                mouseDragging = true;
-                mouseOffsetX = mouseX - go.center_x;
-                mouseOffsetY = mouseY - go.center_y;
-                break;
             }
         }
     }
 
     // Función para cuando arrastrar el mouse con la ficha
     private void onMouseDragged(MouseEvent event) {
-        if (mouseDragging) {
+        if (mouseDragging && selectedObject != null) {
             double centerX = event.getX() - mouseOffsetX;
             double centerY = event.getY() - mouseOffsetY;
 
-            selectedObject = new GameObject(
-                    selectedObject.id,
-                    centerX,
-                    centerY,
-                    selectedObject.radius,
-                    selectedObject.row,
-                    selectedObject.col);
-            selectedObject.color = selectedObject.color;
+            selectedObject.center_x = centerX;
+            selectedObject.center_y = centerY;
+
+            // Actualizar columna hover
+            if (isPositionInDropZone(centerX, centerY)) {
+                hoveredColumn = getDropZoneColumn(centerX);
+            } else {
+                hoveredColumn = -1;
+            }
 
             JSONObject msg = new JSONObject();
-            msg.put("type", "clientPieceMoving"); // Usar el mismo tipo que en el servidor
+            msg.put("type", "clientPieceMoving");
             msg.put("value", selectedObject.toJSON());
 
             if (Main.wsClient != null) {
@@ -307,70 +364,88 @@ public class CtrlPlay implements Initializable {
     // Función cuando deja ir el ratón
     private void onMouseReleased(MouseEvent event) {
         if (selectedObject != null) {
-            double centerX = event.getX() - mouseOffsetX; // left tip X
-            double centerY = event.getY() - mouseOffsetY; // left tip Y
+            double centerX = event.getX() - mouseOffsetX;
+            double centerY = event.getY() - mouseOffsetY;
 
-            // build object with dragged position (size stays in col/row)
-            selectedObject = new GameObject(
-                    selectedObject.id,
-                    centerX,
-                    centerY,
-                    selectedObject.radius,
-                    selectedObject.col,
-                    selectedObject.row);
-            selectedObject.color = selectedObject.color;
+            // Verificar si se soltó en la drop zone
+            if (isPositionInDropZone(centerX, centerY)) {
+                int col = getDropZoneColumn(centerX);
 
-            // snap by left-top corner to underlying cell
-            if (grid.isPositionInsideGrid(centerX, centerY)) {
-                snapObjectCenter(selectedObject);
+                // Enviar jugada al servidor (el servidor validará si es posible)
+                JSONObject msg = new JSONObject();
+                msg.put("type", "clientPlay");
+                msg.put("column", col);
+
+                if (Main.wsClient != null) {
+                    Main.wsClient.safeSend(msg.toString());
+                }
+
+                // La ficha desaparece, el servidor responderá con serverData
+                // y entonces animaremos la caída basándonos en lastMove
             }
+            // Si no se soltó en drop zone, la ficha simplemente desaparece
 
-            // Enviar missatge al servidor
-            JSONObject msg = new JSONObject();
-            msg.put("type", "clientPieceMoving");
-            msg.put("value", selectedObject.toJSON());
-            if (Main.wsClient != null)
-                Main.wsClient.safeSend(msg.toString());
-
-            mouseDragging = false;
             selectedObject = null;
+            mouseDragging = false;
+            hoveredColumn = -1;
         }
+    }
+
+    // Iniciar animación de caída
+    private void startDropAnimation(GameObject piece, int col, int row) {
+        animatingPiece = new GameObject(piece.id, piece.center_x, piece.center_y, piece.radius, col, row);
+        animatingPiece.color = piece.color;
+
+        // Calcular posición objetivo
+        double cellSize = grid.getCellSize();
+        animatingPiece.center_x = grid.getCellX(col) + cellSize / 2;
+        animationTargetY = grid.getCellY(row) + cellSize / 2;
+
+        // La pieza empieza desde arriba de la columna
+        animatingPiece.center_y = grid.getStartY() - 20;
+
+        selectedObject = null;
     }
 
     // Snap piece so its left-top corner sits exactly on the grid cell under its
     // left tip.
-    private void snapObjectCenter(GameObject obj) {
-        int col = grid.getCol(obj.center_x); // centerX -> columna
-        int row = grid.getRow(obj.center_y); // centerY -> fila
-
-        // mantener dentro del grid
-        col = (int) Math.max(0, Math.min(col, grid.getCols() - 1));
-        row = (int) Math.max(0, Math.min(row, grid.getRows() - 1));
-
-        // Centrar el círculo en la celda
-        double cellSize = grid.getCellSize();
-        obj.center_x = grid.getCellX(col) + cellSize / 2;
-        obj.center_y = grid.getCellY(row) + cellSize / 2;
-
-        // Guardar posición de celda
-        obj.col = col;
-        obj.row = row;
-    }
+    /*
+     * private void snapObjectCenter(GameObject obj) {
+     * int col = grid.getCol(obj.center_x); // centerX -> columna
+     * int row = grid.getRow(obj.center_y); // centerY -> fila
+     * 
+     * // mantener dentro del grid
+     * col = (int) Math.max(0, Math.min(col, grid.getCols() - 1));
+     * row = (int) Math.max(0, Math.min(row, grid.getRows() - 1));
+     * 
+     * // Centrar el círculo en la celda
+     * double cellSize = grid.getCellSize();
+     * obj.center_x = grid.getCellX(col) + cellSize / 2;
+     * obj.center_y = grid.getCellY(row) + cellSize / 2;
+     * 
+     * // Guardar posición de celda
+     * obj.col = col;
+     * obj.row = row;
+     * }
+     */
 
     // Función validación si el objeto se encuentra dentro de la celda
-    public Boolean isPositionInsideObject(double positionX, double positionY, int objX, int objY, int cols, int rows) {
-        double cellSize = grid.getCellSize();
-        double objectWidth = cols * cellSize;
-        double objectHeight = rows * cellSize;
-
-        double objectLeftX = objX;
-        double objectRightX = objX + objectWidth;
-        double objectTopY = objY;
-        double objectBottomY = objY + objectHeight;
-
-        return positionX >= objectLeftX && positionX < objectRightX &&
-                positionY >= objectTopY && positionY < objectBottomY;
-    }
+    /*
+     * public Boolean isPositionInsideObject(double positionX, double positionY, int
+     * objX, int objY, int cols, int rows) {
+     * double cellSize = grid.getCellSize();
+     * double objectWidth = cols * cellSize;
+     * double objectHeight = rows * cellSize;
+     * 
+     * double objectLeftX = objX;
+     * double objectRightX = objX + objectWidth;
+     * double objectTopY = objY;
+     * double objectBottomY = objY + objectHeight;
+     * 
+     * return positionX >= objectLeftX && positionX < objectRightX &&
+     * positionY >= objectTopY && positionY < objectBottomY;
+     * }
+     */
 
     // Run game (and animations)
     private void run(double fps) {
@@ -379,7 +454,31 @@ public class CtrlPlay implements Initializable {
             return;
         }
 
-        // Update objects and animations here
+        // Actualizar animación de caída
+        if (animatingPiece != null) {
+            double deltaTime = 1.0 / fps;
+            double movement = animationSpeed * deltaTime;
+
+            if (animatingPiece.center_y < animationTargetY) {
+                animatingPiece.center_y += movement;
+
+                // Si llegó al objetivo
+                if (animatingPiece.center_y >= animationTargetY) {
+                    animatingPiece.center_y = animationTargetY;
+
+                    // Añadir a objetos del tablero (representación visual local)
+                    // El servidor ya tiene el estado actualizado
+                    boolean exists = Main.objects.stream()
+                            .anyMatch(obj -> obj.col == animatingPiece.col && obj.row == animatingPiece.row);
+
+                    if (!exists) {
+                        Main.objects.add(animatingPiece);
+                    }
+
+                    animatingPiece = null;
+                }
+            }
+        }
     }
 
     // Draw game to canvas
@@ -392,6 +491,8 @@ public class CtrlPlay implements Initializable {
 
         // Clean drawing area
         gc.clearRect(0, 0, canvas.getWidth(), canvas.getHeight());
+
+        drawDropZone();
 
         // Gradiente de colores vibrantes
         gc.setFill(Color.rgb(255, 200, 100)); // Naranja claro
@@ -430,6 +531,11 @@ public class CtrlPlay implements Initializable {
             }
         }
 
+        // Draw animating piece
+        if (animatingPiece != null) {
+            drawObject(animatingPiece);
+        }
+
         // Draw grid
         drawGrid();
 
@@ -455,6 +561,36 @@ public class CtrlPlay implements Initializable {
         }
     }
 
+    private void drawDropZone() {
+        double startX = grid.getStartX();
+        double startY = grid.getStartY() - dropZoneHeight;
+        double cellSize = grid.getCellSize();
+
+        for (int col = 0; col < grid.getCols(); col++) {
+            double x = startX + col * cellSize;
+
+            // Fondo de la columna
+            if (col == hoveredColumn) {
+                // Columna iluminada
+                gc.setFill(Color.rgb(100, 200, 255, 0.5));
+            } else {
+                gc.setFill(Color.rgb(200, 200, 200, 0.3));
+            }
+            gc.fillRect(x, startY, cellSize, dropZoneHeight);
+
+            // Borde
+            gc.setStroke(Color.GRAY);
+            gc.setLineWidth(1);
+            gc.strokeRect(x, startY, cellSize, dropZoneHeight);
+
+            // Letra de la columna (A-G)
+            gc.setFill(Color.BLACK);
+            gc.setFont(new Font("Arial Bold", 24));
+            String letter = String.valueOf((char) ('A' + col));
+            gc.fillText(letter, x + cellSize / 2 - 8, startY + dropZoneHeight / 2 + 8);
+        }
+    }
+
     // Dibuja el tablero
     public void drawGrid() {
         double cellSize = grid.getCellSize();
@@ -467,20 +603,17 @@ public class CtrlPlay implements Initializable {
         gc.setFill(Color.DODGERBLUE);
         gc.fillRect(startX, startY, gridWidth, gridHeight);
 
-        // Dibujar los círculos grises (agujeros) en cada celda
+        // Dibujar los círculos grises (sombra) en cada celda
         for (int row = 0; row < grid.getRows(); row++) {
             for (int col = 0; col < grid.getCols(); col++) {
                 double cellX = startX + col * cellSize;
                 double cellY = startY + row * cellSize;
 
-                // Centro de la celda
                 double centerX = cellX + cellSize / 2;
                 double centerY = cellY + cellSize / 2;
 
-                // Radio del círculo (un poco más pequeño que la celda para dejar margen)
                 double holeRadius = cellSize * 0.45;
 
-                // Dibujar el círculo blanco (agujero)
                 gc.setFill(Color.GRAY);
                 gc.fillOval(centerX - holeRadius, centerY - holeRadius, holeRadius * 2, holeRadius * 2);
             }
@@ -492,20 +625,17 @@ public class CtrlPlay implements Initializable {
                 double cellX = startX + col * cellSize;
                 double cellY = startY + row * cellSize;
 
-                // Centro de la celda
                 double centerX = cellX + cellSize / 2;
                 double centerY = cellY + cellSize / 2;
 
-                // Radio del círculo (un poco más pequeño que la celda para dejar margen)
                 double holeRadius = cellSize * 0.4;
 
-                // Dibujar el círculo blanco (agujero)
                 gc.setFill(Color.WHITE);
                 gc.fillOval(centerX - holeRadius, centerY - holeRadius, holeRadius * 2, holeRadius * 2);
             }
         }
 
-        // Opcional: Dibujar borde del tablero
+        // Dibujar borde del tablero
         gc.setStroke(Color.DARKBLUE);
         gc.setLineWidth(3);
         gc.strokeRect(startX, startY, gridWidth, gridHeight);
