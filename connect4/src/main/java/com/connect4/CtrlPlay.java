@@ -40,13 +40,6 @@ public class CtrlPlay implements Initializable {
     private double animationTargetY = 0;
     private double animationSpeed = 500;
 
-    private List<GameObject> piecePool = new ArrayList<>();
-    private double poolAreaX = 100;
-    private double poolAreaY = 50;
-    private double poolAreaWidth = 200;
-    private double poolAreaHeight = 500;
-    private Random random = new Random();
-
     // Zona del tablero para dejar caer la ficha
     private double dropZoneHeight = 30;
     private int hoveredColumn = -1;
@@ -81,10 +74,10 @@ public class CtrlPlay implements Initializable {
         canvas.setOnMouseReleased(this::onMouseReleased);
 
         // Define grid
-        // grid = new PlayGrid(100, 100, 100, 6, 7);
-        double initialWidth = canvas.getWidth() > 0 ? canvas.getWidth() : 800;
-        double initialHeight = canvas.getHeight() > 0 ? canvas.getHeight() : 600;
-        updateGridSize(initialWidth, initialHeight);
+        grid = new PlayGrid(100, 100, 100, 6, 7);
+        // double initialWidth = canvas.getWidth() > 0 ? canvas.getWidth() : 800;
+        // double initialHeight = canvas.getHeight() > 0 ? canvas.getHeight() : 600;
+        // updateGridSize(initialWidth, initialHeight);
 
         // initializePiecePool(); // Initialize the pieces in the pool
 
@@ -102,7 +95,6 @@ public class CtrlPlay implements Initializable {
         canvas.setHeight(height);
 
         updateGridSize(width, height);
-        updatePoolArea(width, height);
     }
 
     // Updates the cell size
@@ -128,113 +120,6 @@ public class CtrlPlay implements Initializable {
 
         // Actualizar el grid
         grid = new PlayGrid(startX, startY, cellSize, rows, cols);
-    }
-
-    // Update pool area
-    private void updatePoolArea(double canvasWidth, double canvasHeight) {
-        // Calcular posición del pool a la derecha del tablero
-        double gridRightEdge = grid.getStartX() + (grid.getCols() * grid.getCellSize());
-        double availableSpace = canvasWidth - gridRightEdge - 40; // margen de 40px
-
-        poolAreaWidth = Math.min(200, availableSpace * 0.8);
-
-        // Misma altura y posición vertical que el tablero
-        poolAreaY = grid.getStartY();
-        poolAreaHeight = grid.getRows() * grid.getCellSize();
-
-        // Centrar horizontalmente en el espacio disponible
-        poolAreaX = gridRightEdge + (availableSpace - poolAreaWidth) / 2;
-
-        // Reposicionar fichas si es necesario
-        repositionPoolPieces();
-    }
-
-    // Initialize fichas en el pool
-    /*
-     * private void initializePiecePool() {
-     * piecePool.clear();
-     * 
-     * double radius = 20;
-     * double minDistance = radius * 3; // Distancia mínima entre fichas (3 veces el
-     * radio)
-     * 
-     * List<String> colors = new ArrayList<>();
-     * // Crear lista de colores alternados
-     * for (int i = 0; i < maxPoolPieces / 2; i++) {
-     * colors.add("RED");
-     * colors.add("YELLOW");
-     * }
-     * 
-     * // Mezclar los colores para distribución aleatoria
-     * java.util.Collections.shuffle(colors);
-     * 
-     * int attempts = 0;
-     * int maxAttempts = 100; // Máximo de intentos por ficha
-     * 
-     * for (int i = 0; i < maxPoolPieces; i++) {
-     * boolean validPosition = false;
-     * double x = 0, y = 0;
-     * 
-     * // Intentar encontrar una posición válida
-     * while (!validPosition && attempts < maxAttempts) {
-     * // Posición aleatoria dentro del área del pool con márgenes
-     * x = poolAreaX + radius + 20 + random.nextDouble() * (poolAreaWidth - 2 *
-     * radius - 40);
-     * y = poolAreaY + radius + 20 + random.nextDouble() * (poolAreaHeight - 2 *
-     * radius - 40);
-     * 
-     * // Verificar que no esté muy cerca de otras fichas
-     * validPosition = true;
-     * for (GameObject existingPiece : piecePool) {
-     * double dx = x - existingPiece.center_x;
-     * double dy = y - existingPiece.center_y;
-     * double distance = Math.sqrt(dx * dx + dy * dy);
-     * 
-     * if (distance < minDistance) {
-     * validPosition = false;
-     * break;
-     * }
-     * }
-     * attempts++;
-     * }
-     * 
-     * // Si encontró posición válida, crear la ficha
-     * if (validPosition) {
-     * String id = "pool_" + i + "_" + System.currentTimeMillis();
-     * GameObject piece = new GameObject(id, x, y, radius, -1, -1);
-     * piece.color = colors.get(i);
-     * piecePool.add(piece);
-     * attempts = 0; // Reset para la siguiente ficha
-     * }
-     * }
-     * }
-     */
-
-    // Add pieces to the pool
-    /*
-     * private void addPieceToPool(String color, double x, double y) {
-     * double radius = 20;
-     * 
-     * String id = "pool_" + System.currentTimeMillis() + "_" +
-     * random.nextInt(10000);
-     * GameObject piece = new GameObject(id, x, y, radius, -1, -1);
-     * piece.color = color;
-     * 
-     * piecePool.add(piece);
-     * }
-     */
-
-    // Reposicionar fichas del pool
-    private void repositionPoolPieces() {
-        for (GameObject piece : piecePool) {
-            // Mantener dentro de los límites del pool
-            if (piece.center_x < poolAreaX || piece.center_x > poolAreaX + poolAreaWidth) {
-                piece.center_x = poolAreaX + poolAreaWidth / 2;
-            }
-            if (piece.center_y < poolAreaY || piece.center_y > poolAreaY + poolAreaHeight) {
-                piece.center_y = poolAreaY + poolAreaHeight / 2;
-            }
-        }
     }
 
     // Verificar si una posición está en la zona de drop
@@ -488,24 +373,6 @@ public class CtrlPlay implements Initializable {
 
         drawDropZone();
 
-        // Gradiente de colores vibrantes
-        gc.setFill(Color.rgb(255, 200, 100)); // Naranja claro
-        gc.fillOval(poolAreaX, poolAreaY, poolAreaWidth, poolAreaHeight);
-
-        // Añadir un círculo interno más claro para efecto de profundidad
-        gc.setFill(Color.rgb(255, 230, 150, 0.7)); // Más claro y translúcido
-        gc.fillOval(poolAreaX + 20, poolAreaY + 20, poolAreaWidth - 40, poolAreaHeight - 40);
-
-        // Borde del pool
-        gc.setStroke(Color.rgb(200, 120, 50)); // Marrón/naranja oscuro
-        gc.setLineWidth(3);
-        gc.strokeOval(poolAreaX, poolAreaY, poolAreaWidth, poolAreaHeight);
-
-        // Draw pool label
-        gc.setFill(Color.rgb(100, 60, 20)); // Marrón oscuro
-        gc.setFont(new Font("Arial", 16));
-        gc.fillText("Fichas disponibles", poolAreaX + 15, poolAreaY - 10);
-
         // Draw colored 'over' cells
         for (ClientData clientData : Main.clients) {
             // Comprovar si està dins dels límits de la graella
@@ -532,11 +399,6 @@ public class CtrlPlay implements Initializable {
 
         // Draw grid
         drawGrid();
-
-        // Draw pool pieces
-        for (GameObject piece : piecePool) {
-            drawObject(piece);
-        }
 
         // Draw selected object on top
         if (selectedObject != null && mouseDragging) {

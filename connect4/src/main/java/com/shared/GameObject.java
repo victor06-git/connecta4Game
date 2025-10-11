@@ -21,8 +21,6 @@ public class GameObject {
         this.col = col;
         this.row = row;
         this.color = "red";
-        this.originalX = center_x;
-        this.originalY = center_y;
     }
 
     @Override
