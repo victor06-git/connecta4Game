@@ -11,6 +11,7 @@ import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.paint.Color;
+import javafx.scene.text.Font;
 
 import com.shared.ClientData;
 import com.shared.GameObject;
@@ -53,7 +54,10 @@ public class CtrlPlay implements Initializable {
         canvas.setOnMouseReleased(this::onMouseReleased);
 
         // Define grid
-        grid = new PlayGrid(100, 100, 100, 6, 7);
+        // grid = new PlayGrid(100, 100, 100, 6, 7);
+        double initialWidth = canvas.getWidth() > 0 ? canvas.getWidth() : 800;
+        double initialHeight = canvas.getHeight() > 0 ? canvas.getHeight() : 600;
+        updateGridSize(initialWidth, initialHeight);
 
         // Start run/draw timer bucle
         animationTimer = new PlayTimer(this::run, this::draw, 0);
@@ -67,6 +71,32 @@ public class CtrlPlay implements Initializable {
         double height = UtilsViews.parentContainer.getHeight();
         canvas.setWidth(width);
         canvas.setHeight(height);
+
+        updateGridSize(width, height);
+    }
+
+    // Updates the cell size
+    private void updateGridSize(double canvasWidth, double canvasHeight) {
+        int rows = 6;
+        int cols = 7;
+
+        // Calcular tamaño de celda según espacio
+        double availableWidth = canvasWidth * 0.8;
+        double availableHeight = canvasHeight * 0.8;
+
+        // El tamaño de celda será el menor entre ancho y alto disponible
+        double cellSizeByWidth = availableWidth / cols;
+        double cellSizeByHeight = availableHeight / rows;
+        double cellSize = Math.min(cellSizeByWidth, cellSizeByHeight);
+
+        // Centrar el grid en el canvas
+        double gridWidth = cellSize * cols;
+        double gridHeight = cellSize * rows;
+        double startX = (canvasWidth - gridWidth) / 2;
+        double startY = (canvasHeight - gridHeight) / 2;
+
+        // Actualizar el grid
+        grid = new PlayGrid(startX, startY, cellSize, rows, cols);
     }
 
     // Start animation timer
@@ -116,11 +146,16 @@ public class CtrlPlay implements Initializable {
         mouseDragging = false;
 
         for (GameObject go : Main.objects) {
-            if (isPositionInsideObject(mouseX, mouseY, go.x, go.y, go.col, go.row)) {
-                selectedObject = new GameObject(go.id, go.x, go.y, go.col, go.row);
+            // Verificar si el clic está dentro del círculo usando distancia euclidiana
+            double dx = mouseX - go.center_x;
+            double dy = mouseY - go.center_y;
+            double distancia = Math.sqrt(dx * dx + dy * dy);
+
+            if (distancia <= go.radius) {
+                selectedObject = new GameObject(go.id, go.center_x, go.center_y, go.radius, go.row, go.col);
                 mouseDragging = true;
-                mouseOffsetX = event.getX() - go.x;
-                mouseOffsetY = event.getY() - go.y;
+                mouseOffsetX = mouseX - go.center_x;
+                mouseOffsetY = mouseY - go.center_y;
                 break;
             }
         }
@@ -129,14 +164,19 @@ public class CtrlPlay implements Initializable {
     // Función para cuando arrastrar el mouse con la ficha
     private void onMouseDragged(MouseEvent event) {
         if (mouseDragging) {
-            double objX = event.getX() - mouseOffsetX;
-            double objY = event.getY() - mouseOffsetY;
+            double centerX = event.getX() - mouseOffsetX;
+            double centerY = event.getY() - mouseOffsetY;
 
-            selectedObject = new GameObject(selectedObject.id, (int) objX, (int) objY, (int) selectedObject.col,
-                    (int) selectedObject.row);
+            selectedObject = new GameObject(
+                    selectedObject.id,
+                    centerX,
+                    centerY,
+                    selectedObject.radius,
+                    selectedObject.row,
+                    selectedObject.col);
 
             JSONObject msg = new JSONObject();
-            msg.put("type", "clientObjectMoving");
+            msg.put("type", "clientPieceMoving"); // Usar el mismo tipo que en el servidor
             msg.put("value", selectedObject.toJSON());
 
             if (Main.wsClient != null) {
@@ -149,24 +189,26 @@ public class CtrlPlay implements Initializable {
     // Función cuando deja ir el ratón
     private void onMouseReleased(MouseEvent event) {
         if (selectedObject != null) {
-            double objX = event.getX() - mouseOffsetX; // left tip X
-            double objY = event.getY() - mouseOffsetY; // left tip Y
+            double centerX = event.getX() - mouseOffsetX; // left tip X
+            double centerY = event.getY() - mouseOffsetY; // left tip Y
 
             // build object with dragged position (size stays in col/row)
             selectedObject = new GameObject(
                     selectedObject.id,
-                    (int) objX,
-                    (int) objY,
+                    centerX,
+                    centerY,
+                    selectedObject.radius,
                     selectedObject.col,
                     selectedObject.row);
 
             // snap by left-top corner to underlying cell
-            if (grid.isPositionInsideGrid(objX, objY)) {
-                snapObjectLeftTop(selectedObject);
+            if (grid.isPositionInsideGrid(centerX, centerY)) {
+                snapObjectCenter(selectedObject);
             }
 
+            // Enviar missatge al servidor
             JSONObject msg = new JSONObject();
-            msg.put("type", "clientObjectMoving");
+            msg.put("type", "clientPieceMoving");
             msg.put("value", selectedObject.toJSON());
             if (Main.wsClient != null)
                 Main.wsClient.safeSend(msg.toString());
@@ -178,16 +220,22 @@ public class CtrlPlay implements Initializable {
 
     // Snap piece so its left-top corner sits exactly on the grid cell under its
     // left tip.
-    private void snapObjectLeftTop(GameObject obj) {
-        int col = grid.getCol(obj.x); // left X -> column
-        int row = grid.getRow(obj.y); // top Y -> row
+    private void snapObjectCenter(GameObject obj) {
+        int col = grid.getCol(obj.center_x); // centerX -> columna
+        int row = grid.getRow(obj.center_y); // centerY -> fila
 
-        // clamp inside grid
+        // mantener dentro del grid
         col = (int) Math.max(0, Math.min(col, grid.getCols() - 1));
         row = (int) Math.max(0, Math.min(row, grid.getRows() - 1));
 
-        obj.x = grid.getCellX(col);
-        obj.y = grid.getCellY(row);
+        // Centrar el círculo en la celda
+        double cellSize = grid.getCellSize();
+        obj.center_x = grid.getCellX(col) + cellSize / 2;
+        obj.center_y = grid.getCellY(row) + cellSize / 2;
+
+        // Guardar posición de celda
+        obj.col = col;
+        obj.row = row;
     }
 
     // Función validación si el objeto se encuentra dentro de la celda
@@ -278,27 +326,25 @@ public class CtrlPlay implements Initializable {
 
     // Dibujar fichas
     public void drawObject(GameObject obj) {
-        double cellSize = grid.getCellSize();
-
-        int x = obj.x;
-        int y = obj.y;
-        double width = obj.col * cellSize;
-        double height = obj.row * cellSize;
+        double centerX = obj.center_x;
+        double centerY = obj.center_y;
+        double radius = obj.radius;
 
         // Seleccionar un color basat en l'objectId
-        Color color = Color.GRAY;
+        Color color = Color.RED;
 
         // Dibuixar el rectangle
         gc.setFill(color);
-        gc.fillRect(x, y, width, height);
+        gc.fillOval(centerX - radius, centerY - radius, radius * 2, radius * 2);
 
         // Dibuixar el contorn
-        gc.setStroke(Color.BLACK);
-        gc.strokeRect(x, y, width, height);
+        gc.setStroke(Color.GRAY);
+        gc.setLineWidth(2);
+        gc.strokeOval(centerX - radius, centerY - radius, radius * 2, radius * 2);
 
         // Opcionalment, afegir text (per exemple, l'objectId)
-        gc.setFill(Color.BLACK);
-        gc.fillText(obj.id, x + 5, y + 15);
+        // gc.setFill(Color.YELLOW);
+        // gc.setFont(new Font(12));
     }
 
     // Conseguir color

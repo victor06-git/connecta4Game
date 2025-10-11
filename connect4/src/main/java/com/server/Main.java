@@ -101,11 +101,11 @@ public class Main extends WebSocketServer {
      */
     private void initializegameObjects() {
         String objId = "O0";
-        GameObject obj0 = new GameObject(objId, 300, 100, 5, 6);
+        GameObject obj0 = new GameObject(objId, 300, 100, 25, 5, 6);
         gameObjects.put(objId, obj0);
 
         objId = "O1";
-        GameObject obj1 = new GameObject(objId, 300, 100, 1, 3);
+        GameObject obj1 = new GameObject(objId, 300, 10, 20, 3, 3);
         gameObjects.put(objId, obj1);
     }
 
@@ -268,11 +268,11 @@ public class Main extends WebSocketServer {
 
             case T_CLIENT_PLAY -> {
                 // Fer compte enrere
-             
+
                 int index = 0;
                 for (ClientData data : clientsData.values()) {
                     String color = PLAYER_COLORS.get(index % PLAYER_COLORS.size());
-                     data.SetColor(color);
+                    data.SetColor(color);
                     index++;
                 }
 

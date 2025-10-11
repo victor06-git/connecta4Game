@@ -4,44 +4,47 @@ import org.json.JSONObject;
 
 public class GameObject {
     public String id;
-    public int x;
-    public int y;
+    public double center_x;
+    public double center_y;
+    public double radius;
     public int col;
     public int row;
 
-    public GameObject(String id, int x, int y, int cols, int rows) {
+    public GameObject(String id, double center_x, double center_y, double radius, int col, int row) {
         this.id = id;
-        this.x = x;
-        this.y = y;
-        this.col = cols;
-        this.row = rows;
+        this.center_x = center_x;
+        this.center_y = center_y;
+        this.radius = radius;
+        this.col = col;
+        this.row = row;
     }
 
     @Override
     public String toString() {
         return this.toJSON().toString();
     }
-    
+
     // Converteix l'objecte a JSON
     public JSONObject toJSON() {
         JSONObject obj = new JSONObject();
         obj.put("id", id);
-        obj.put("x", x);
-        obj.put("y", y);
-        obj.put("cols", col);
-        obj.put("rows", row);
+        obj.put("center_x", center_x);
+        obj.put("center_y", center_y);
+        obj.put("radius", radius);
+        obj.put("col", col);
+        obj.put("row", row);
         return obj;
     }
 
     // Crea un GameObjects a partir de JSON
     public static GameObject fromJSON(JSONObject obj) {
         GameObject go = new GameObject(
-            obj.optString("id", null),
-            obj.optInt("x", 0),
-            obj.optInt("y", 0),
-            obj.optInt("cols", 1),
-            obj.optInt("rows", 1)
-        );
+                obj.optString("id", null),
+                obj.optDouble("center_x", 0.0),
+                obj.optDouble("center_y", 0.0),
+                obj.optDouble("radius", 0.0),
+                obj.optInt("col", 1),
+                obj.optInt("row", 1));
         return go;
     }
 }
