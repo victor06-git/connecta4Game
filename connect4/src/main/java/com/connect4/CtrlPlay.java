@@ -38,7 +38,7 @@ public class CtrlPlay implements Initializable {
     private GameObject selectedObject = null;
     private GameObject animatingPiece = null;
     private double animationTargetY = 0;
-    private double animationSpeed = 300; // velocidad de caida
+    private double animationSpeed = 500;
 
     private List<GameObject> piecePool = new ArrayList<>();
     private double poolAreaX = 100;
@@ -69,16 +69,12 @@ public class CtrlPlay implements Initializable {
         }
 
         // Set listeners
-        /*
-         * UtilsViews.parentContainer.heightProperty().addListener((observable,
-         * oldValue, newvalue) -> {
-         * onSizeChanged();
-         * });
-         * UtilsViews.parentContainer.widthProperty().addListener((observable, oldValue,
-         * newvalue) -> {
-         * onSizeChanged();
-         * });
-         */
+        UtilsViews.parentContainer.heightProperty().addListener((observable, oldValue, newvalue) -> {
+            onSizeChanged();
+        });
+        UtilsViews.parentContainer.widthProperty().addListener((observable, oldValue, newvalue) -> {
+            onSizeChanged();
+        });
 
         canvas.setOnMouseMoved(this::setOnMouseMoved);
         canvas.setOnMousePressed(this::onMousePressed);
@@ -98,7 +94,19 @@ public class CtrlPlay implements Initializable {
         start();
     }
 
-    // Updates the cell sizem (borrar)
+    // When window changes its size
+    public void onSizeChanged() {
+
+        double width = UtilsViews.parentContainer.getWidth();
+        double height = UtilsViews.parentContainer.getHeight();
+        canvas.setWidth(width);
+        canvas.setHeight(height);
+
+        updateGridSize(width, height);
+        updatePoolArea(width, height);
+    }
+
+    // Updates the cell size
     // Hacer que tenga una medida concreta y que la vista no se haga más pequeña
     private void updateGridSize(double canvasWidth, double canvasHeight) {
         int rows = 6;
@@ -121,6 +129,25 @@ public class CtrlPlay implements Initializable {
 
         // Actualizar el grid
         grid = new PlayGrid(startX, startY, cellSize, rows, cols);
+    }
+
+    // Update pool area
+    private void updatePoolArea(double canvasWidth, double canvasHeight) {
+        // Calcular posición del pool a la derecha del tablero
+        double gridRightEdge = grid.getStartX() + (grid.getCols() * grid.getCellSize());
+        double availableSpace = canvasWidth - gridRightEdge - 40; // margen de 40px
+
+        poolAreaWidth = Math.min(200, availableSpace * 0.8);
+
+        // Misma altura y posición vertical que el tablero
+        poolAreaY = grid.getStartY();
+        poolAreaHeight = grid.getRows() * grid.getCellSize();
+
+        // Centrar horizontalmente en el espacio disponible
+        poolAreaX = gridRightEdge + (availableSpace - poolAreaWidth) / 2;
+
+        // Reposicionar fichas si es necesario
+        repositionPoolPieces();
     }
 
     // Initialize fichas en el pool
@@ -190,8 +217,20 @@ public class CtrlPlay implements Initializable {
         piecePool.add(piece);
     }
 
+    // Reposicionar fichas del pool
+    private void repositionPoolPieces() {
+        for (GameObject piece : piecePool) {
+            // Mantener dentro de los límites del pool
+            if (piece.center_x < poolAreaX || piece.center_x > poolAreaX + poolAreaWidth) {
+                piece.center_x = poolAreaX + poolAreaWidth / 2;
+            }
+            if (piece.center_y < poolAreaY || piece.center_y > poolAreaY + poolAreaHeight) {
+                piece.center_y = poolAreaY + poolAreaHeight / 2;
+            }
+        }
+    }
+
     // Verificar si una posición está dentro del pool
-    // Opcional, por si necesito mirar si una ficha no se coloca
     private boolean isPositionInPool(double x, double y) {
         return x >= poolAreaX && x <= poolAreaX + poolAreaWidth &&
                 y >= poolAreaY && y <= poolAreaY + poolAreaHeight;
@@ -215,6 +254,16 @@ public class CtrlPlay implements Initializable {
         }
         int col = (int) ((x - grid.getStartX()) / grid.getCellSize());
         return Math.max(0, Math.min(col, grid.getCols() - 1));
+    }
+
+    // Encontrar la fila más baja disponible en una columna
+    private int getLowestAvailableRow(int col) {
+        for (int row = grid.getRows() - 1; row >= 0; row--) {
+            if (boardState[row][col] == null) {
+                return row;
+            }
+        }
+        return -1; // Columna llena
     }
 
     // Start animation timer
@@ -367,6 +416,46 @@ public class CtrlPlay implements Initializable {
 
         selectedObject = null;
     }
+
+    // Snap piece so its left-top corner sits exactly on the grid cell under its
+    // left tip.
+    /*
+     * private void snapObjectCenter(GameObject obj) {
+     * int col = grid.getCol(obj.center_x); // centerX -> columna
+     * int row = grid.getRow(obj.center_y); // centerY -> fila
+     * 
+     * // mantener dentro del grid
+     * col = (int) Math.max(0, Math.min(col, grid.getCols() - 1));
+     * row = (int) Math.max(0, Math.min(row, grid.getRows() - 1));
+     * 
+     * // Centrar el círculo en la celda
+     * double cellSize = grid.getCellSize();
+     * obj.center_x = grid.getCellX(col) + cellSize / 2;
+     * obj.center_y = grid.getCellY(row) + cellSize / 2;
+     * 
+     * // Guardar posición de celda
+     * obj.col = col;
+     * obj.row = row;
+     * }
+     */
+
+    // Función validación si el objeto se encuentra dentro de la celda
+    /*
+     * public Boolean isPositionInsideObject(double positionX, double positionY, int
+     * objX, int objY, int cols, int rows) {
+     * double cellSize = grid.getCellSize();
+     * double objectWidth = cols * cellSize;
+     * double objectHeight = rows * cellSize;
+     * 
+     * double objectLeftX = objX;
+     * double objectRightX = objX + objectWidth;
+     * double objectTopY = objY;
+     * double objectBottomY = objY + objectHeight;
+     * 
+     * return positionX >= objectLeftX && positionX < objectRightX &&
+     * positionY >= objectTopY && positionY < objectBottomY;
+     * }
+     */
 
     // Run game (and animations)
     private void run(double fps) {
