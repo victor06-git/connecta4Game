@@ -38,7 +38,7 @@ public class CtrlPlay implements Initializable {
     private GameObject selectedObject = null;
 
     private List<GameObject> piecePool = new ArrayList<>();
-    private double poolAreaX = 0;
+    private double poolAreaX = 100;
     private double poolAreaY = 50;
     private double poolAreaWidth = 200;
     private double poolAreaHeight = 500;
@@ -70,6 +70,8 @@ public class CtrlPlay implements Initializable {
         double initialHeight = canvas.getHeight() > 0 ? canvas.getHeight() : 600;
         updateGridSize(initialWidth, initialHeight);
 
+        initializePiecePool(); // Initialize the pieces in the pool
+
         // Start run/draw timer bucle
         animationTimer = new PlayTimer(this::run, this::draw, 0);
         start();
@@ -84,6 +86,7 @@ public class CtrlPlay implements Initializable {
         canvas.setHeight(height);
 
         updateGridSize(width, height);
+        updatePoolArea(width, height);
     }
 
     // Updates the cell size
@@ -93,7 +96,7 @@ public class CtrlPlay implements Initializable {
         int cols = 7;
 
         // Calcular tamaño de celda según espacio
-        double availableWidth = canvasWidth * 0.8;
+        double availableWidth = (canvasWidth - poolAreaWidth) * 0.8;
         double availableHeight = canvasHeight * 0.8;
 
         // El tamaño de celda será el menor entre ancho y alto disponible
@@ -104,7 +107,7 @@ public class CtrlPlay implements Initializable {
         // Centrar el grid en el canvas
         double gridWidth = cellSize * cols;
         double gridHeight = cellSize * rows;
-        double startX = (canvasWidth - gridWidth) / 2;
+        double startX = ((canvasWidth - poolAreaWidth) - gridWidth) / 2;
         double startY = (canvasHeight - gridHeight) / 2;
 
         // Actualizar el grid
@@ -113,22 +116,32 @@ public class CtrlPlay implements Initializable {
 
     // Update pool area
     private void updatePoolArea(double canvasWidth, double canvasHeight) {
-        poolAreaX = canvasWidth - canvasHeight - 20;
+        poolAreaX = canvasWidth - poolAreaWidth - 20;
         poolAreaY = 50;
         poolAreaHeight = canvasHeight - 100;
 
         // Reposicionar fichas
-        // repositionPoolPieces();
+        repositionPoolPieces();
     }
 
     // Initialize fichas en el pool
     private void initializePiecePool() {
         piecePool.clear();
 
+        // Obtener color del jugador
+        /*
+         * String playerColor = Main.clients.stream()
+         * .filter(c -> c.name.equals(Main.clientName))
+         * .map(c -> c.color)
+         * .findFirst()
+         * .orElse("red");
+         */
+
         // Get color of player
         for (int i = 0; i < maxPoolPieces / 2; i++) {
             addPieceToPool("RED");
             addPieceToPool("YELLOW");
+            // addPieceToPool(playerColor);
         }
     }
 
@@ -248,6 +261,21 @@ public class CtrlPlay implements Initializable {
             }
 
         }
+        // Fichas tablero (eliminar cuando se aplique la animación)
+        for (GameObject go : Main.objects) {
+            double dx = mouseX - go.center_x;
+            double dy = mouseY - go.center_y;
+            double distancia = Math.sqrt(dx * dx + dy * dy);
+
+            if (distancia <= go.radius) {
+                selectedObject = new GameObject(go.id, go.center_x, go.center_y, go.radius, go.row, go.col);
+                selectedObject.color = go.color;
+                mouseDragging = true;
+                mouseOffsetX = mouseX - go.center_x;
+                mouseOffsetY = mouseY - go.center_y;
+                break;
+            }
+        }
     }
 
     // Función para cuando arrastrar el mouse con la ficha
@@ -365,11 +393,6 @@ public class CtrlPlay implements Initializable {
         // Clean drawing area
         gc.clearRect(0, 0, canvas.getWidth(), canvas.getHeight());
 
-        // Draw pool area background (ovalado y colorido)
-        // Crear un gradiente radial colorido
-        double centerPoolX = poolAreaX + poolAreaWidth / 2;
-        double centerPoolY = poolAreaY + poolAreaHeight / 2;
-
         // Gradiente de colores vibrantes
         gc.setFill(Color.rgb(255, 200, 100)); // Naranja claro
         gc.fillOval(poolAreaX, poolAreaY, poolAreaWidth, poolAreaHeight);
@@ -378,7 +401,7 @@ public class CtrlPlay implements Initializable {
         gc.setFill(Color.rgb(255, 230, 150, 0.7)); // Más claro y translúcido
         gc.fillOval(poolAreaX + 20, poolAreaY + 20, poolAreaWidth - 40, poolAreaHeight - 40);
 
-        // Borde del óvalo
+        // Borde del pool
         gc.setStroke(Color.rgb(200, 120, 50)); // Marrón/naranja oscuro
         gc.setLineWidth(3);
         gc.strokeOval(poolAreaX, poolAreaY, poolAreaWidth, poolAreaHeight);
@@ -403,11 +426,12 @@ public class CtrlPlay implements Initializable {
         // Draw objects (fichas en el tablero)
         for (GameObject go : Main.objects) {
             if (selectedObject != null && go.id.equals(selectedObject.id)) {
-                drawObject(selectedObject);
-            } else {
                 drawObject(go);
             }
         }
+
+        // Draw grid
+        drawGrid();
 
         // Draw pool pieces
         for (GameObject piece : piecePool) {
@@ -418,9 +442,6 @@ public class CtrlPlay implements Initializable {
         if (selectedObject != null && mouseDragging) {
             drawObject(selectedObject);
         }
-
-        // Draw grid
-        drawGrid();
 
         // Draw mouse circles
         for (ClientData clientData : Main.clients) {
@@ -490,7 +511,11 @@ public class CtrlPlay implements Initializable {
         gc.strokeRect(startX, startY, gridWidth, gridHeight);
     }
 
-    // Dibujar fichas
+    /**
+     * Function that created the object (fichas)
+     * 
+     * @param obj
+     */
     public void drawObject(GameObject obj) {
         double centerX = obj.center_x;
         double centerY = obj.center_y;

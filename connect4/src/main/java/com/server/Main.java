@@ -86,7 +86,7 @@ public class Main extends WebSocketServer {
     public Main(InetSocketAddress address) {
         super(address);
         this.clients = new ClientRegistry(PLAYER_NAMES);
-        initializegameObjects();
+        // initializegameObjects();
 
         ThreadFactory tf = r -> {
             Thread t = new Thread(r, "ServerTicker");
