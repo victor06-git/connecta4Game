@@ -1,6 +1,9 @@
 package com.connect4;
 
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
 import java.util.ResourceBundle;
 
 import org.json.JSONObject;
@@ -33,6 +36,14 @@ public class CtrlPlay implements Initializable {
     private double mouseOffsetX, mouseOffsetY;
 
     private GameObject selectedObject = null;
+
+    private List<GameObject> piecePool = new ArrayList<>();
+    private double poolAreaX = 0;
+    private double poolAreaY = 50;
+    private double poolAreaWidth = 200;
+    private double poolAreaHeight = 500;
+    private int maxPoolPieces = 15; // Máximo de fichas visibles
+    private Random random = new Random();
 
     @Override
     public void initialize(URL url, ResourceBundle rb) {
@@ -76,6 +87,7 @@ public class CtrlPlay implements Initializable {
     }
 
     // Updates the cell size
+    // Hacer que tenga una medida concreta y que la vista no se haga más pequeña
     private void updateGridSize(double canvasWidth, double canvasHeight) {
         int rows = 6;
         int cols = 7;
@@ -97,6 +109,60 @@ public class CtrlPlay implements Initializable {
 
         // Actualizar el grid
         grid = new PlayGrid(startX, startY, cellSize, rows, cols);
+    }
+
+    // Update pool area
+    private void updatePoolArea(double canvasWidth, double canvasHeight) {
+        poolAreaX = canvasWidth - canvasHeight - 20;
+        poolAreaY = 50;
+        poolAreaHeight = canvasHeight - 100;
+
+        // Reposicionar fichas
+        // repositionPoolPieces();
+    }
+
+    // Initialize fichas en el pool
+    private void initializePiecePool() {
+        piecePool.clear();
+
+        // Get color of player
+        for (int i = 0; i < maxPoolPieces / 2; i++) {
+            addPieceToPool("RED");
+            addPieceToPool("YELLOW");
+        }
+    }
+
+    // Add pieces to the pool
+    private void addPieceToPool(String color) {
+        double radius = 20;
+
+        double x = poolAreaX + radius + random.nextDouble() * (poolAreaWidth - 2 * radius);
+        double y = poolAreaY + radius + random.nextDouble() * (poolAreaHeight - 2 * radius);
+
+        String id = "pool_" + System.currentTimeMillis() + "_" + random.nextInt(10000);
+        GameObject piece = new GameObject(id, x, y, radius, -1, -1);
+        piece.color = color;
+
+        piecePool.add(piece);
+    }
+
+    // Reposicionar fichas del pool
+    private void repositionPoolPieces() {
+        for (GameObject piece : piecePool) {
+            // Mantener dentro de los límites del pool
+            if (piece.center_x < poolAreaX || piece.center_x > poolAreaX + poolAreaWidth) {
+                piece.center_x = poolAreaX + poolAreaWidth / 2;
+            }
+            if (piece.center_y < poolAreaY || piece.center_y > poolAreaY + poolAreaHeight) {
+                piece.center_y = poolAreaY + poolAreaHeight / 2;
+            }
+        }
+    }
+
+    // Verificar si una posición está dentro del pool
+    private boolean isPositionInPool(double x, double y) {
+        return x >= poolAreaX && x <= poolAreaX + poolAreaWidth &&
+                y >= poolAreaY && y <= poolAreaY + poolAreaHeight;
     }
 
     // Start animation timer
@@ -145,19 +211,42 @@ public class CtrlPlay implements Initializable {
         selectedObject = null;
         mouseDragging = false;
 
-        for (GameObject go : Main.objects) {
-            // Verificar si el clic está dentro del círculo usando distancia euclidiana
+        // Primero buscar en el pool de fichas
+        for (int i = piecePool.size() - 1; i >= 0; i--) {
+            GameObject go = piecePool.get(i);
             double dx = mouseX - go.center_x;
             double dy = mouseY - go.center_y;
             double distancia = Math.sqrt(dx * dx + dy * dy);
 
             if (distancia <= go.radius) {
+                // Crear una copia de la ficha para arrastrar
                 selectedObject = new GameObject(go.id, go.center_x, go.center_y, go.radius, go.row, go.col);
+                selectedObject.color = go.color;
                 mouseDragging = true;
                 mouseOffsetX = mouseX - go.center_x;
                 mouseOffsetY = mouseY - go.center_y;
-                break;
+
+                // Generar una nueva ficha en el pool en la misma posición aproximada
+                String playerColor = Main.clients.stream()
+                        .filter(c -> c.name.equals(Main.clientName))
+                        .map(c -> c.color)
+                        .findFirst()
+                        .orElse("red");
+
+                // Añadir nueva ficha con ligera variación de posición
+                double newX = go.center_x + (random.nextDouble() - 0.5) * 40;
+                double newY = go.center_y + (random.nextDouble() - 0.5) * 40;
+                newX = Math.max(poolAreaX + go.radius, Math.min(poolAreaX + poolAreaWidth - go.radius, newX));
+                newY = Math.max(poolAreaY + go.radius, Math.min(poolAreaY + poolAreaHeight - go.radius, newY));
+
+                String newId = "pool_" + System.currentTimeMillis() + "_" + random.nextInt(10000);
+                GameObject newPiece = new GameObject(newId, newX, newY, go.radius, -1, -1);
+                newPiece.color = playerColor;
+                piecePool.add(newPiece);
+
+                return;
             }
+
         }
     }
 
@@ -174,6 +263,7 @@ public class CtrlPlay implements Initializable {
                     selectedObject.radius,
                     selectedObject.row,
                     selectedObject.col);
+            selectedObject.color = selectedObject.color;
 
             JSONObject msg = new JSONObject();
             msg.put("type", "clientPieceMoving"); // Usar el mismo tipo que en el servidor
@@ -200,6 +290,7 @@ public class CtrlPlay implements Initializable {
                     selectedObject.radius,
                     selectedObject.col,
                     selectedObject.row);
+            selectedObject.color = selectedObject.color;
 
             // snap by left-top corner to underlying cell
             if (grid.isPositionInsideGrid(centerX, centerY)) {
@@ -274,6 +365,29 @@ public class CtrlPlay implements Initializable {
         // Clean drawing area
         gc.clearRect(0, 0, canvas.getWidth(), canvas.getHeight());
 
+        // Draw pool area background (ovalado y colorido)
+        // Crear un gradiente radial colorido
+        double centerPoolX = poolAreaX + poolAreaWidth / 2;
+        double centerPoolY = poolAreaY + poolAreaHeight / 2;
+
+        // Gradiente de colores vibrantes
+        gc.setFill(Color.rgb(255, 200, 100)); // Naranja claro
+        gc.fillOval(poolAreaX, poolAreaY, poolAreaWidth, poolAreaHeight);
+
+        // Añadir un círculo interno más claro para efecto de profundidad
+        gc.setFill(Color.rgb(255, 230, 150, 0.7)); // Más claro y translúcido
+        gc.fillOval(poolAreaX + 20, poolAreaY + 20, poolAreaWidth - 40, poolAreaHeight - 40);
+
+        // Borde del óvalo
+        gc.setStroke(Color.rgb(200, 120, 50)); // Marrón/naranja oscuro
+        gc.setLineWidth(3);
+        gc.strokeOval(poolAreaX, poolAreaY, poolAreaWidth, poolAreaHeight);
+
+        // Draw pool label
+        gc.setFill(Color.rgb(100, 60, 20)); // Marrón oscuro
+        gc.setFont(new Font("Arial", 16));
+        gc.fillText("Fichas disponibles", poolAreaX + 15, poolAreaY - 10);
+
         // Draw colored 'over' cells
         for (ClientData clientData : Main.clients) {
             // Comprovar si està dins dels límits de la graella
@@ -286,6 +400,25 @@ public class CtrlPlay implements Initializable {
             }
         }
 
+        // Draw objects (fichas en el tablero)
+        for (GameObject go : Main.objects) {
+            if (selectedObject != null && go.id.equals(selectedObject.id)) {
+                drawObject(selectedObject);
+            } else {
+                drawObject(go);
+            }
+        }
+
+        // Draw pool pieces
+        for (GameObject piece : piecePool) {
+            drawObject(piece);
+        }
+
+        // Draw selected object on top
+        if (selectedObject != null && mouseDragging) {
+            drawObject(selectedObject);
+        }
+
         // Draw grid
         drawGrid();
 
@@ -293,15 +426,6 @@ public class CtrlPlay implements Initializable {
         for (ClientData clientData : Main.clients) {
             gc.setFill(getColor(clientData.color));
             gc.fillOval(clientData.mouseX - 5, clientData.mouseY - 5, 20, 20);
-        }
-
-        // Draw objects
-        for (GameObject go : Main.objects) {
-            if (selectedObject != null && go.id.equals(selectedObject.id)) {
-                drawObject(selectedObject);
-            } else {
-                drawObject(go);
-            }
         }
 
         // Draw FPS if needed
@@ -333,7 +457,7 @@ public class CtrlPlay implements Initializable {
                 double centerY = cellY + cellSize / 2;
 
                 // Radio del círculo (un poco más pequeño que la celda para dejar margen)
-                double holeRadius = cellSize * 0.5;
+                double holeRadius = cellSize * 0.45;
 
                 // Dibujar el círculo blanco (agujero)
                 gc.setFill(Color.GRAY);
@@ -373,7 +497,7 @@ public class CtrlPlay implements Initializable {
         double radius = obj.radius;
 
         // Seleccionar un color basat en l'objectId
-        Color color = Color.RED;
+        Color color = obj.color != null ? getColor(obj.color) : Color.RED;
 
         // Dibuixar el rectangle
         gc.setFill(color);
@@ -384,9 +508,6 @@ public class CtrlPlay implements Initializable {
         gc.setLineWidth(2);
         gc.strokeOval(centerX - radius, centerY - radius, radius * 2, radius * 2);
 
-        // Opcionalment, afegir text (per exemple, l'objectId)
-        // gc.setFill(Color.YELLOW);
-        // gc.setFont(new Font(12));
     }
 
     // Conseguir color

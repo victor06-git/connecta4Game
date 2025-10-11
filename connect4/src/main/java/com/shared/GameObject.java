@@ -9,6 +9,7 @@ public class GameObject {
     public double radius;
     public int col;
     public int row;
+    public String color;
 
     public GameObject(String id, double center_x, double center_y, double radius, int col, int row) {
         this.id = id;
@@ -17,6 +18,7 @@ public class GameObject {
         this.radius = radius;
         this.col = col;
         this.row = row;
+        this.color = "red";
     }
 
     @Override
@@ -33,6 +35,7 @@ public class GameObject {
         obj.put("radius", radius);
         obj.put("col", col);
         obj.put("row", row);
+        obj.put("color", color != null ? color : "red");
         return obj;
     }
 
@@ -45,6 +48,7 @@ public class GameObject {
                 obj.optDouble("radius", 0.0),
                 obj.optInt("col", 1),
                 obj.optInt("row", 1));
+        go.color = obj.optString("color", "red");
         return go;
     }
 }
