@@ -310,18 +310,60 @@ public class CtrlPlay implements Initializable {
         }
     }
 
-    // Dibuja la celda
+    // Dibuja el tablero
     public void drawGrid() {
-        gc.setStroke(Color.BLACK);
+        double cellSize = grid.getCellSize();
+        double gridWidth = grid.getCols() * cellSize;
+        double gridHeight = grid.getRows() * cellSize;
+        double startX = grid.getStartX();
+        double startY = grid.getStartY();
 
+        // Dibujar el fondo azul del tablero
+        gc.setFill(Color.DODGERBLUE);
+        gc.fillRect(startX, startY, gridWidth, gridHeight);
+
+        // Dibujar los círculos grises (agujeros) en cada celda
         for (int row = 0; row < grid.getRows(); row++) {
             for (int col = 0; col < grid.getCols(); col++) {
-                double cellSize = grid.getCellSize();
-                double x = grid.getStartX() + col * cellSize;
-                double y = grid.getStartY() + row * cellSize;
-                gc.strokeRect(x, y, cellSize, cellSize);
+                double cellX = startX + col * cellSize;
+                double cellY = startY + row * cellSize;
+
+                // Centro de la celda
+                double centerX = cellX + cellSize / 2;
+                double centerY = cellY + cellSize / 2;
+
+                // Radio del círculo (un poco más pequeño que la celda para dejar margen)
+                double holeRadius = cellSize * 0.9;
+
+                // Dibujar el círculo blanco (agujero)
+                gc.setFill(Color.GRAY);
+                gc.fillOval(centerX - holeRadius, centerY - holeRadius, holeRadius * 2, holeRadius * 2);
             }
         }
+
+        // Dibujar los círculos blancos (agujeros) en cada celda
+        for (int row = 0; row < grid.getRows(); row++) {
+            for (int col = 0; col < grid.getCols(); col++) {
+                double cellX = startX + col * cellSize;
+                double cellY = startY + row * cellSize;
+
+                // Centro de la celda
+                double centerX = cellX + cellSize / 2;
+                double centerY = cellY + cellSize / 2;
+
+                // Radio del círculo (un poco más pequeño que la celda para dejar margen)
+                double holeRadius = cellSize * 0.8;
+
+                // Dibujar el círculo blanco (agujero)
+                gc.setFill(Color.WHITE);
+                gc.fillOval(centerX - holeRadius, centerY - holeRadius, holeRadius * 2, holeRadius * 2);
+            }
+        }
+
+        // Opcional: Dibujar borde del tablero
+        gc.setStroke(Color.DARKBLUE);
+        gc.setLineWidth(3);
+        gc.strokeRect(startX, startY, gridWidth, gridHeight);
     }
 
     // Dibujar fichas
