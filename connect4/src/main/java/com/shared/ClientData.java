@@ -55,7 +55,7 @@ public class ClientData {
         String color = obj.optString("color", null);
 
         ClientData cd = new ClientData(name);
-        cd.color = obj.optString("color", "BLACK");
+        cd.color = obj.optString("color", color);
         cd.mouseX = obj.optInt("mouseX", -1);
         cd.mouseY = obj.optInt("mouseY", -1);
         cd.row = obj.optInt("row", -1);
