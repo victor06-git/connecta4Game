@@ -45,7 +45,6 @@ public class CtrlPlay implements Initializable {
     private double poolAreaY = 50;
     private double poolAreaWidth = 200;
     private double poolAreaHeight = 500;
-    private int maxPoolPieces = 15; // Máximo de fichas visibles
     private Random random = new Random();
 
     // Zona del tablero para dejar caer la ficha
@@ -87,7 +86,7 @@ public class CtrlPlay implements Initializable {
         double initialHeight = canvas.getHeight() > 0 ? canvas.getHeight() : 600;
         updateGridSize(initialWidth, initialHeight);
 
-        initializePiecePool(); // Initialize the pieces in the pool
+        // initializePiecePool(); // Initialize the pieces in the pool
 
         // Start run/draw timer bucle
         animationTimer = new PlayTimer(this::run, this::draw, 0);
@@ -151,60 +150,65 @@ public class CtrlPlay implements Initializable {
     }
 
     // Initialize fichas en el pool
-    private void initializePiecePool() {
-        piecePool.clear();
-
-        double radius = 20;
-        double minDistance = radius * 3; // Distancia mínima entre fichas (3 veces el radio)
-
-        List<String> colors = new ArrayList<>();
-        // Crear lista de colores alternados
-        for (int i = 0; i < maxPoolPieces / 2; i++) {
-            colors.add("RED");
-            colors.add("YELLOW");
-        }
-
-        // Mezclar los colores para distribución aleatoria
-        java.util.Collections.shuffle(colors);
-
-        int attempts = 0;
-        int maxAttempts = 100; // Máximo de intentos por ficha
-
-        for (int i = 0; i < maxPoolPieces; i++) {
-            boolean validPosition = false;
-            double x = 0, y = 0;
-
-            // Intentar encontrar una posición válida
-            while (!validPosition && attempts < maxAttempts) {
-                // Posición aleatoria dentro del área del pool con márgenes
-                x = poolAreaX + radius + 20 + random.nextDouble() * (poolAreaWidth - 2 * radius - 40);
-                y = poolAreaY + radius + 20 + random.nextDouble() * (poolAreaHeight - 2 * radius - 40);
-
-                // Verificar que no esté muy cerca de otras fichas
-                validPosition = true;
-                for (GameObject existingPiece : piecePool) {
-                    double dx = x - existingPiece.center_x;
-                    double dy = y - existingPiece.center_y;
-                    double distance = Math.sqrt(dx * dx + dy * dy);
-
-                    if (distance < minDistance) {
-                        validPosition = false;
-                        break;
-                    }
-                }
-                attempts++;
-            }
-
-            // Si encontró posición válida, crear la ficha
-            if (validPosition) {
-                String id = "pool_" + i + "_" + System.currentTimeMillis();
-                GameObject piece = new GameObject(id, x, y, radius, -1, -1);
-                piece.color = colors.get(i);
-                piecePool.add(piece);
-                attempts = 0; // Reset para la siguiente ficha
-            }
-        }
-    }
+    /*
+     * private void initializePiecePool() {
+     * piecePool.clear();
+     * 
+     * double radius = 20;
+     * double minDistance = radius * 3; // Distancia mínima entre fichas (3 veces el
+     * radio)
+     * 
+     * List<String> colors = new ArrayList<>();
+     * // Crear lista de colores alternados
+     * for (int i = 0; i < maxPoolPieces / 2; i++) {
+     * colors.add("RED");
+     * colors.add("YELLOW");
+     * }
+     * 
+     * // Mezclar los colores para distribución aleatoria
+     * java.util.Collections.shuffle(colors);
+     * 
+     * int attempts = 0;
+     * int maxAttempts = 100; // Máximo de intentos por ficha
+     * 
+     * for (int i = 0; i < maxPoolPieces; i++) {
+     * boolean validPosition = false;
+     * double x = 0, y = 0;
+     * 
+     * // Intentar encontrar una posición válida
+     * while (!validPosition && attempts < maxAttempts) {
+     * // Posición aleatoria dentro del área del pool con márgenes
+     * x = poolAreaX + radius + 20 + random.nextDouble() * (poolAreaWidth - 2 *
+     * radius - 40);
+     * y = poolAreaY + radius + 20 + random.nextDouble() * (poolAreaHeight - 2 *
+     * radius - 40);
+     * 
+     * // Verificar que no esté muy cerca de otras fichas
+     * validPosition = true;
+     * for (GameObject existingPiece : piecePool) {
+     * double dx = x - existingPiece.center_x;
+     * double dy = y - existingPiece.center_y;
+     * double distance = Math.sqrt(dx * dx + dy * dy);
+     * 
+     * if (distance < minDistance) {
+     * validPosition = false;
+     * break;
+     * }
+     * }
+     * attempts++;
+     * }
+     * 
+     * // Si encontró posición válida, crear la ficha
+     * if (validPosition) {
+     * String id = "pool_" + i + "_" + System.currentTimeMillis();
+     * GameObject piece = new GameObject(id, x, y, radius, -1, -1);
+     * piece.color = colors.get(i);
+     * piecePool.add(piece);
+     * attempts = 0; // Reset para la siguiente ficha
+     * }
+     * }
+     * }
+     */
 
     // Add pieces to the pool
     private void addPieceToPool(String color, double x, double y) {

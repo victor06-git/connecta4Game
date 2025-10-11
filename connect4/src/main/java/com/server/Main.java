@@ -1,7 +1,9 @@
 package com.server;
 
 import java.net.InetSocketAddress;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -38,7 +40,7 @@ public class Main extends WebSocketServer {
 
     /** Llista de noms disponibles per als clients connectats. */
     private static final List<String> PLAYER_NAMES = Arrays.asList(
-            "Bulbasaur", "Charizard", "Blaziken", "Umbreon", "Mewtwo", "Pikachu", "Wartortle");
+            "Alejandro", "Victor");
 
     /** Llista de colors disponibles per als clients connectats. */
     private static final List<String> PLAYER_COLORS = Arrays.asList(
@@ -86,7 +88,7 @@ public class Main extends WebSocketServer {
     public Main(InetSocketAddress address) {
         super(address);
         this.clients = new ClientRegistry(PLAYER_NAMES);
-        // initializegameObjects();
+        initializegameObjects();
 
         ThreadFactory tf = r -> {
             Thread t = new Thread(r, "ServerTicker");
@@ -100,13 +102,31 @@ public class Main extends WebSocketServer {
      * Inicialitza els objectes seleccionables predefinits.
      */
     private void initializegameObjects() {
-        String objId = "O0";
-        GameObject obj0 = new GameObject(objId, 300, 100, 25, 5, 6);
-        gameObjects.put(objId, obj0);
 
-        objId = "O1";
-        GameObject obj1 = new GameObject(objId, 300, 10, 20, 3, 3);
-        gameObjects.put(objId, obj1);
+        List<GameObject> fichas = new ArrayList<>();
+
+        for (int i = 0; i < 21; i++) {
+            String id_yellow = "Y_" + i;
+            String id_red = "R_" + i;
+            GameObject obj_yellow = new GameObject(id_yellow, 400, 10 + i, 20, i, i);
+            GameObject obj_red = new GameObject(id_red, 450, 10 + i, 20, i, i);
+            fichas.add(obj_yellow);
+            fichas.add(obj_red);
+        }
+
+        Collections.shuffle(fichas); // Mezclar fichas
+
+        // String objId = "R_O0";
+        // GameObject obj0 = new GameObject(objId, 300, 100, 25, 5, 6);
+        // gameObjects.put(objId, obj0);
+
+        // objId = "Y_O0";
+        // GameObject obj1 = new GameObject(objId, 300, 10, 20, 3, 3);
+        // gameObjects.put(objId, obj1);
+
+        for (GameObject ficha : fichas) {
+            gameObjects.put(ficha.id, ficha);
+        }
     }
 
     /**
