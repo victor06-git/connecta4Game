@@ -387,9 +387,13 @@ public class CtrlPlay implements Initializable {
 
         // Draw objects (fichas en el tablero)
         for (GameObject go : Main.objects) {
-            if (selectedObject != null && go.id.equals(selectedObject.id)) { // <- Esto filtra TODO
-                drawObject(go);
-            }
+            // Saltar la ficha que está siendo arrastrada o animándose
+            if (selectedObject != null && go.id.equals(selectedObject.id))
+                continue;
+            if (animatingPiece != null && go.id.equals(animatingPiece.id))
+                continue;
+
+            drawObject(go);
         }
 
         // Draw animating piece
