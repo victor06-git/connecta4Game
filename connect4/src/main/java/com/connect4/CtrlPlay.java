@@ -203,14 +203,36 @@ public class CtrlPlay implements Initializable {
         mouseDragging = false;
 
         for (GameObject go : Main.objects) {
-            if (isPositionInsideObject(mouseX, mouseY, go.center_x, go.center_y, go.col, go.row)) {
-                selectedObject = new GameObject(go.id, go.center_x, go.center_y, 20, go.col, go.row);
-                mouseDragging = true;
-                mouseOffsetX = event.getX() - go.center_x;
-                mouseOffsetY = event.getY() - go.center_y;
-                break;
+            if (go.col == -1 && go.row == -1) {
+                // Verificar si el mouse está dentro del círculo de la ficha
+                if (isMouseInsideCircle(mouseX, mouseY, go.center_x, go.center_y, go.radius)) {
+                    selectedObject = new GameObject(go.id, go.center_x, go.center_y, go.radius, go.col, go.row);
+                    selectedObject.color = go.color; // Copiar el color
+                    mouseDragging = true;
+                    mouseOffsetX = mouseX - go.center_x;
+                    mouseOffsetY = mouseY - go.center_y;
+                    break;
+                }
             }
         }
+    }
+
+    /**
+     * 
+     * Function to verify position mouse on object (piece game)
+     * 
+     * @param mouseX
+     * @param mouseY
+     * @param centerX
+     * @param centerY
+     * @param radius
+     * @return
+     */
+    private boolean isMouseInsideCircle(double mouseX, double mouseY, double centerX, double centerY, double radius) {
+        double dx = mouseX - centerX;
+        double dy = mouseY - centerY;
+        double distanceSquared = dx * dx + dy * dy;
+        return distanceSquared <= radius * radius;
     }
 
     // Función para cuando arrastrar el mouse con la ficha
@@ -309,20 +331,33 @@ public class CtrlPlay implements Initializable {
 
     // Función validación si el objeto se encuentra dentro de la celda
 
-    public Boolean isPositionInsideObject(double positionX, double positionY, double objX, double objY, int cols,
-            int rows) {
-        double cellSize = grid.getCellSize();
-        double objectWidth = cols * cellSize;
-        double objectHeight = rows * cellSize;
-
-        double objectLeftX = objX;
-        double objectRightX = objX + objectWidth;
-        double objectTopY = objY;
-        double objectBottomY = objY + objectHeight;
-
-        return positionX >= objectLeftX && positionX < objectRightX &&
-                positionY >= objectTopY && positionY < objectBottomY;
-    }
+    /*
+     * public Boolean isPositionInsideObject(double positionX, double positionY,
+     * double objX, double objY, int cols,
+     * int rows) {
+     * // Si cols y rows son -1, es una ficha circular en el pool
+     * if (cols == -1 && rows == -1) {
+     * // Usar la detección circular
+     * // Nota: aquí objX y objY son el centro, y necesitamos el radio
+     * // Como no tenemos acceso directo al radio aquí, usamos un radio fijo
+     * double radius = (grid.getCellSize() / 2) * 0.9;
+     * return isMouseInsideCircle(positionX, positionY, objX, objY, radius);
+     * }
+     * 
+     * // Para fichas ya colocadas en el tablero (rectangular)
+     * double cellSize = grid.getCellSize();
+     * double objectWidth = cols * cellSize;
+     * double objectHeight = rows * cellSize;
+     * 
+     * double objectLeftX = objX;
+     * double objectRightX = objX + objectWidth;
+     * double objectTopY = objY;
+     * double objectBottomY = objY + objectHeight;
+     * 
+     * return positionX >= objectLeftX && positionX < objectRightX &&
+     * positionY >= objectTopY && positionY < objectBottomY;
+     * }
+     */
 
     // Run game (and animations)
     private void run(double fps) {
@@ -454,12 +489,12 @@ public class CtrlPlay implements Initializable {
             gc.fillRect(x, startY, cellSize, dropZoneHeight);
 
             // Borde
-            gc.setStroke(Color.GRAY);
+            gc.setStroke(getColor("gray"));
             gc.setLineWidth(1);
             gc.strokeRect(x, startY, cellSize, dropZoneHeight);
 
             // Letra de la columna (A-G)
-            gc.setFill(Color.BLACK);
+            gc.setFill(getColor("black"));
             gc.setFont(new Font("Arial Bold", 24));
             String letter = String.valueOf((char) ('A' + col));
             gc.fillText(letter, x + cellSize / 2 - 8, startY + dropZoneHeight / 2 + 8);

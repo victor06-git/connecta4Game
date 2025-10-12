@@ -104,21 +104,21 @@ public class Main extends WebSocketServer {
      */
     private void initializegameObjects() {
 
-        List<GameObject> fichas = new ArrayList<>();
-
         double poolX = 610;
         double poolY = 130;
         double poolWidth = 250;
-        double poolHeight = 480;
+        // double poolHeight = 480;
 
         double pieceRadius = (80.0 / 2) * 0.9;
         double pieceDiameter = pieceRadius * 2;
 
-        int cols = (int) Math.floor(poolWidth / (pieceDiameter + 10));
-        int rows = (int) Math.ceil(42.0 / cols);
+        // Calcular cuántas columnas caben (con separación de 8px)
+        int cols = Math.max(1, (int) Math.floor(poolWidth / (pieceDiameter + 8)));
 
-        double spacingX = poolWidth / (cols + 1);
-        double spacingY = poolHeight / (rows + 1);
+        // Calcular el espaciado real entre fichas
+        double spacingX = (poolWidth - pieceRadius * 2) / (cols - 1);
+        if (cols == 1)
+            spacingX = 0;
 
         int fichaIndex = 0;
 
@@ -126,38 +126,38 @@ public class Main extends WebSocketServer {
         for (int i = 0; i < 21; i++) {
             String id = "Y_" + i;
 
-            int row = fichaIndex / cols;
+            // Calcular posición en el grid
             int col = fichaIndex % cols;
+            int row = fichaIndex / cols;
 
-            // Posición aleatoria dentro del pool
-            double centerX = poolX + spacingX * (col + 1);
-            double centerY = poolY + spacingY * (row + 1);
+            // Posición fija en el grid
+            double centerX = poolX + pieceRadius + (col * spacingX);
+            double centerY = poolY + pieceRadius + (row * (pieceDiameter + 8));
 
             GameObject obj = new GameObject(id, centerX, centerY, pieceRadius, -1, -1);
             obj.color = "YELLOW";
-            fichas.add(obj);
+            gameObjects.put(obj.id, obj);
+
+            fichaIndex++;
         }
 
         // Crear 21 fichas rojas
         for (int i = 0; i < 21; i++) {
             String id = "R_" + i;
 
-            int row = fichaIndex / cols;
+            // Calcular posición en el grid
             int col = fichaIndex % cols;
+            int row = fichaIndex / cols;
 
-            // Posición fija en el grid (sin random)
-            double centerX = poolX + spacingX * (col + 1);
-            double centerY = poolY + spacingY * (row + 1);
+            // Posición fija en el grid
+            double centerX = poolX + pieceRadius + (col * spacingX);
+            double centerY = poolY + pieceRadius + (row * (pieceDiameter + 8));
 
             GameObject obj = new GameObject(id, centerX, centerY, pieceRadius, -1, -1);
             obj.color = "RED";
-            fichas.add(obj);
-        }
+            gameObjects.put(obj.id, obj);
 
-        Collections.shuffle(fichas); // Mezclar fichas
-
-        for (GameObject ficha : fichas) {
-            gameObjects.put(ficha.id, ficha);
+            fichaIndex++;
         }
     }
 
