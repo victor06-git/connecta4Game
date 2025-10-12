@@ -385,6 +385,23 @@ public class CtrlPlay implements Initializable {
             }
         }
 
+        // Crear gradiente simple de madera (marrón medio a claro)
+        javafx.scene.paint.LinearGradient woodGradient = new javafx.scene.paint.LinearGradient(
+                0, 0, 0, 1, true,
+                javafx.scene.paint.CycleMethod.NO_CYCLE,
+                new javafx.scene.paint.Stop(0, Color.rgb(139, 90, 43)), // Marrón medio
+                new javafx.scene.paint.Stop(1, Color.rgb(120, 80, 40)) // Marrón más oscuro
+        );
+
+        // Dibujar pool
+        gc.setFill(woodGradient);
+        gc.fillRect(400, 100, 300, 500);
+
+        // Borde exterior simple
+        gc.setStroke(Color.rgb(80, 50, 20));
+        gc.setLineWidth(3);
+        gc.strokeRect(400, 100, 300, 500);
+
         // Draw objects (fichas en el tablero)
         for (GameObject go : Main.objects) {
             // Saltar la ficha que está siendo arrastrada o animándose
