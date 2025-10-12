@@ -43,8 +43,9 @@ public class CtrlPlay implements Initializable {
 
     // pool (mesa donde estan las fichas)
     private double poolX, poolY, poolWidth, poolHeight;
-    private static final double MIN_CELL_SIZE = 60;
-    private static final double BOARD_POOL_GAP = 50; // Distancia entre tablero y pool
+    private static final double BOARD_POOL_GAP = 50;
+    private static final double FIXED_CELL_SIZE = 80;
+    private static final double LEFT_MARGIN = 50;
     // Matriz de las posiciones de las fichas
     private String[][] boardState = new String[6][7];
 
@@ -75,12 +76,11 @@ public class CtrlPlay implements Initializable {
         canvas.setOnMouseReleased(this::onMouseReleased);
 
         // Define grid
-        grid = new PlayGrid(100, 100, 100, 6, 7);
-        // double initialWidth = canvas.getWidth() > 0 ? canvas.getWidth() : 800;
-        // double initialHeight = canvas.getHeight() > 0 ? canvas.getHeight() : 600;
-        // updateGridSize(initialWidth, initialHeight);
+        double startX = LEFT_MARGIN;
+        double startY = dropZoneHeight + 50;
+        grid = new PlayGrid(startX, startY, FIXED_CELL_SIZE, 6, 7);
 
-        // initializePiecePool(); // Initialize the pieces in the pool
+        updatePoolDimensions();
 
         // Start run/draw timer bucle
         animationTimer = new PlayTimer(this::run, this::draw, 0);
@@ -92,53 +92,58 @@ public class CtrlPlay implements Initializable {
 
         double width = UtilsViews.parentContainer.getWidth();
         double height = UtilsViews.parentContainer.getHeight();
+
+        // Calcular tamaño mínimo necesario
+        double minWidth = LEFT_MARGIN + (7 * FIXED_CELL_SIZE) + BOARD_POOL_GAP + 200 + 50; // tablero + gap + pool +
+                                                                                           // margen
+        double minHeight = dropZoneHeight + 50 + (6 * FIXED_CELL_SIZE) + 50; // dropZone + margen + tablero + margen
+
+        // Aplicar tamaño mínimo
+        width = Math.max(width, minWidth);
+        height = Math.max(height, minHeight);
+
         canvas.setWidth(width);
         canvas.setHeight(height);
-
-        updateGridSize(width, height);
     }
 
     // Updates the cell size
     // Hacer que tenga una medida concreta y que la vista no se haga más pequeña
-    private void updateGridSize(double canvasWidth, double canvasHeight) {
-        int rows = 6;
-        int cols = 7;
-
-        // Calcular tamaño de celda según espacio
-        double availableWidth = canvasWidth * 0.8;
-        double availableHeight = (canvasHeight - dropZoneHeight) * 0.8;
-
-        // El tamaño de celda será el menor entre ancho y alto disponible
-        double cellSizeByWidth = availableWidth / cols;
-        double cellSizeByHeight = availableHeight / rows;
-        double cellSize = Math.min(cellSizeByWidth, cellSizeByHeight);
-
-        // Centrar el grid en el canvas
-        double gridWidth = cellSize * cols;
-        double gridHeight = cellSize * rows;
-        double startX = (canvasWidth - gridWidth) / 2;
-        double startY = dropZoneHeight + (canvasHeight - gridHeight) / 2;
-
-        // Actualizar el grid
-        grid = new PlayGrid(startX, startY, cellSize, rows, cols);
-    }
+    /*
+     * private void updateGridSize(double canvasWidth, double canvasHeight) {
+     * int rows = 6;
+     * int cols = 7;
+     * 
+     * // Calcular tamaño de celda según espacio
+     * double availableWidth = canvasWidth * 0.8;
+     * double availableHeight = (canvasHeight - dropZoneHeight) * 0.8;
+     * 
+     * // El tamaño de celda será el menor entre ancho y alto disponible
+     * double cellSizeByWidth = availableWidth / cols;
+     * double cellSizeByHeight = availableHeight / rows;
+     * double cellSize = Math.min(cellSizeByWidth, cellSizeByHeight);
+     * 
+     * // Centrar el grid en el canvas
+     * double gridWidth = cellSize * cols;
+     * double gridHeight = cellSize * rows;
+     * double startX = (canvasWidth - gridWidth) / 2;
+     * double startY = dropZoneHeight + (canvasHeight - gridHeight) / 2;
+     * 
+     * // Actualizar el grid
+     * grid = new PlayGrid(startX, startY, cellSize, rows, cols);
+     * }
+     */
 
     // Calcular dimensiones del pool
     private void updatePoolDimensions() {
+        // El pool empieza después del tablero + el gap
         double boardEndX = grid.getStartX() + (grid.getCols() * grid.getCellSize());
         poolX = boardEndX + BOARD_POOL_GAP;
 
-        // Alto del pool igual al del tablero
-        poolHeight = grid.getRows() * grid.getCellSize();
+        // Dimensiones fijas del pool
+        poolWidth = 250; // Ancho fijo del pool
+        poolHeight = grid.getRows() * grid.getCellSize(); // Misma altura que el tablero
 
-        // Ancho del pool: el espacio restante hasta el borde derecho (con margen)
-        double rightMargin = 30; // Margen derecho
-        poolWidth = canvas.getWidth() - poolX - rightMargin;
-
-        // Asegurar ancho mínimo para el pool
-        poolWidth = Math.max(poolWidth, 150);
-
-        // Centrar verticalmente el pool con el tablero
+        // Misma posición Y que el tablero
         poolY = grid.getStartY();
     }
 
@@ -391,8 +396,6 @@ public class CtrlPlay implements Initializable {
         // Clean drawing area
         gc.clearRect(0, 0, canvas.getWidth(), canvas.getHeight());
 
-        updatePoolDimensions(); // Actualizar pool
-
         drawDropZone();
 
         // Draw colored 'over' cells
@@ -448,7 +451,7 @@ public class CtrlPlay implements Initializable {
             drawObject(selectedObject);
         }
 
-        // Draw mouse circles
+        // Draw mouse circles (Consigue el color de clients)
         for (ClientData clientData : Main.clients) {
             gc.setFill(getColor(clientData.color));
             gc.fillOval(clientData.mouseX - 5, clientData.mouseY - 5, 20, 20);
@@ -548,7 +551,7 @@ public class CtrlPlay implements Initializable {
     public void drawObject(GameObject obj) {
         double centerX = obj.center_x;
         double centerY = obj.center_y;
-        double radius = obj.radius;
+        double radius = (grid.getCellSize() / 2) * 0.9;
 
         // Seleccionar un color basat en l'objectId
         Color color = obj.color != null ? getColor(obj.color) : Color.RED;
