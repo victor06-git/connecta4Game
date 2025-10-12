@@ -112,30 +112,29 @@ public class Main extends WebSocketServer {
         double pieceDiameter = pieceRadius * 2;
 
         int cols = 2;
+        // int rows = 6;
 
         // Espaciado entre fichas
-        double spacingX = (poolWidth - pieceDiameter) / (cols - 1);
-        double spacingY = pieceDiameter + 8;
+        double spacingX = (poolWidth - pieceDiameter) / cols;
+        double spacingY = pieceDiameter + 5;
 
-        int fichaIndex = 0;
-        int groupIndex = 0; // Índice del grupo actual (0-5 para amarillas, 6-11 para rojas)
+        int groupIndex = 0; // 6 grupos de 7 fichas cada uno
 
         // 21 fichas amarillas
         for (int group = 0; group < 21; group++) {
             for (int i = 0; i < 7; i++) {
-                String id = "Y_" + fichaIndex;
+                String id = "Y_" + group;
 
                 // Determinar fila y columna según zig-zag
-                int row = groupIndex * 2 + (i / cols);
-                int col;
-
-                // Zig-zag: filas pares van de izquierda a derecha, impares de derecha a
-                // izquierda
-                if (row % 2 == 0) {
-                    col = i % cols; // Izquierda a derecha
+                int row;
+                if (groupIndex == 0) {
+                    row = 1;
+                } else if (groupIndex == 1) {
+                    row = 3;
                 } else {
-                    col = (cols - 1) - (i % cols); // Derecha a izquierda
+                    row = 5;
                 }
+                int col = 1;
 
                 // Calcular posición
                 double centerX = poolX + pieceRadius + (col * spacingX);
@@ -144,30 +143,25 @@ public class Main extends WebSocketServer {
                 GameObject obj = new GameObject(id, centerX, centerY, pieceRadius, -1, -1);
                 obj.color = "YELLOW";
                 gameObjects.put(obj.id, obj);
-
-                fichaIndex++;
             }
             groupIndex++;
         }
 
-        fichaIndex = 0;
-
         // 21 fichas rojas
         for (int group = 0; group < 21; group++) {
             for (int i = 0; i < 7; i++) {
-                String id = "R_" + fichaIndex;
+                String id = "R_" + group;
 
                 // Determinar fila y columna según zig-zag
-                int row = groupIndex * 2 + (i / cols);
-                int col;
-
-                // Zig-zag: filas pares van de izquierda a derecha, impares de derecha a
-                // izquierda
-                if (row % 2 == 0) {
-                    col = i % cols; // Izquierda a derecha
+                int row;
+                if (groupIndex == 3) {
+                    row = 2;
+                } else if (groupIndex == 4) {
+                    row = 4;
                 } else {
-                    col = (cols - 1) - (i % cols); // Derecha a izquierda
+                    row = 6;
                 }
+                int col = 2;
 
                 // Calcular posición
                 double centerX = poolX + pieceRadius + (col * spacingX);
@@ -176,8 +170,6 @@ public class Main extends WebSocketServer {
                 GameObject obj = new GameObject(id, centerX, centerY, pieceRadius, -1, -1);
                 obj.color = "RED";
                 gameObjects.put(obj.id, obj);
-
-                fichaIndex++;
             }
             groupIndex++;
         }

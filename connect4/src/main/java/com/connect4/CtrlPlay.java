@@ -34,11 +34,11 @@ public class CtrlPlay implements Initializable {
 
     private GameObject selectedObject = null;
     private GameObject animatingPiece = null;
-    private double animationTargetY = 0;
-    private double animationSpeed = 500;
+    private double animationTargetY = 0; // Animación en columna
+    private double animationSpeed = 500; // Velocidad animación
 
     // Zona del tablero para dejar caer la ficha
-    private double dropZoneHeight = 30;
+    private double dropZoneHeight = 40;
     private int hoveredColumn = -1;
 
     // pool (mesa donde estan las fichas)
@@ -46,6 +46,7 @@ public class CtrlPlay implements Initializable {
     private static final double BOARD_POOL_GAP = 50;
     private static final double FIXED_CELL_SIZE = 80;
     private static final double LEFT_MARGIN = 50;
+
     // Matriz de las posiciones de las fichas
     private String[][] boardState = new String[6][7];
 
@@ -94,16 +95,15 @@ public class CtrlPlay implements Initializable {
         double height = UtilsViews.parentContainer.getHeight();
 
         // Calcular tamaño mínimo necesario
-        double minWidth = LEFT_MARGIN + (7 * FIXED_CELL_SIZE) + BOARD_POOL_GAP + 200 + 50; // tablero + gap + pool +
-                                                                                           // margen
-        double minHeight = dropZoneHeight + 50 + (6 * FIXED_CELL_SIZE) + 50; // dropZone + margen + tablero + margen
+        double minWidth = LEFT_MARGIN + (7 * FIXED_CELL_SIZE) + BOARD_POOL_GAP + 200 + 50; // width minimum
+        double minHeight = dropZoneHeight + 50 + (6 * FIXED_CELL_SIZE) + 50; // height minimum
 
         // Aplicar tamaño mínimo
         width = Math.max(width, minWidth);
         height = Math.max(height, minHeight);
 
-        canvas.setWidth(width);
-        canvas.setHeight(height);
+        canvas.setWidth(width); // set minimum width
+        canvas.setHeight(height); // set minimum height
     }
 
     // Calcular dimensiones del pool
