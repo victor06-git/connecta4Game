@@ -132,7 +132,7 @@ public class Main extends WebSocketServer {
                 int row = groupIndex;
                 int col = (isPar) ? 1 : 2;
 
-                double centerX = (isPar) ? poolX + pieceRadius : (poolX + pieceRadius) * 2;
+                double centerX = (poolX + pieceRadius) * col;
                 double centerY = (poolY + pieceRadius) * (row + 1);
 
                 String colorPiece = (id.startsWith("Y_") ? "YELLOW" : "RED");
