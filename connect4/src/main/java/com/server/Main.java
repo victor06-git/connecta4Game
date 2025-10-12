@@ -112,39 +112,98 @@ public class Main extends WebSocketServer {
         double poolHeight = 480;
 
         double pieceRadius = (80.0 / 2) * 0.9;
+        double pieceDiameter = pieceRadius * 2;
+
+        // Calcular el grid: cuántas fichas caben en filas y columnas
+        int cols = (int) Math.floor(poolWidth / (pieceDiameter + 5)); // 5px de separación mínima
+        int rows = (int) Math.ceil(42.0 / cols); // 42 fichas totales (21 rojas + 21 amarillas)
+
+        // Calcular espaciado entre fichas
+        double spacingX = poolWidth / (cols + 1);
+        double spacingY = poolHeight / (rows + 1);
 
         Random random = new Random();
+        int fichaIndex = 0;
 
         // Crear 21 fichas amarillas
         for (int i = 0; i < 21; i++) {
             String id = "Y_" + i;
 
-            // Posición aleatoria dentro del pool
-            double centerX = poolX + pieceRadius + random.nextDouble() * (poolWidth - 2 * pieceRadius);
-            double centerY = poolY + pieceRadius + random.nextDouble() * (poolHeight - 2 * pieceRadius);
+            // Calcular posición en el grid
+            int row = fichaIndex / cols;
+            int col = fichaIndex % cols;
+
+            // Posición base en el grid
+            double baseX = poolX + spacingX * (col + 1);
+            double baseY = poolY + spacingY * (row + 1);
+
+            // Añadir variación aleatoria (±20% del espaciado)
+            double randomOffsetX = (random.nextDouble() - 0.5) * spacingX * 0.4;
+            double randomOffsetY = (random.nextDouble() - 0.5) * spacingY * 0.4;
+
+            double centerX = baseX + randomOffsetX;
+            double centerY = baseY + randomOffsetY;
+
+            // Asegurar que la ficha está dentro del pool
+            centerX = Math.max(poolX + pieceRadius, Math.min(poolX + poolWidth - pieceRadius, centerX));
+            centerY = Math.max(poolY + pieceRadius, Math.min(poolY + poolHeight - pieceRadius, centerY));
 
             GameObject obj = new GameObject(id, centerX, centerY, pieceRadius, -1, -1);
             obj.color = "YELLOW";
             fichas.add(obj);
+
+            fichaIndex++;
         }
 
         // Crear 21 fichas rojas
         for (int i = 0; i < 21; i++) {
             String id = "R_" + i;
 
-            // Posición aleatoria dentro del pool
-            double centerX = poolX + pieceRadius + random.nextDouble() * (poolWidth - 2 * pieceRadius);
-            double centerY = poolY + pieceRadius + random.nextDouble() * (poolHeight - 2 * pieceRadius);
+            // Calcular posición en el grid
+            int row = fichaIndex / cols;
+            int col = fichaIndex % cols;
+
+            // Posición base en el grid
+            double baseX = poolX + spacingX * (col + 1);
+            double baseY = poolY + spacingY * (row + 1);
+
+            // Añadir variación aleatoria (±20% del espaciado)
+            double randomOffsetX = (random.nextDouble() - 0.5) * spacingX * 0.4;
+            double randomOffsetY = (random.nextDouble() - 0.5) * spacingY * 0.4;
+
+            double centerX = baseX + randomOffsetX;
+            double centerY = baseY + randomOffsetY;
+
+            // Asegurar que la ficha está dentro del pool
+            centerX = Math.max(poolX + pieceRadius, Math.min(poolX + poolWidth - pieceRadius, centerX));
+            centerY = Math.max(poolY + pieceRadius, Math.min(poolY + poolHeight - pieceRadius, centerY));
 
             GameObject obj = new GameObject(id, centerX, centerY, pieceRadius, -1, -1);
             obj.color = "RED";
             fichas.add(obj);
+
+            fichaIndex++;
         }
 
         Collections.shuffle(fichas); // Mezclar fichas
 
         for (GameObject ficha : fichas) {
+            int row = fichaIndex / cols;
+            int col = fichaIndex % cols;
+
+            double baseX = poolX + spacingX * (col + 1);
+            double baseY = poolY + spacingY * (row + 1);
+
+            double randomOffsetX = (random.nextDouble() - 0.5) * spacingX * 0.4;
+            double randomOffsetY = (random.nextDouble() - 0.5) * spacingY * 0.4;
+
+            ficha.center_x = Math.max(poolX + pieceRadius,
+                    Math.min(poolX + poolWidth - pieceRadius, baseX + randomOffsetX));
+            ficha.center_y = Math.max(poolY + pieceRadius,
+                    Math.min(poolY + poolHeight - pieceRadius, baseY + randomOffsetY));
+
             gameObjects.put(ficha.id, ficha);
+            fichaIndex++;
         }
     }
 
