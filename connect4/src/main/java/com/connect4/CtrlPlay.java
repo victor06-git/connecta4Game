@@ -106,33 +106,6 @@ public class CtrlPlay implements Initializable {
         canvas.setHeight(height);
     }
 
-    // Updates the cell size
-    // Hacer que tenga una medida concreta y que la vista no se haga más pequeña
-    /*
-     * private void updateGridSize(double canvasWidth, double canvasHeight) {
-     * int rows = 6;
-     * int cols = 7;
-     * 
-     * // Calcular tamaño de celda según espacio
-     * double availableWidth = canvasWidth * 0.8;
-     * double availableHeight = (canvasHeight - dropZoneHeight) * 0.8;
-     * 
-     * // El tamaño de celda será el menor entre ancho y alto disponible
-     * double cellSizeByWidth = availableWidth / cols;
-     * double cellSizeByHeight = availableHeight / rows;
-     * double cellSize = Math.min(cellSizeByWidth, cellSizeByHeight);
-     * 
-     * // Centrar el grid en el canvas
-     * double gridWidth = cellSize * cols;
-     * double gridHeight = cellSize * rows;
-     * double startX = (canvasWidth - gridWidth) / 2;
-     * double startY = dropZoneHeight + (canvasHeight - gridHeight) / 2;
-     * 
-     * // Actualizar el grid
-     * grid = new PlayGrid(startX, startY, cellSize, rows, cols);
-     * }
-     */
-
     // Calcular dimensiones del pool
     private void updatePoolDimensions() {
         // El pool empieza después del tablero + el gap
@@ -502,7 +475,7 @@ public class CtrlPlay implements Initializable {
         double startY = grid.getStartY();
 
         // Dibujar el fondo azul del tablero
-        gc.setFill(Color.DODGERBLUE);
+        gc.setFill(getColor("dodger_blue"));
         gc.fillRect(startX, startY, gridWidth, gridHeight);
 
         // Dibujar los círculos grises (sombra) en cada celda
@@ -516,7 +489,7 @@ public class CtrlPlay implements Initializable {
 
                 double holeRadius = cellSize * 0.45;
 
-                gc.setFill(Color.GRAY);
+                gc.setFill(getColor("gray"));
                 gc.fillOval(centerX - holeRadius, centerY - holeRadius, holeRadius * 2, holeRadius * 2);
             }
         }
@@ -532,13 +505,13 @@ public class CtrlPlay implements Initializable {
 
                 double holeRadius = cellSize * 0.4;
 
-                gc.setFill(Color.WHITE);
+                gc.setFill(getColor("white"));
                 gc.fillOval(centerX - holeRadius, centerY - holeRadius, holeRadius * 2, holeRadius * 2);
             }
         }
 
         // Dibujar borde del tablero
-        gc.setStroke(Color.DARKBLUE);
+        gc.setStroke(getColor("dark_blue"));
         gc.setLineWidth(3);
         gc.strokeRect(startX, startY, gridWidth, gridHeight);
     }
@@ -554,14 +527,26 @@ public class CtrlPlay implements Initializable {
         double radius = (grid.getCellSize() / 2) * 0.9;
 
         // Seleccionar un color basat en l'objectId
-        Color color = obj.color != null ? getColor(obj.color) : Color.RED;
+        Color color;
+        if (obj.color != null && !obj.color.isEmpty()) {
+            color = getColor(obj.color);
+        } else {
+            // Color por ID
+            if (obj.id.startsWith("R_")) {
+                color = getColor("red");
+            } else if (obj.id.startsWith("Y_")) {
+                color = getColor("yellow");
+            } else {
+                color = getColor("gray");
+            }
+        }
 
         // Dibuixar el rectangle
         gc.setFill(color);
         gc.fillOval(centerX - radius, centerY - radius, radius * 2, radius * 2);
 
         // Dibuixar el contorn
-        gc.setStroke(Color.GRAY);
+        gc.setStroke(getColor("gray"));
         gc.setLineWidth(2);
         gc.strokeOval(centerX - radius, centerY - radius, radius * 2, radius * 2);
 
@@ -590,6 +575,12 @@ public class CtrlPlay implements Initializable {
                 return Color.GRAY;
             case "black":
                 return Color.BLACK;
+            case "dark_blue":
+                return Color.DARKBLUE;
+            case "white":
+                return Color.WHITE;
+            case "dodger_blue":
+                return Color.DODGERBLUE;
             default:
                 return Color.LIGHTGRAY; // Default color
         }

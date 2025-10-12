@@ -8,6 +8,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Random;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -105,24 +106,42 @@ public class Main extends WebSocketServer {
 
         List<GameObject> fichas = new ArrayList<>();
 
+        double poolX = 610; // startX (50) + gridWidth (560) + gap (50) = 660
+        double poolY = 130; // startY del grid (dropZone 30 + margen 50 + algo más)
+        double poolWidth = 250;
+        double poolHeight = 480;
+
+        double pieceRadius = (80.0 / 2) * 0.9;
+
+        Random random = new Random();
+
+        // Crear 21 fichas amarillas
         for (int i = 0; i < 21; i++) {
-            String id_yellow = "Y_" + i;
-            String id_red = "R_" + i;
-            GameObject obj_yellow = new GameObject(id_yellow, 100, i + 5, 20, i, i);
-            GameObject obj_red = new GameObject(id_red, 150, i + 5, 20, i, i);
-            fichas.add(obj_yellow);
-            fichas.add(obj_red);
+            String id = "Y_" + i;
+
+            // Posición aleatoria dentro del pool
+            double centerX = poolX + pieceRadius + random.nextDouble() * (poolWidth - 2 * pieceRadius);
+            double centerY = poolY + pieceRadius + random.nextDouble() * (poolHeight - 2 * pieceRadius);
+
+            GameObject obj = new GameObject(id, centerX, centerY, pieceRadius, -1, -1);
+            obj.color = "YELLOW";
+            fichas.add(obj);
+        }
+
+        // Crear 21 fichas rojas
+        for (int i = 0; i < 21; i++) {
+            String id = "R_" + i;
+
+            // Posición aleatoria dentro del pool
+            double centerX = poolX + pieceRadius + random.nextDouble() * (poolWidth - 2 * pieceRadius);
+            double centerY = poolY + pieceRadius + random.nextDouble() * (poolHeight - 2 * pieceRadius);
+
+            GameObject obj = new GameObject(id, centerX, centerY, pieceRadius, -1, -1);
+            obj.color = "RED";
+            fichas.add(obj);
         }
 
         Collections.shuffle(fichas); // Mezclar fichas
-
-        // String objId = "R_O0";
-        // GameObject obj0 = new GameObject(objId, 300, 100, 25, 5, 6);
-        // gameObjects.put(objId, obj0);
-
-        // objId = "Y_O0";
-        // GameObject obj1 = new GameObject(objId, 300, 10, 20, 3, 3);
-        // gameObjects.put(objId, obj1);
 
         for (GameObject ficha : fichas) {
             gameObjects.put(ficha.id, ficha);
