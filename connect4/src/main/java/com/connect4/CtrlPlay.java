@@ -395,12 +395,12 @@ public class CtrlPlay implements Initializable {
 
         // Dibujar pool
         gc.setFill(woodGradient);
-        gc.fillRect(400, 100, 300, 500);
+        gc.fillRect(800, 80, 350, 500);
 
         // Borde exterior simple
         gc.setStroke(Color.rgb(80, 50, 20));
         gc.setLineWidth(3);
-        gc.strokeRect(400, 100, 300, 500);
+        gc.strokeRect(800, 80, 350, 500);
 
         // Draw objects (fichas en el tablero)
         for (GameObject go : Main.objects) {
