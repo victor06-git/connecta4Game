@@ -435,6 +435,14 @@ public class CtrlPlay implements Initializable {
         gc.setLineWidth(3);
         gc.strokeRect(poolX, poolY, poolWidth, poolHeight);
 
+        // Draw grid
+        drawGrid();
+
+        // Draw selected object on top
+        if (selectedObject != null && mouseDragging) {
+            drawObject(selectedObject);
+        }
+
         // Draw objects (fichas en el tablero)
         for (GameObject go : Main.objects) {
             // Saltar la ficha que está siendo arrastrada o animándose
@@ -449,14 +457,6 @@ public class CtrlPlay implements Initializable {
         // Draw animating piece
         if (animatingPiece != null) {
             drawObject(animatingPiece);
-        }
-
-        // Draw grid
-        drawGrid();
-
-        // Draw selected object on top
-        if (selectedObject != null && mouseDragging) {
-            drawObject(selectedObject);
         }
 
         // Draw mouse circles (Consigue el color de clients)
