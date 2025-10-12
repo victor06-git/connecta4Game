@@ -1,9 +1,6 @@
 package com.connect4;
 
 import java.net.URL;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Random;
 import java.util.ResourceBundle;
 
 import org.json.JSONObject;
@@ -44,6 +41,10 @@ public class CtrlPlay implements Initializable {
     private double dropZoneHeight = 30;
     private int hoveredColumn = -1;
 
+    // pool (mesa donde estan las fichas)
+    private double poolX, poolY, poolWidth, poolHeight;
+    private static final double MIN_CELL_SIZE = 60;
+    private static final double BOARD_POOL_GAP = 50; // Distancia entre tablero y pool
     // Matriz de las posiciones de las fichas
     private String[][] boardState = new String[6][7];
 
@@ -120,6 +121,25 @@ public class CtrlPlay implements Initializable {
 
         // Actualizar el grid
         grid = new PlayGrid(startX, startY, cellSize, rows, cols);
+    }
+
+    // Calcular dimensiones del pool
+    private void updatePoolDimensions() {
+        double boardEndX = grid.getStartX() + (grid.getCols() * grid.getCellSize());
+        poolX = boardEndX + BOARD_POOL_GAP;
+
+        // Alto del pool igual al del tablero
+        poolHeight = grid.getRows() * grid.getCellSize();
+
+        // Ancho del pool: el espacio restante hasta el borde derecho (con margen)
+        double rightMargin = 30; // Margen derecho
+        poolWidth = canvas.getWidth() - poolX - rightMargin;
+
+        // Asegurar ancho mínimo para el pool
+        poolWidth = Math.max(poolWidth, 150);
+
+        // Centrar verticalmente el pool con el tablero
+        poolY = grid.getStartY();
     }
 
     // Verificar si una posición está en la zona de drop
@@ -371,6 +391,8 @@ public class CtrlPlay implements Initializable {
         // Clean drawing area
         gc.clearRect(0, 0, canvas.getWidth(), canvas.getHeight());
 
+        updatePoolDimensions(); // Actualizar pool
+
         drawDropZone();
 
         // Draw colored 'over' cells
@@ -393,14 +415,14 @@ public class CtrlPlay implements Initializable {
                 new javafx.scene.paint.Stop(1, Color.rgb(120, 80, 40)) // Marrón más oscuro
         );
 
-        // Dibujar pool
+        // Dibujar pool con dimensiones adaptativas
         gc.setFill(woodGradient);
-        gc.fillRect(800, 80, 350, 500);
+        gc.fillRect(poolX, poolY, poolWidth, poolHeight);
 
         // Borde exterior simple
         gc.setStroke(Color.rgb(80, 50, 20));
         gc.setLineWidth(3);
-        gc.strokeRect(800, 80, 350, 500);
+        gc.strokeRect(poolX, poolY, poolWidth, poolHeight);
 
         // Draw objects (fichas en el tablero)
         for (GameObject go : Main.objects) {
