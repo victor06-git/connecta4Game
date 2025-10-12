@@ -202,12 +202,15 @@ public class CtrlPlay implements Initializable {
         selectedObject = null;
         mouseDragging = false;
 
+        // Radio correcto igual al del tablero
+        double correctRadius = grid.getCellSize() * 0.45;
+
         for (GameObject go : Main.objects) {
             if (go.col == -1 && go.row == -1) {
                 // Verificar si el mouse está dentro del círculo de la ficha
-                if (isMouseInsideCircle(mouseX, mouseY, go.center_x, go.center_y, go.radius)) {
-                    selectedObject = new GameObject(go.id, go.center_x, go.center_y, go.radius, go.col, go.row);
-                    selectedObject.color = go.color; // Copiar el color
+                if (isMouseInsideCircle(mouseX, mouseY, go.center_x, go.center_y, correctRadius)) {
+                    selectedObject = new GameObject(go.id, go.center_x, go.center_y, correctRadius, go.col, go.row);
+                    selectedObject.color = go.color;
                     mouseDragging = true;
                     mouseOffsetX = mouseX - go.center_x;
                     mouseOffsetY = mouseY - go.center_y;
@@ -271,18 +274,29 @@ public class CtrlPlay implements Initializable {
             // Verificar si se soltó en la drop zone
             if (isPositionInDropZone(centerX, centerY)) {
                 int col = getDropZoneColumn(centerX);
+                int row = getLowestAvailableRow(col);
 
-                // Enviar jugada al servidor (el servidor validará si es posible)
-                JSONObject msg = new JSONObject();
-                msg.put("type", "clientPlay");
-                msg.put("column", col);
+                if (row != -1) {
+                    // Iniciar animación de caída
+                    startDropAnimation(selectedObject, col, row);
 
-                if (Main.wsClient != null) {
-                    Main.wsClient.safeSend(msg.toString());
+                    // Actualizar estado del tablero
+                    boardState[row][col] = selectedObject.id;
+
+                    // Enviar jugada al servidor
+                    JSONObject msg = new JSONObject();
+                    msg.put("type", "clientPlay");
+                    msg.put("pieceId", selectedObject.id);
+                    msg.put("column", col);
+                    msg.put("row", row);
+
+                    if (Main.wsClient != null) {
+                        Main.wsClient.safeSend(msg.toString());
+                    }
+
+                    // Remover la ficha del pool en Main.objects
+                    Main.objects.removeIf(obj -> obj.id.equals(selectedObject.id));
                 }
-
-                // La ficha desaparece, el servidor responderá con serverData
-                // y entonces animaremos la caída basándonos en lastMove
             }
 
             selectedObject = null;
@@ -293,18 +307,18 @@ public class CtrlPlay implements Initializable {
 
     // Iniciar animación de caída
     private void startDropAnimation(GameObject piece, int col, int row) {
-        animatingPiece = new GameObject(piece.id, piece.center_x, piece.center_y, piece.radius, col, row);
+        double correctRadius = grid.getCellSize() * 0.45;
+
+        animatingPiece = new GameObject(piece.id, piece.center_x, piece.center_y, correctRadius, col, row);
         animatingPiece.color = piece.color;
 
-        // Calcular posición objetivo
+        // Calcular posición objetivo (centro de la celda)
         double cellSize = grid.getCellSize();
         animatingPiece.center_x = grid.getCellX(col) + cellSize / 2;
         animationTargetY = grid.getCellY(row) + cellSize / 2;
 
-        // La pieza empieza desde arriba de la columna
+        // La pieza empieza desde arriba de la columna (en la drop zone)
         animatingPiece.center_y = grid.getStartY() - 20;
-
-        selectedObject = null;
     }
 
     // Snap piece so its left-top corner sits exactly on the grid cell under its
@@ -326,36 +340,6 @@ public class CtrlPlay implements Initializable {
      * // Guardar posición de celda
      * obj.col = col;
      * obj.row = row;
-     * }
-     */
-
-    // Función validación si el objeto se encuentra dentro de la celda
-
-    /*
-     * public Boolean isPositionInsideObject(double positionX, double positionY,
-     * double objX, double objY, int cols,
-     * int rows) {
-     * // Si cols y rows son -1, es una ficha circular en el pool
-     * if (cols == -1 && rows == -1) {
-     * // Usar la detección circular
-     * // Nota: aquí objX y objY son el centro, y necesitamos el radio
-     * // Como no tenemos acceso directo al radio aquí, usamos un radio fijo
-     * double radius = (grid.getCellSize() / 2) * 0.9;
-     * return isMouseInsideCircle(positionX, positionY, objX, objY, radius);
-     * }
-     * 
-     * // Para fichas ya colocadas en el tablero (rectangular)
-     * double cellSize = grid.getCellSize();
-     * double objectWidth = cols * cellSize;
-     * double objectHeight = rows * cellSize;
-     * 
-     * double objectLeftX = objX;
-     * double objectRightX = objX + objectWidth;
-     * double objectTopY = objY;
-     * double objectBottomY = objY + objectHeight;
-     * 
-     * return positionX >= objectLeftX && positionX < objectRightX &&
-     * positionY >= objectTopY && positionY < objectBottomY;
      * }
      */
 
@@ -436,7 +420,7 @@ public class CtrlPlay implements Initializable {
         gc.strokeRect(poolX, poolY, poolWidth, poolHeight);
 
         // Draw grid
-        drawGrid();
+        drawBoard();
 
         // Draw selected object on top
         if (selectedObject != null && mouseDragging) {
@@ -502,7 +486,7 @@ public class CtrlPlay implements Initializable {
     }
 
     // Dibuja el tablero
-    public void drawGrid() {
+    public void drawBoard() {
         double cellSize = grid.getCellSize();
         double gridWidth = grid.getCols() * cellSize;
         double gridHeight = grid.getRows() * cellSize;
@@ -559,7 +543,7 @@ public class CtrlPlay implements Initializable {
     public void drawObject(GameObject obj) {
         double centerX = obj.center_x;
         double centerY = obj.center_y;
-        double radius = (grid.getCellSize() / 2) * 0.9;
+        double radius = grid.getCellSize() * 0.45;
 
         // Seleccionar un color basat en l'objectId
         Color color;

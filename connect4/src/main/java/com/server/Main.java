@@ -107,57 +107,79 @@ public class Main extends WebSocketServer {
         double poolX = 610;
         double poolY = 130;
         double poolWidth = 250;
-        // double poolHeight = 480;
 
-        double pieceRadius = (80.0 / 2) * 0.9;
+        double pieceRadius = 80.0 * 0.45;
         double pieceDiameter = pieceRadius * 2;
 
-        // Calcular cuántas columnas caben (con separación de 8px)
-        int cols = Math.max(1, (int) Math.floor(poolWidth / (pieceDiameter + 8)));
+        int cols = 2;
 
-        // Calcular el espaciado real entre fichas
-        double spacingX = (poolWidth - pieceRadius * 2) / (cols - 1);
-        if (cols == 1)
-            spacingX = 0;
+        // Espaciado entre fichas
+        double spacingX = (poolWidth - pieceDiameter) / (cols - 1);
+        double spacingY = pieceDiameter + 8;
 
         int fichaIndex = 0;
+        int groupIndex = 0; // Índice del grupo actual (0-5 para amarillas, 6-11 para rojas)
 
-        // Crear 21 fichas amarillas
-        for (int i = 0; i < 21; i++) {
-            String id = "Y_" + i;
+        // 21 fichas amarillas
+        for (int group = 0; group < 21; group++) {
+            for (int i = 0; i < 7; i++) {
+                String id = "Y_" + fichaIndex;
 
-            // Calcular posición en el grid
-            int col = fichaIndex % cols;
-            int row = fichaIndex / cols;
+                // Determinar fila y columna según zig-zag
+                int row = groupIndex * 2 + (i / cols);
+                int col;
 
-            // Posición fija en el grid
-            double centerX = poolX + pieceRadius + (col * spacingX);
-            double centerY = poolY + pieceRadius + (row * (pieceDiameter + 8));
+                // Zig-zag: filas pares van de izquierda a derecha, impares de derecha a
+                // izquierda
+                if (row % 2 == 0) {
+                    col = i % cols; // Izquierda a derecha
+                } else {
+                    col = (cols - 1) - (i % cols); // Derecha a izquierda
+                }
 
-            GameObject obj = new GameObject(id, centerX, centerY, pieceRadius, -1, -1);
-            obj.color = "YELLOW";
-            gameObjects.put(obj.id, obj);
+                // Calcular posición
+                double centerX = poolX + pieceRadius + (col * spacingX);
+                double centerY = poolY + pieceRadius + (row * spacingY);
 
-            fichaIndex++;
+                GameObject obj = new GameObject(id, centerX, centerY, pieceRadius, -1, -1);
+                obj.color = "YELLOW";
+                gameObjects.put(obj.id, obj);
+
+                fichaIndex++;
+            }
+            groupIndex++;
         }
 
-        // Crear 21 fichas rojas
-        for (int i = 0; i < 21; i++) {
-            String id = "R_" + i;
+        fichaIndex = 0;
 
-            // Calcular posición en el grid
-            int col = fichaIndex % cols;
-            int row = fichaIndex / cols;
+        // 21 fichas rojas
+        for (int group = 0; group < 21; group++) {
+            for (int i = 0; i < 7; i++) {
+                String id = "R_" + fichaIndex;
 
-            // Posición fija en el grid
-            double centerX = poolX + pieceRadius + (col * spacingX);
-            double centerY = poolY + pieceRadius + (row * (pieceDiameter + 8));
+                // Determinar fila y columna según zig-zag
+                int row = groupIndex * 2 + (i / cols);
+                int col;
 
-            GameObject obj = new GameObject(id, centerX, centerY, pieceRadius, -1, -1);
-            obj.color = "RED";
-            gameObjects.put(obj.id, obj);
+                // Zig-zag: filas pares van de izquierda a derecha, impares de derecha a
+                // izquierda
+                if (row % 2 == 0) {
+                    col = i % cols; // Izquierda a derecha
+                } else {
+                    col = (cols - 1) - (i % cols); // Derecha a izquierda
+                }
 
-            fichaIndex++;
+                // Calcular posición
+                double centerX = poolX + pieceRadius + (col * spacingX);
+                double centerY = poolY + pieceRadius + (row * spacingY);
+
+                GameObject obj = new GameObject(id, centerX, centerY, pieceRadius, -1, -1);
+                obj.color = "RED";
+                gameObjects.put(obj.id, obj);
+
+                fichaIndex++;
+            }
+            groupIndex++;
         }
     }
 
