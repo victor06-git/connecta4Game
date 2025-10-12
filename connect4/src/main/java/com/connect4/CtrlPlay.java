@@ -560,13 +560,13 @@ public class CtrlPlay implements Initializable {
             }
         }
 
-        // Dibuixar el rectangle
+        // Dibuixar el cercle
         gc.setFill(color);
         gc.fillOval(centerX - radius, centerY - radius, radius * 2, radius * 2);
 
         // Dibuixar el contorn
-        gc.setStroke(getColor("gray"));
-        gc.setLineWidth(2);
+        gc.setStroke(getColor("black"));
+        gc.setLineWidth(3);
         gc.strokeOval(centerX - radius, centerY - radius, radius * 2, radius * 2);
 
     }
