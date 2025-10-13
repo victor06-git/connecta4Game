@@ -18,8 +18,8 @@ public class PlayGrid {
 
     public boolean isPositionInsideGrid(double x, double y) {
         return x >= startX && x < startX + cols * cellSize &&
-               y >= startY && y < startY + rows * cellSize;
-    }  
+                y >= startY && y < startY + rows * cellSize;
+    }
 
     public double getStartX() {
         return startX;
@@ -33,11 +33,11 @@ public class PlayGrid {
         return cellSize;
     }
 
-    public double getCols() {
+    public int getCols() {
         return cols;
     }
 
-    public double getRows() {
+    public int getRows() {
         return rows;
     }
 
@@ -55,11 +55,11 @@ public class PlayGrid {
         return (int) ((y - startY) / cellSize);
     }
 
-    public int getCellX(int col) {
-        return (int) (getStartX() + col * getCellSize());
+    public double getCellX(int col) {
+        return getStartX() + col * getCellSize();
     }
 
-    public int getCellY(int row) {
-        return (int) (getStartY() + row * getCellSize());
+    public double getCellY(int row) {
+        return getStartY() + row * getCellSize();
     }
 }
