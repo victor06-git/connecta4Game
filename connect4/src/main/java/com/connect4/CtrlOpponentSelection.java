@@ -1,6 +1,9 @@
 package com.connect4;
 
+import java.lang.ModuleLayer.Controller;
 import java.net.URL;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.ResourceBundle;
 
 import com.shared.ClientData;
@@ -13,6 +16,8 @@ import javafx.scene.Parent;
 import javafx.scene.layout.VBox;
 
 public class CtrlOpponentSelection implements Initializable {
+
+    private Map<Node, CtrlSubViewSend> controllers = new HashMap<>();
 
     @FXML
     private VBox list_send, list_receive;
@@ -36,6 +41,8 @@ public class CtrlOpponentSelection implements Initializable {
                     FXMLLoader loader = new FXMLLoader(resource);
                     Parent itemPane = loader.load();
                     CtrlSubViewSend itemController = loader.getController();
+
+                    controllers.put(itemPane, itemController);
 
                     itemController.setUser(client.name);
                     // itemController.setImage("/assets/images/default-avatar.png"); //User Image
@@ -85,5 +92,42 @@ public class CtrlOpponentSelection implements Initializable {
     // Método para eliminar la parte
     public void removeFromReceiveList(Node node) {
         list_receive.getChildren().remove(node);
+    }
+
+    // Añadimos una petición a partir de un nombre de usuario
+    public void addFromReceiveList(String name) {
+        try {
+            URL resource = getClass().getResource("/assets/subviewReceive.fxml");
+            FXMLLoader loader = new FXMLLoader(resource);
+            Parent itemPane = loader.load();
+            CtrlSubViewReceive itemController = loader.getController();
+
+            // Configurar los datos del cliente
+            itemController.setUser(name);
+
+            removeFromSendList(name);
+            list_receive.getChildren().add(itemPane);
+        } catch (Exception e) {
+            System.err.println("Error al cargar las invitaciones recibidas");
+            e.printStackTrace();
+        }
+    }
+
+    public void removeFromSendList(String name) {
+        for (Node n : list_send.getChildren()) {
+            if (controllers.get(n).getUserName().equals(name)) {
+                n.setVisible(false);
+                break;
+            }
+        }
+    }
+
+    public void reactivateFromSendList(String name) {
+        for (Node n : list_send.getChildren()) {
+            if (controllers.get(n).getUserName().equals(name)) {
+                n.setVisible(true);
+                break;
+            }
+        }
     }
 }

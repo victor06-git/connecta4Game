@@ -128,7 +128,6 @@ public class Main extends Application {
         switch (msgObj.getString("type")) {
             case "clientName":
                 clientName = msgObj.getString("value");
-                System.out.println("Client Name: " + clientName);
                 break;
                 
             case "serverData":
@@ -178,7 +177,6 @@ public class Main extends Application {
                 break;
                 
             case "clientsList":
-                System.out.println("Recieving clients!");
                 JSONArray arr = msgObj.getJSONArray("clientsList");
                 clients.clear();
                 
@@ -189,6 +187,11 @@ public class Main extends Application {
                 }
 
                 ((CtrlOpponentSelection)UtilsViews.getController("ViewOpponentSelection")).loadSendList();
+                break;
+        
+            case "clientSendInvitation":
+                String username = msgObj.getString("sendFrom");
+                ((CtrlOpponentSelection)UtilsViews.getController("ViewOpponentSelection")).addFromReceiveList(username);
                 break;
         }
     }
