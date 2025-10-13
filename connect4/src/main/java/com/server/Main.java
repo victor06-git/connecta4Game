@@ -364,12 +364,6 @@ public class Main extends WebSocketServer {
             case T_CLIENT_PLAY -> {
                 // Fer compte enrere
 
-                int index = 0;
-                for (ClientData data : clientsData.values()) {
-                    String color = PLAYER_COLORS.get(index % PLAYER_COLORS.size());
-                    data.SetColor(color);
-                    index++;
-                }
 
                 sendCountdown();
 
