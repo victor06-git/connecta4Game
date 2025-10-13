@@ -1,13 +1,5 @@
 package com.server;
 
-import org.java_websocket.server.WebSocketServer;
-import org.java_websocket.WebSocket;
-import org.java_websocket.handshake.ClientHandshake;
-import org.java_websocket.exceptions.WebsocketNotConnectedException;
-
-import org.json.JSONArray;
-import org.json.JSONObject;
-
 import java.net.InetSocketAddress;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -20,6 +12,12 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 
+import org.java_websocket.WebSocket;
+import org.java_websocket.exceptions.WebsocketNotConnectedException;
+import org.java_websocket.handshake.ClientHandshake;
+import org.java_websocket.server.WebSocketServer;
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 import com.shared.ClientData;
 import com.shared.GameObject;
@@ -219,11 +217,8 @@ public class Main extends WebSocketServer {
     @Override
     public void onOpen(WebSocket conn, ClientHandshake handshake) {
         String name = clients.add(conn);
-
         clientsData.put(name, new ClientData(name));
-
         System.out.println("WebSocket client connected: " + name);
-        //sendCountdown();
     }
 
     /** Elimina el client del registre i envia l’STATE complet. */
@@ -257,30 +252,30 @@ public class Main extends WebSocketServer {
             }
 
             case T_CLIENT_PLAY -> {
-                // Fer compte enrere
+                // Gestionar la jugada
 
-                // Assignar colors als jugadors
-
-                // Enviar dades als jugadors
             }
 
             case T_CLIENT_SEND_INVITATION -> {
-                // Revem un value amb el nom de l'usuari a enviar la petició
-
-                // Formatem la resposta
+                // Rebem una petició amb el nom de l'usuari i destinatari a enviar la petició
+                // Rebem l'usuari a qui hem d'enviar la petició
+                String receiver = obj.getString("sendTo");
 
                 // Enviem a l'usuari rebut, la petició d'invitació
+                sendSafe(clients.socketByName(receiver), obj.toString());
             }
 
             case T_CLIENT_ANSWER_INVITATION -> {
-                // Revem un value amb el nom de l'usuari respondre la petició i un valor booleà amb la resposta
+                // Rebem una petició amb el nom de l'usuari i destinatari a enviar la petició i un boolà amb la resposta
 
                 // SI ACCEPTA
                 // Comencen countdown per a la partida
+                sendCountdown();
 
                 // SI NO ACCEPTA
-                // Formatem la resposta
-                // Enviem a l'usuari rebut, la resposta de la petició d'invitació
+                // Enviem a l'usuari que ha fet la peticiól a resposta de l'invitació
+                String sender = obj.getString("sendFrom");
+                sendSafe(clients.socketByName(sender), obj.toString());
             }
 
             default -> {
