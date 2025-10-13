@@ -121,6 +121,17 @@ public class CtrlOpponentSelection implements Initializable {
         }
     }
 
+    public void removeFromReceiveList(String name) {
+        Node toRemove = null;
+        for (Node n : list_send.getChildren()) {
+            if (controllers.get(n).getUserName().equals(name)) {
+                toRemove = n;
+                break;
+            }
+        }
+        list_receive.getChildren().remove(toRemove);
+    }
+
     public void removeFromSendList(String name) {
         for (Node n : list_send.getChildren()) {
             if (controllers.get(n).getUserName().equals(name)) {

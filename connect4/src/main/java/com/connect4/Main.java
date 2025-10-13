@@ -167,6 +167,10 @@ public class Main extends Application {
                 break;
 
             case "countdown":
+                if (!UtilsViews.getActiveView().equals("ViewWait")) {
+                    UtilsViews.setView("ViewWait");
+                }
+
                 int value = msgObj.getInt("value");
                 String txt = String.valueOf(value);
                 if (value == 0) {
@@ -192,10 +196,16 @@ public class Main extends Application {
                 break;
         
             case "clientSendInvitation":
-                System.out.println(msgObj);
                 String username = msgObj.getString("sendFrom");
                 ((CtrlOpponentSelection)UtilsViews.getController("ViewOpponentSelection")).addFromReceiveList(username);
                 ((CtrlOpponentSelection)UtilsViews.getController("ViewOpponentSelection")).addToSendInvitation(username);
+                break;
+
+            case "clientAnswerInvitation":
+                System.out.println(msgObj);
+                String user = msgObj.getString("sendTo");
+                ((CtrlOpponentSelection)UtilsViews.getController("ViewOpponentSelection")).reactivateFromSendList(user);
+                ((CtrlOpponentSelection)UtilsViews.getController("ViewOpponentSelection")).removeFromSendInvitation(user);
                 break;
         }
     }
