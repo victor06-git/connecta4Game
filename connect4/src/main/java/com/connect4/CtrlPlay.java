@@ -35,7 +35,7 @@ public class CtrlPlay implements Initializable {
     private GameObject selectedObject = null;
     private GameObject animatingPiece = null;
     private double animationTargetY = 0; // Animación en columna
-    private double animationSpeed = 500; // Velocidad animación
+    private double animationSpeed = 600; // Velocidad animación
 
     // Zona del tablero para dejar caer la ficha
     private double dropZoneHeight = 40;
@@ -47,7 +47,7 @@ public class CtrlPlay implements Initializable {
     private static final double FIXED_CELL_SIZE = 80;
     private static final double LEFT_MARGIN = 50;
 
-    // Matriz de las posiciones de las fichas
+    // Matriz de las posiciones de las fichas, se inicializa null
     private String[][] boardState = new String[6][7];
 
     @Override
@@ -63,7 +63,7 @@ public class CtrlPlay implements Initializable {
             }
         }
 
-        // Set listeners
+        //Set listeners
         UtilsViews.parentContainer.heightProperty().addListener((observable, oldValue, newvalue) -> {
             onSizeChanged();
         });
@@ -88,7 +88,10 @@ public class CtrlPlay implements Initializable {
         start();
     }
 
-    // When window changes its size
+    /**
+     * Function called when the window size changes
+     * 
+     */
     public void onSizeChanged() {
 
         double width = UtilsViews.parentContainer.getWidth();
@@ -106,7 +109,10 @@ public class CtrlPlay implements Initializable {
         canvas.setHeight(height); // set minimum height
     }
 
-    // Calcular dimensiones del pool
+    /**
+     * Function to update the dimensions of the pool based on grid size
+     * 
+     */
     private void updatePoolDimensions() {
         // El pool empieza después del tablero + el gap
         double boardEndX = grid.getStartX() + (grid.getCols() * grid.getCellSize());
@@ -120,7 +126,13 @@ public class CtrlPlay implements Initializable {
         poolY = grid.getStartY();
     }
 
-    // Verificar si una posición está en la zona de drop
+    /**
+     * Function to check if the position is inside the drop zone
+     * 
+     * @param x
+     * @param y
+     * @return
+     */
     private boolean isPositionInDropZone(double x, double y) {
         double gridStartX = grid.getStartX();
         double gridEndX = gridStartX + (grid.getCols() * grid.getCellSize());
@@ -131,7 +143,12 @@ public class CtrlPlay implements Initializable {
                 y >= dropZoneStartY && y <= dropZoneEndY;
     }
 
-    // Obtener columna sobre la que está el mouse en la drop zone
+    /**
+     * Function to get the column index based on x position in drop zone
+     * 
+     * @param x
+     * @return
+     */
     private int getDropZoneColumn(double x) {
         if (x < grid.getStartX() || x > grid.getStartX() + grid.getCols() * grid.getCellSize()) {
             return -1;
@@ -140,7 +157,12 @@ public class CtrlPlay implements Initializable {
         return Math.max(0, Math.min(col, grid.getCols() - 1));
     }
 
-    // Encontrar la fila más baja disponible en una columna
+    /**
+     * Function to get the lowest available row in a column
+     * 
+     * @param col
+     * @return
+     */
     private int getLowestAvailableRow(int col) {
         for (int row = grid.getRows() - 1; row >= 0; row--) {
             if (boardState[row][col] == null) {
@@ -160,6 +182,11 @@ public class CtrlPlay implements Initializable {
         animationTimer.stop();
     }
 
+    /**
+     * Function for mouse moved
+     * 
+     * @param event
+     */
     private void setOnMouseMoved(MouseEvent event) {
         double mouseX = event.getX();
         double mouseY = event.getY();
@@ -194,7 +221,11 @@ public class CtrlPlay implements Initializable {
         }
     }
 
-    // Función para eventos de presionar el mouse
+    /**
+     * Function for mouse pressed
+     * 
+     * @param event
+     */
     private void onMousePressed(MouseEvent event) {
         double mouseX = event.getX();
         double mouseY = event.getY();
@@ -203,7 +234,7 @@ public class CtrlPlay implements Initializable {
         mouseDragging = false;
 
         // Radio correcto igual al del tablero
-        double correctRadius = grid.getCellSize() * 0.45;
+        double correctRadius = grid.getCellSize() * 0.40;
 
         for (GameObject go : Main.objects) {
             if (go.col == -1 && go.row == -1) {
@@ -238,7 +269,11 @@ public class CtrlPlay implements Initializable {
         return distanceSquared <= radius * radius;
     }
 
-    // Función para cuando arrastrar el mouse con la ficha
+    /**
+     * Function for mouse dragged
+     * 
+     * @param event
+     */
     private void onMouseDragged(MouseEvent event) {
         if (mouseDragging && selectedObject != null) {
             double centerX = event.getX() - mouseOffsetX;
@@ -265,7 +300,11 @@ public class CtrlPlay implements Initializable {
         setOnMouseMoved(event);
     }
 
-    // Función cuando deja ir el ratón
+    /**
+     * Function for mouse released
+     * 
+     * @param event
+     */
     private void onMouseReleased(MouseEvent event) {
         if (selectedObject != null) {
             double centerX = event.getX() - mouseOffsetX;
@@ -305,11 +344,17 @@ public class CtrlPlay implements Initializable {
         }
     }
 
-    // Iniciar animación de caída
+    /**
+     * Function to start the drop animation
+     * 
+     * @param piece
+     * @param col
+     * @param row
+     */
     private void startDropAnimation(GameObject piece, int col, int row) {
-        double correctRadius = grid.getCellSize() * 0.45;
+        double correctRadius = grid.getCellSize() * 0.40;
 
-        animatingPiece = new GameObject(piece.id, piece.center_x, piece.center_y, correctRadius, col, row);
+        animatingPiece = new GameObject(piece.id, piece.center_x, piece.center_y, correctRadius, col, row); //Creació de la peça per animarla
         animatingPiece.color = piece.color;
 
         // Calcular posición objetivo (centro de la celda)
@@ -321,29 +366,11 @@ public class CtrlPlay implements Initializable {
         animatingPiece.center_y = grid.getStartY() - 20;
     }
 
-    // Snap piece so its left-top corner sits exactly on the grid cell under its
-    // left tip.
-    /*
-     * private void snapObjectCenter(GameObject obj) {
-     * int col = grid.getCol(obj.center_x); // centerX -> columna
-     * int row = grid.getRow(obj.center_y); // centerY -> fila
+    /**
+     * Main loop update function
      * 
-     * // mantener dentro del grid
-     * col = (int) Math.max(0, Math.min(col, grid.getCols() - 1));
-     * row = (int) Math.max(0, Math.min(row, grid.getRows() - 1));
-     * 
-     * // Centrar el círculo en la celda
-     * double cellSize = grid.getCellSize();
-     * obj.center_x = grid.getCellX(col) + cellSize / 2;
-     * obj.center_y = grid.getCellY(row) + cellSize / 2;
-     * 
-     * // Guardar posición de celda
-     * obj.col = col;
-     * obj.row = row;
-     * }
+     * @param fps
      */
-
-    // Run game (and animations)
     private void run(double fps) {
 
         if (animationTimer.fps < 1) {
@@ -379,6 +406,10 @@ public class CtrlPlay implements Initializable {
 
     // Draw game to canvas
     // Dibujar celdas con background azul, interior blanco y borde en gris
+    /**
+     * Function to draw the game
+     * 
+     */
     public void draw() {
 
         if (Main.clients == null) {
@@ -550,7 +581,7 @@ public class CtrlPlay implements Initializable {
     public void drawObject(GameObject obj) {
         double centerX = obj.center_x;
         double centerY = obj.center_y;
-        double radius = grid.getCellSize() * 0.45;
+        double radius = grid.getCellSize() * 0.40;
 
         // Seleccionar un color basat en l'objectId
         Color color;
@@ -578,7 +609,12 @@ public class CtrlPlay implements Initializable {
 
     }
 
-    // Conseguir color
+    /**
+     * Function to get color by name
+     * 
+     * @param colorName
+     * @return
+     */
     public Color getColor(String colorName) {
         switch (colorName.toLowerCase()) {
             case "red":

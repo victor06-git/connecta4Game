@@ -108,7 +108,7 @@ public class Main extends WebSocketServer {
         double poolY = 130;
         double poolWidth = 250;
 
-        double pieceRadius = 80.0 * 0.45;
+        double pieceRadius = 80.0 * 0.15;
         double pieceDiameter = pieceRadius * 2;
 
         int numPiecesPerRow = 7;
