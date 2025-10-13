@@ -9,12 +9,12 @@ import org.json.JSONObject;
 import com.shared.ClientData;
 import com.shared.GameObject;
 
+import javafx.animation.PauseTransition;
 import javafx.application.Application;
 import javafx.application.Platform;
-import javafx.animation.PauseTransition;
-import javafx.scene.paint.Color;
 import javafx.scene.Scene;
 import javafx.scene.image.Image;
+import javafx.scene.paint.Color;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 
@@ -44,7 +44,7 @@ public class Main extends Application {
 
         UtilsViews.parentContainer.setStyle("-fx-font: 14 arial;");
         UtilsViews.addView(getClass(), "ViewConfig", "/assets/viewConfig.fxml"); 
-        UtilsViews.addView(getClass(), "ViewOpponentSelection", "/assets/opponent_selection");
+        UtilsViews.addView(getClass(), "ViewOpponentSelection", "/assets/opponent_selection.fxml");
         UtilsViews.addView(getClass(), "ViewWait", "/assets/viewWait.fxml");
         UtilsViews.addView(getClass(), "ViewPlay", "/assets/viewPlay.fxml");
 
@@ -104,6 +104,9 @@ public class Main extends Application {
             String port = ctrlConfig.txtPort.getText();
             wsClient = UtilsWS.getSharedInstance(protocol + "://" + host + ":" + port);
 
+            clients = new ArrayList<>();
+            objects = new ArrayList<>();
+
             wsClient.onMessage((response) -> {
                 Platform.runLater(() -> {
                     wsMessage(response);
@@ -123,6 +126,11 @@ public class Main extends Application {
 
         JSONObject msgObj = new JSONObject(response);
         switch (msgObj.getString("type")) {
+            case "clientName":
+                clientName = msgObj.getString("value");
+                System.out.println("Client Name: " + clientName);
+                break;
+                
             case "serverData":
                 clientName = msgObj.getString("clientName");
 
@@ -154,7 +162,7 @@ public class Main extends Application {
                 }
 
                 if (UtilsViews.getActiveView().equals("ViewConfig")) {
-                    UtilsViews.setViewAnimating("ViewWait");
+                    UtilsViews.setViewAnimating("ViewOpponentSelection");
                 }
 
                 break;
@@ -167,6 +175,20 @@ public class Main extends Application {
                     txt = "GO";
                 }
                 ctrlWait.txtTitle.setText(txt);
+                break;
+                
+            case "clientsList":
+                System.out.println("Recieving clients!");
+                JSONArray arr = msgObj.getJSONArray("clientsList");
+                clients.clear();
+                
+                for (int i = 0; i < arr.length(); i++) {
+                    JSONObject object = arr.getJSONObject(i);
+                    String name = object.getString("name");
+                    clients.add(new ClientData(name));
+                }
+
+                ((CtrlOpponentSelection)UtilsViews.getController("ViewOpponentSelection")).loadSendList();
                 break;
         }
     }
