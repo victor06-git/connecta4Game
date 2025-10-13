@@ -1,6 +1,7 @@
 package com.server;
 
 import java.net.InetSocketAddress;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -70,6 +71,9 @@ public class Main extends WebSocketServer {
     /** Mapa d’estat per client (source of truth del servidor). Clau = name/id. */
     private final Map<String, ClientData> clientsData = new HashMap<>();
 
+    /*+ Llista amb els jugadors que estaran a la partida */
+    private final List<String> playersNames = new ArrayList<>();
+
     /** Mapa d'objectes seleccionables compartits. */
     private final Map<String, GameObject> gameObjects = new HashMap<>();
 
@@ -127,7 +131,7 @@ public class Main extends WebSocketServer {
     private void sendCountdown() {
         synchronized (this) {
             if (countdownRunning) return;
-            if (clientsData.size() != REQUIRED_CLIENTS) return;
+            if (playersNames.size() != REQUIRED_CLIENTS) return;
             countdownRunning = true;
         }
 
@@ -135,7 +139,7 @@ public class Main extends WebSocketServer {
             try {
                 for (int i = 3; i >= 0; i--) {
                     // Si durant el compte enrere ja no hi ha els clients requerits, cancel·la
-                    if (clientsData.size() < REQUIRED_CLIENTS) {
+                    if (playersNames.size() < REQUIRED_CLIENTS) {
                         break;
                     }
 
@@ -176,9 +180,19 @@ public class Main extends WebSocketServer {
         for (Map.Entry<WebSocket, String> e : clients.snapshot().entrySet()) {
             WebSocket conn = e.getKey();
 
-            if (!clientsData.containsKey(e.getValue())) continue;
+            if (!clientsData.containsKey((e.getValue()))) continue;
 
             if (!Objects.equals(conn, sender)) sendSafe(conn, payload);
+        }
+    }
+
+    /** Envia un missatge a tots els jugadors. */
+    private void broadcastExcept(String payload) {
+        for (Map.Entry<WebSocket, String> e : clients.snapshot().entrySet()) {
+            WebSocket conn = e.getKey();
+
+            if (!playersNames.contains((e.getValue()))) continue;
+            sendSafe(conn, payload);
         }
     }
 
@@ -209,7 +223,7 @@ public class Main extends WebSocketServer {
     /** Envia a tots els clients el compte enrere. */
     private void sendCountdownToAll(int n) {
         JSONObject rst = msg(T_COUNTDOWN).put(K_VALUE, n);
-        broadcastExcept(null, rst.toString());
+        broadcastExcept(rst.toString());
     }
 
     private String sendAllClients() {
@@ -292,15 +306,19 @@ public class Main extends WebSocketServer {
 
             case T_CLIENT_ANSWER_INVITATION -> {
                 // Rebem una petició amb el nom de l'usuari i destinatari a enviar la petició i un boolà amb la resposta
-
-                // SI ACCEPTA
-                // Comencen countdown per a la partida
-                sendCountdown();
-
-                // SI NO ACCEPTA
-                // Enviem a l'usuari que ha fet la peticiól a resposta de l'invitació
-                String sender = obj.getString("sendFrom");
-                sendSafe(clients.socketByName(sender), obj.toString());
+                if (obj.getBoolean(K_VALUE)) {
+                    // SI ACCEPTA
+                    // Comencen countdown per a la partida
+                    playersNames.add(obj.getString("sendFrom"));
+                    playersNames.add(obj.getString("sendTo"));
+                    sendCountdown();
+                }
+                else {
+                    // SI NO ACCEPTA
+                    // Enviem a l'usuari que ha fet la peticiól a resposta de l'invitació
+                    String sender = obj.getString("sendFrom");
+                    sendSafe(clients.socketByName(sender), obj.toString());
+                }
             }
 
             default -> {
