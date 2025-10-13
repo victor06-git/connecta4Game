@@ -230,7 +230,6 @@ public class Main extends WebSocketServer {
     private void sendClientName(WebSocket conn, String name) {
         JSONObject response = msg(K_CLIENT_NAME);
         response.put(K_VALUE, name);
-        System.out.println(response);
         sendSafe(conn, response.toString());
     }
 
@@ -284,6 +283,7 @@ public class Main extends WebSocketServer {
             case T_CLIENT_SEND_INVITATION -> {
                 // Rebem una petició amb el nom de l'usuari i destinatari a enviar la petició
                 // Rebem l'usuari a qui hem d'enviar la petició
+                System.out.println(obj);
                 String receiver = obj.getString("sendTo");
 
                 // Enviem a l'usuari rebut, la petició d'invitació
