@@ -1,19 +1,26 @@
 package com.connect4;
 
 import java.net.URL;
+import java.util.ResourceBundle;
 
 import com.shared.ClientData;
 
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
+import javafx.fxml.Initializable;
 import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.layout.VBox;
 
-public class CtrlOpponentSelection {
+public class CtrlOpponentSelection implements Initializable {
 
     @FXML
     private VBox list_send, list_receive;
+
+    @Override
+    public void initialize(URL location, ResourceBundle resources) {
+        updateLists();
+    }
 
     // Cargar la lista de usuarios disponibles para enviar invitación
     public void loadSendList() {
