@@ -179,19 +179,22 @@ public class Main extends Application {
             case "clientsList":
                 JSONArray arr = msgObj.getJSONArray("clientsList");
                 clients.clear();
-                
+
                 for (int i = 0; i < arr.length(); i++) {
                     JSONObject object = arr.getJSONObject(i);
                     String name = object.getString("name");
+                    
                     clients.add(new ClientData(name));
                 }
 
                 ((CtrlOpponentSelection)UtilsViews.getController("ViewOpponentSelection")).loadSendList();
+                
                 break;
         
             case "clientSendInvitation":
                 String username = msgObj.getString("sendFrom");
                 ((CtrlOpponentSelection)UtilsViews.getController("ViewOpponentSelection")).addFromReceiveList(username);
+                ((CtrlOpponentSelection)UtilsViews.getController("ViewOpponentSelection")).addToSendInvitation(username);
                 break;
         }
     }

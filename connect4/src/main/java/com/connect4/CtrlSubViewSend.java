@@ -54,6 +54,7 @@ public class CtrlSubViewSend {
 
                 Main.wsClient.safeSend(json.toString());
                 ((CtrlOpponentSelection)UtilsViews.getController("ViewOpponentSelection")).removeFromSendList(user);
+                ((CtrlOpponentSelection)UtilsViews.getController("ViewOpponentSelection")).addToSendInvitation(user);
             }
             
         } else {

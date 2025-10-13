@@ -2,7 +2,9 @@ package com.connect4;
 
 import java.lang.ModuleLayer.Controller;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.ResourceBundle;
 
@@ -18,6 +20,7 @@ import javafx.scene.layout.VBox;
 public class CtrlOpponentSelection implements Initializable {
 
     private Map<Node, CtrlSubViewSend> controllers = new HashMap<>();
+    private List<String>sendInvitations = new ArrayList<>();
 
     @FXML
     private VBox list_send, list_receive;
@@ -30,12 +33,13 @@ public class CtrlOpponentSelection implements Initializable {
     // Cargar la lista de usuarios disponibles para enviar invitación
     public void loadSendList() {
         try {
+            
             list_send.getChildren().clear();
 
             // Iterar sobre todos los clientes conectados
             for (ClientData client : Main.clients) {
                 // Filtrar: no mostrar el propio usuario
-                if (!client.name.equals(Main.clientName)) {
+                if (!client.name.equals(Main.clientName) && !sendInvitations.contains(client.name)) {
 
                     URL resource = getClass().getResource("/assets/subviewSend.fxml");
                     FXMLLoader loader = new FXMLLoader(resource);
@@ -129,5 +133,13 @@ public class CtrlOpponentSelection implements Initializable {
                 break;
             }
         }
+    }
+
+    public void addToSendInvitation(String name) {
+        sendInvitations.add(name);
+    }
+
+    public void removeFromSendInvitation(String name) {
+        sendInvitations.remove(name);
     }
 }
