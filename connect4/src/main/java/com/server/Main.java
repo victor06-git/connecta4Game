@@ -61,6 +61,7 @@ public class Main extends WebSocketServer {
     private static final String T_CLIENT_SEND_INVITATION = "clientSendInvitation";      // client -> server
     private static final String T_CLIENT_ANSWER_INVITATION = "clientAnswerInvitation";  // client -> server
     private static final String T_SERVER_DATA = "serverData";                           // server -> clients
+    private static final String T_SERVER_CLIENTS_LIST = "clientsList";                           // server -> clients
     private static final String T_COUNTDOWN = "countdown";                              // server -> clients
 
     /** Registre de clients i assignació de noms (pool integrat). */
@@ -211,6 +212,28 @@ public class Main extends WebSocketServer {
         broadcastExcept(null, rst.toString());
     }
 
+    private String sendAllClients() {
+        JSONObject response = msg(T_SERVER_CLIENTS_LIST);
+        JSONArray clientsDataArray = new JSONArray();
+
+        for (ClientData cd : clientsData.values()) {
+            JSONObject clientData = new JSONObject();
+            clientData.put("name", cd.name);
+            clientsDataArray.put(clientData);
+        }
+
+        response.put(K_CLIENTS_LIST, clientsDataArray);
+
+        return response.toString();
+    }
+
+    private void sendClientName(WebSocket conn, String name) {
+        JSONObject response = msg(K_CLIENT_NAME);
+        response.put(K_VALUE, name);
+        System.out.println(response);
+        sendSafe(conn, response.toString());
+    }
+
     // ----------------- WebSocketServer overrides -----------------
 
     /** Assigna un nom i color al client i envia l’STATE complet. */
@@ -218,6 +241,8 @@ public class Main extends WebSocketServer {
     public void onOpen(WebSocket conn, ClientHandshake handshake) {
         String name = clients.add(conn);
         clientsData.put(name, new ClientData(name));
+        sendClientName(conn, name);
+        broadcastExcept(null, sendAllClients());
         System.out.println("WebSocket client connected: " + name);
     }
 
