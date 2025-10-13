@@ -1,6 +1,5 @@
 package com.connect4;
 
-import java.lang.ModuleLayer.Controller;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -28,6 +27,10 @@ public class CtrlOpponentSelection implements Initializable {
     @Override
     public void initialize(URL location, ResourceBundle resources) {
         updateLists();
+    }
+
+    public List<String> getSendInvitations() {
+        return sendInvitations;
     }
 
     // Cargar la lista de usuarios disponibles para enviar invitación
@@ -108,6 +111,7 @@ public class CtrlOpponentSelection implements Initializable {
 
             // Configurar los datos del cliente
             itemController.setUser(name);
+            itemController.setRootNode(itemPane);
 
             removeFromSendList(name);
             list_receive.getChildren().add(itemPane);
@@ -115,6 +119,17 @@ public class CtrlOpponentSelection implements Initializable {
             System.err.println("Error al cargar las invitaciones recibidas");
             e.printStackTrace();
         }
+    }
+
+    public void removeFromReceiveList(String name) {
+        Node toRemove = null;
+        for (Node n : list_send.getChildren()) {
+            if (controllers.get(n).getUserName().equals(name)) {
+                toRemove = n;
+                break;
+            }
+        }
+        list_receive.getChildren().remove(toRemove);
     }
 
     public void removeFromSendList(String name) {
