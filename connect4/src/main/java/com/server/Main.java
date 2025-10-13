@@ -364,7 +364,6 @@ public class Main extends WebSocketServer {
             case T_CLIENT_PLAY -> {
                 // Fer compte enrere
 
-
                 sendCountdown();
 
                 // Enviar dades als jugadors

@@ -455,6 +455,10 @@ public class CtrlPlay implements Initializable {
         }
     }
 
+    /**
+     * Function that draw the drop zone
+     * 
+     */
     private void drawDropZone() {
         double startX = grid.getStartX();
         double startY = grid.getStartY() - dropZoneHeight;
@@ -485,7 +489,10 @@ public class CtrlPlay implements Initializable {
         }
     }
 
-    // Dibuja el tablero
+    /**
+     * Function that draw the board
+     * 
+     */
     public void drawBoard() {
         double cellSize = grid.getCellSize();
         double gridWidth = grid.getCols() * cellSize;
