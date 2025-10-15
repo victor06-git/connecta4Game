@@ -61,18 +61,13 @@ public class CtrlPlay implements Initializable {
 
     // Matriz de las posiciones de las fichas, se inicializa null
     private String[][] boardState = new String[6][7];
-    private List<GameObject> boardObjects = new ArrayList<>();
+    // private List<GameObject> boardObjects = new ArrayList<>();
 
     @Override
     public void initialize(URL url, ResourceBundle rb) {
 
         // Get drawing context
         this.gc = canvas.getGraphicsContext2D();
-
-        // Initialize board objects from Main
-        if (Main.objects != null) {
-            boardObjects = new ArrayList<>(Main.objects);
-        }
 
         // Inicializar estado del tablero
         for (int i = 0; i < 6; i++) {
@@ -187,7 +182,7 @@ public class CtrlPlay implements Initializable {
                 return row;
             }
         }
-        return -1; // Columna llena
+        return -1; // Full column
     }
 
     // Start animation timer
@@ -256,7 +251,7 @@ public class CtrlPlay implements Initializable {
         // Radio correcto igual al del tablero
         double correctRadius = grid.getCellSize() * 0.40;
 
-        for (GameObject go : boardObjects) {
+        for (GameObject go : Main.objects) {
             if (go.col == -1 && go.row == -1) {
                 // Verificar si el mouse está dentro del círculo de la ficha
                 if (isMouseInsideCircle(mouseX, mouseY, go.center_x, go.center_y, correctRadius)) {
@@ -432,7 +427,7 @@ public class CtrlPlay implements Initializable {
                 if (selectedObject.center_y >= animationTargetY) {
                     selectedObject.center_y = animationTargetY;
 
-                    for (GameObject go : boardObjects) {
+                    for (GameObject go : Main.objects) {
                         if (go.id.equals(selectedObject.id)) {
                             go.center_x = selectedObject.center_x;
                             go.center_y = selectedObject.center_y;
@@ -557,7 +552,7 @@ public class CtrlPlay implements Initializable {
         drawBoard();
 
         // Draw pieces of the board (selected)
-        for (GameObject go : boardObjects) {
+        for (GameObject go : Main.objects) {
             if (go.row != -1 && go.col != -1) {
                 // Saltar la ficha que está siendo arrastrada o animándose
                 if (selectedObject != null && go.id.equals(selectedObject.id))
@@ -567,7 +562,7 @@ public class CtrlPlay implements Initializable {
         }
 
         // Draw pieces of pool (non-selected)
-        for (GameObject go : boardObjects) {
+        for (GameObject go : Main.objects) {
             if (go.row == -1 && go.col == -1) {
                 // Saltar la ficha que está siendo arrastrada o animándose
                 if (selectedObject != null && go.id.equals(selectedObject.id))
