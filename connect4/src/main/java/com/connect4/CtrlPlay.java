@@ -400,6 +400,7 @@ public class CtrlPlay implements Initializable {
                     selectedObject.center_y = animationTargetY;
 
                     for (GameObject go : Main.objects) {
+                        System.out.println(go);
                         if (go.id.equals(selectedObject.id)) {
                             go.center_x = selectedObject.center_x;
                             go.center_y = selectedObject.center_y;
