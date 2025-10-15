@@ -1,6 +1,8 @@
 package com.connect4;
 
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.ResourceBundle;
 
 import org.json.JSONObject;
@@ -9,6 +11,7 @@ import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.control.Label;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.paint.Color;
 import javafx.scene.paint.CycleMethod;
@@ -22,7 +25,7 @@ import com.shared.GameObject;
 public class CtrlPlay implements Initializable {
 
     @FXML
-    public javafx.scene.control.Label title;
+    public Label title;
 
     @FXML
     private Canvas canvas;
@@ -36,6 +39,7 @@ public class CtrlPlay implements Initializable {
     private double mouseOffsetX, mouseOffsetY;
 
     private GameObject selectedObject = null; // Ficha seleccionada
+    private double originalX, originalY; // Posición original de la ficha seleccionada
 
     private boolean isAnimating = false; // Si se está animando una ficha
     private double animationTargetY = 0; // Animación en columna
@@ -57,6 +61,7 @@ public class CtrlPlay implements Initializable {
 
     // Matriz de las posiciones de las fichas, se inicializa null
     private String[][] boardState = new String[6][7];
+    private List<GameObject> boardObjects = new ArrayList<>(Main.objects);
 
     @Override
     public void initialize(URL url, ResourceBundle rb) {
@@ -246,11 +251,15 @@ public class CtrlPlay implements Initializable {
         // Radio correcto igual al del tablero
         double correctRadius = grid.getCellSize() * 0.40;
 
-        for (GameObject go : Main.objects) {
+        for (GameObject go : boardObjects) {
             if (go.col == -1 && go.row == -1) {
                 // Verificar si el mouse está dentro del círculo de la ficha
                 if (isMouseInsideCircle(mouseX, mouseY, go.center_x, go.center_y, correctRadius)) {
                     selectedObject = go; // Seleccionar la ficha
+
+                    originalX = go.center_x;
+                    originalY = go.center_y;
+
                     mouseDragging = true;
                     mouseOffsetX = mouseX - go.center_x;
                     mouseOffsetY = mouseY - go.center_y;
@@ -332,6 +341,14 @@ public class CtrlPlay implements Initializable {
                     // Actualizar estado del tablero
                     boardState[row][col] = selectedObject.id;
 
+                    for (GameObject go : Main.objects) {
+                        if (go.id.equals(selectedObject.id)) {
+                            go.col = col;
+                            go.row = row;
+                            break;
+                        }
+                    }
+
                     // Enviar jugada al servidor
                     JSONObject msg = new JSONObject();
                     msg.put("type", "clientPlay");
@@ -347,6 +364,17 @@ public class CtrlPlay implements Initializable {
                     mouseDragging = false;
                     hoveredColumn = -1;
                     return;
+                }
+            }
+
+            selectedObject.center_x = originalX;
+            selectedObject.center_y = originalY;
+
+            for (GameObject go : Main.objects) {
+                if (go.id.equals(selectedObject.id)) {
+                    go.center_x = selectedObject.center_x;
+                    go.center_y = selectedObject.center_y;
+                    break;
                 }
             }
 
@@ -399,8 +427,7 @@ public class CtrlPlay implements Initializable {
                 if (selectedObject.center_y >= animationTargetY) {
                     selectedObject.center_y = animationTargetY;
 
-                    for (GameObject go : Main.objects) {
-                        System.out.println(go);
+                    for (GameObject go : boardObjects) {
                         if (go.id.equals(selectedObject.id)) {
                             go.center_x = selectedObject.center_x;
                             go.center_y = selectedObject.center_y;
@@ -525,7 +552,7 @@ public class CtrlPlay implements Initializable {
         drawBoard();
 
         // Draw pieces of the board (selected)
-        for (GameObject go : Main.objects) {
+        for (GameObject go : boardObjects) {
             if (go.row != -1 && go.col != -1) {
                 // Saltar la ficha que está siendo arrastrada o animándose
                 if (selectedObject != null && go.id.equals(selectedObject.id))
@@ -535,7 +562,7 @@ public class CtrlPlay implements Initializable {
         }
 
         // Draw pieces of pool (non-selected)
-        for (GameObject go : Main.objects) {
+        for (GameObject go : boardObjects) {
             if (go.row == -1 && go.col == -1) {
                 // Saltar la ficha que está siendo arrastrada o animándose
                 if (selectedObject != null && go.id.equals(selectedObject.id))
