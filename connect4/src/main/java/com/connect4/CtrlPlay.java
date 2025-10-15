@@ -61,13 +61,18 @@ public class CtrlPlay implements Initializable {
 
     // Matriz de las posiciones de las fichas, se inicializa null
     private String[][] boardState = new String[6][7];
-    private List<GameObject> boardObjects = new ArrayList<>(Main.objects);
+    private List<GameObject> boardObjects = new ArrayList<>();
 
     @Override
     public void initialize(URL url, ResourceBundle rb) {
 
         // Get drawing context
         this.gc = canvas.getGraphicsContext2D();
+
+        // Initialize board objects from Main
+        if (Main.objects != null) {
+            boardObjects = new ArrayList<>(Main.objects);
+        }
 
         // Inicializar estado del tablero
         for (int i = 0; i < 6; i++) {
