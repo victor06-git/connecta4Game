@@ -300,6 +300,14 @@ public class CtrlPlay implements Initializable {
             selectedObject.center_x = centerX;
             selectedObject.center_y = centerY;
 
+            for (GameObject go : Main.objects) {
+                if (go.id.equals(selectedObject.id)) {
+                    go.center_x = centerX;
+                    go.center_y = centerY;
+                    break;
+                }
+            }
+
             // Actualizar columna hover
             if (isPositionInDropZone(centerX, centerY)) {
                 hoveredColumn = getDropZoneColumn(centerX);
@@ -335,19 +343,11 @@ public class CtrlPlay implements Initializable {
 
                 if (row != -1) {
 
-                    // Iniciar animación de caída
-                    startDropAnimation(col, row);
-
                     // Actualizar estado del tablero
                     boardState[row][col] = selectedObject.id;
 
-                    for (GameObject go : Main.objects) {
-                        if (go.id.equals(selectedObject.id)) {
-                            go.col = col;
-                            go.row = row;
-                            break;
-                        }
-                    }
+                    // Iniciar animación de caída
+                    startDropAnimation(col, row);
 
                     // Enviar jugada al servidor
                     JSONObject msg = new JSONObject();
@@ -367,13 +367,10 @@ public class CtrlPlay implements Initializable {
                 }
             }
 
-            selectedObject.center_x = originalX;
-            selectedObject.center_y = originalY;
-
             for (GameObject go : Main.objects) {
                 if (go.id.equals(selectedObject.id)) {
-                    go.center_x = selectedObject.center_x;
-                    go.center_y = selectedObject.center_y;
+                    go.center_x = originalX;
+                    go.center_y = originalY;
                     break;
                 }
             }
@@ -423,6 +420,14 @@ public class CtrlPlay implements Initializable {
 
             if (selectedObject.center_y < animationTargetY) {
                 selectedObject.center_y += movement;
+
+                for (GameObject go : Main.objects) {
+                    if (go.id.equals(selectedObject.id)) {
+                        go.center_x = selectedObject.center_x;
+                        go.center_y = selectedObject.center_y;
+                        break;
+                    }
+                }
 
                 if (selectedObject.center_y >= animationTargetY) {
                     selectedObject.center_y = animationTargetY;
