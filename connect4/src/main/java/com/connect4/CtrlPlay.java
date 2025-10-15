@@ -346,6 +346,14 @@ public class CtrlPlay implements Initializable {
                     // Actualizar estado del tablero
                     boardState[row][col] = selectedObject.id;
 
+                    for (GameObject go : Main.objects) {
+                        if (go.id.equals(selectedObject.id)) {
+                            go.row = row;
+                            go.col = col;
+                            break;
+                        }
+                    }
+
                     // Iniciar animación de caída
                     startDropAnimation(col, row);
 
@@ -546,7 +554,7 @@ public class CtrlPlay implements Initializable {
         // Draw grid
         drawBoard();
 
-        drawBoardPieces();
+        // drawBoardPieces();
 
         // Draw pieces of pool (non-selected)
         for (GameObject go : Main.objects) {
@@ -562,6 +570,8 @@ public class CtrlPlay implements Initializable {
         if (selectedObject != null) {
             drawObject(selectedObject);
         }
+
+        drawBoardPieces();
 
         if (winningLineCoords != null) {
             drawWinningLine();
@@ -580,6 +590,8 @@ public class CtrlPlay implements Initializable {
     }
 
     private void drawBoardPieces() {
+        selectedObject = null; // Asegurarse de que no se dibuje la pieza seleccionada aquí
+
         double cellSize = grid.getCellSize();
         double radius = cellSize * 0.40;
 
