@@ -43,9 +43,6 @@ public class CtrlPlay implements Initializable {
     private double animationTargetY = 0; // Animación en columna
     private double animationSpeed = 600; // Velocidad animación
 
-    // Lista de fichas que están en el tablero
-    private List<GameObject> objects = new ArrayList<>();
-
     // Zona del tablero para dejar caer la ficha
     private double dropZoneHeight = 40;
     private int hoveredColumn = -1;
@@ -331,9 +328,6 @@ public class CtrlPlay implements Initializable {
 
                 if (row != -1) {
 
-                    // Eliminar ficha del pool
-                    Main.objects.remove(selectedObject);
-
                     // Iniciar animación de caída
                     startDropAnimation(col, row);
 
@@ -407,8 +401,6 @@ public class CtrlPlay implements Initializable {
 
                 if (selectedObject.center_y >= animationTargetY) {
                     selectedObject.center_y = animationTargetY;
-
-                    objects.add(selectedObject);
 
                     // Winning
                     checkWinner();
@@ -524,18 +516,24 @@ public class CtrlPlay implements Initializable {
         // Draw grid
         drawBoard();
 
-        // Draw selected object on top
-        for (GameObject piece : objects) {
-            drawObject(piece);
+        // Draw pieces of the board (selected)
+        for (GameObject go : Main.objects) {
+            if (go.row != -1 && go.col != -1) {
+                // Saltar la ficha que está siendo arrastrada o animándose
+                if (selectedObject != null && go.id.equals(selectedObject.id))
+                    continue;
+                drawObject(go);
+            }
         }
 
-        // Draw objects (fichas en el tablero)
+        // Draw pieces of pool (non-selected)
         for (GameObject go : Main.objects) {
-            // Saltar la ficha que está siendo arrastrada o animándose
-            if (selectedObject != null && go.id.equals(selectedObject.id))
-                continue;
-
-            drawObject(go);
+            if (go.row == -1 && go.col == -1) {
+                // Saltar la ficha que está siendo arrastrada o animándose
+                if (selectedObject != null && go.id.equals(selectedObject.id))
+                    continue;
+                drawObject(go);
+            }
         }
 
         // Draw animating piece
@@ -559,32 +557,51 @@ public class CtrlPlay implements Initializable {
         }
     }
 
+    /**
+     * Function that draws the circles of the winner
+     * 
+     */
     private void drawWinningLine() {
         if (winningLineCoords == null)
             return;
 
         double cellSize = grid.getCellSize();
+        double radius = cellSize * 0.40;
 
         int startRow = winningLineCoords[0];
         int startCol = winningLineCoords[1];
         int endRow = winningLineCoords[2];
         int endCol = winningLineCoords[3];
 
-        // Centro celdas
-        double startX = grid.getCellX(startCol) + cellSize / 2;
-        double startY = grid.getCellY(startRow) + cellSize / 2;
-        double endX = grid.getCellX(endCol) + cellSize / 2;
-        double endY = grid.getCellY(endRow) + cellSize / 2;
+        // Calcular dirección
+        int rowStep = (endRow > startRow) ? 1 : (endRow < startRow) ? -1 : 0;
+        int colStep = (endCol > startCol) ? 1 : (endCol < startCol) ? -1 : 0;
 
-        // Dibujar sombra de la línea
-        gc.setStroke(Color.rgb(0, 0, 0, 0.3));
-        gc.setLineWidth(10);
-        gc.strokeLine(startX + 2, startY + 2, endX + 2, endY + 2);
+        // Dibujar círculo en cada una de las 4 fichas ganadoras
+        int currentRow = startRow;
+        int currentCol = startCol;
 
-        // Dibujar línea gruesa dorada
-        gc.setStroke(Color.rgb(255, 215, 0));
-        gc.setLineWidth(8);
-        gc.strokeLine(startX, startY, endX, endY);
+        for (int i = 0; i < 4; i++) {
+            double centerX = grid.getCellX(currentCol) + cellSize / 2;
+            double centerY = grid.getCellY(currentRow) + cellSize / 2;
+
+            // Sombra del círculo
+            gc.setFill(Color.rgb(0, 0, 0, 0.3));
+            gc.fillOval(centerX - radius + 3, centerY - radius + 3, radius * 2, radius * 2);
+
+            // Círculo verde fosforito (brillante)
+            gc.setFill(Color.rgb(0, 255, 0, 0.7)); // Verde neón con transparencia
+            gc.fillOval(centerX - radius, centerY - radius, radius * 2, radius * 2);
+
+            // Borde del círculo verde más brillante
+            gc.setStroke(Color.rgb(50, 255, 50)); // Verde fosforito
+            gc.setLineWidth(4);
+            gc.strokeOval(centerX - radius, centerY - radius, radius * 2, radius * 2);
+
+            // Avanzar a la siguiente ficha
+            currentRow += rowStep;
+            currentCol += colStep;
+        }
 
     }
 
