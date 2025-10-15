@@ -13,6 +13,9 @@ import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.paint.Color;
+import javafx.scene.paint.CycleMethod;
+import javafx.scene.paint.LinearGradient;
+import javafx.scene.paint.Stop;
 import javafx.scene.text.Font;
 
 import com.shared.ClientData;
@@ -29,14 +32,14 @@ public class CtrlPlay implements Initializable {
     private Boolean showFPS = false;
 
     private PlayTimer animationTimer;
-    private PlayGrid grid;
+    private PlayGrid grid; // La cuadrícula del juego
 
-    private Boolean mouseDragging = false;
+    private Boolean mouseDragging = false; // Si se está arrastrando una ficha
     private double mouseOffsetX, mouseOffsetY;
 
-    private GameObject selectedObject = null;
+    private GameObject selectedObject = null; // Ficha seleccionada
 
-    private boolean isAnimating = false;
+    private boolean isAnimating = false; // Si se está animando una ficha
     private double animationTargetY = 0; // Animación en columna
     private double animationSpeed = 600; // Velocidad animación
 
@@ -52,6 +55,10 @@ public class CtrlPlay implements Initializable {
     private static final double BOARD_POOL_GAP = 50;
     private static final double FIXED_CELL_SIZE = 80;
     private static final double LEFT_MARGIN = 50;
+
+    // Winner variables
+    private int[] winningLineCoords = null;
+    private String winningColor = null;
 
     // Matriz de las posiciones de las fichas, se inicializa null
     private String[][] boardState = new String[6][7];
@@ -323,6 +330,10 @@ public class CtrlPlay implements Initializable {
                 int row = getLowestAvailableRow(col);
 
                 if (row != -1) {
+
+                    // Eliminar ficha del pool
+                    Main.objects.remove(selectedObject);
+
                     // Iniciar animación de caída
                     startDropAnimation(col, row);
 
@@ -399,10 +410,66 @@ public class CtrlPlay implements Initializable {
 
                     objects.add(selectedObject);
 
-                    Main.objects.removeIf(obj -> obj.id.equals(selectedObject.id));
+                    // Winning
+                    checkWinner();
 
                     isAnimating = false;
                     selectedObject = null;
+                }
+            }
+        }
+    }
+
+    /**
+     * Function that checks the winner
+     * 
+     */
+    private void checkWinner() {
+        // Horizontal
+        for (int row = 0; row < 6; row++) {
+            for (int col = 0; col < 4; col++) {
+                String piece = boardState[row][col];
+                if (piece != null && piece.equals(boardState[row][col + 1]) && piece.equals(boardState[row][col + 2])
+                        && piece.equals(boardState[row][col + 3])) {
+                    winningLineCoords = new int[] { row, col, row, col + 3 };
+                    winningColor = piece;
+                    return;
+                }
+            }
+        }
+
+        // Vertical
+        for (int row = 0; row < 3; row++) {
+            for (int col = 0; col < 4; col++) {
+                String piece = boardState[row][col];
+                if (piece != null && piece.equals(boardState[row + 1][col]) && piece.equals(boardState[row + 2][col])
+                        && piece.equals(boardState[row + 3][col])) {
+                    winningLineCoords = new int[] { row, col, row + 3, col };
+                    winningColor = piece;
+                }
+            }
+        }
+
+        // Diagonal a la izquierda (\)
+        for (int row = 0; row < 3; row++) {
+            for (int col = 0; col < 4; col++) {
+                String piece = boardState[row][col];
+                if (piece != null && piece.equals(boardState[row + 1][col + 1])
+                        && piece.equals(boardState[row + 2][col + 2]) && piece.equals(boardState[row + 3][col + 3])) {
+                    winningLineCoords = new int[] { row, col, row + 3, col + 3 };
+                    winningColor = piece;
+                }
+            }
+        }
+
+        // Diagonal a la derecha (/)
+        for (int row = 0; row < 3; row++) {
+            for (int col = 0; col < 4; col++) {
+                String piece = boardState[row][col];
+                if (piece != null && piece.equals(boardState[row - 1][col + 1])
+                        && piece.equals(boardState[row - 2][col + 2]) && piece.equals(boardState[row - 3][col + 3])) {
+                    winningLineCoords = new int[] { row, col, row - 3, col + 3 };
+                    winningColor = piece;
                 }
             }
         }
@@ -438,11 +505,11 @@ public class CtrlPlay implements Initializable {
         }
 
         // Crear gradiente simple de madera (marrón medio a claro)
-        javafx.scene.paint.LinearGradient woodGradient = new javafx.scene.paint.LinearGradient(
+        LinearGradient woodGradient = new LinearGradient(
                 0, 0, 0, 1, true,
-                javafx.scene.paint.CycleMethod.NO_CYCLE,
-                new javafx.scene.paint.Stop(0, Color.rgb(139, 90, 43)), // Marrón medio
-                new javafx.scene.paint.Stop(1, Color.rgb(120, 80, 40)) // Marrón más oscuro
+                CycleMethod.NO_CYCLE,
+                new Stop(0, Color.rgb(139, 90, 43)), // Marrón medio
+                new Stop(1, Color.rgb(120, 80, 40)) // Marrón más oscuro
         );
 
         // Dibujar pool con dimensiones adaptativas
@@ -476,6 +543,10 @@ public class CtrlPlay implements Initializable {
             drawObject(selectedObject);
         }
 
+        if (winningLineCoords != null) {
+            drawWinningLine();
+        }
+
         // Draw mouse circles (Consigue el color de clients)
         for (ClientData clientData : Main.clients) {
             gc.setFill(getColor(clientData.color));
@@ -486,6 +557,35 @@ public class CtrlPlay implements Initializable {
         if (showFPS) {
             animationTimer.drawFPS(gc);
         }
+    }
+
+    private void drawWinningLine() {
+        if (winningLineCoords == null)
+            return;
+
+        double cellSize = grid.getCellSize();
+
+        int startRow = winningLineCoords[0];
+        int startCol = winningLineCoords[1];
+        int endRow = winningLineCoords[2];
+        int endCol = winningLineCoords[3];
+
+        // Centro celdas
+        double startX = grid.getCellX(startCol) + cellSize / 2;
+        double startY = grid.getCellY(startRow) + cellSize / 2;
+        double endX = grid.getCellX(endCol) + cellSize / 2;
+        double endY = grid.getCellY(endRow) + cellSize / 2;
+
+        // Dibujar sombra de la línea
+        gc.setStroke(Color.rgb(0, 0, 0, 0.3));
+        gc.setLineWidth(10);
+        gc.strokeLine(startX + 2, startY + 2, endX + 2, endY + 2);
+
+        // Dibujar línea gruesa dorada
+        gc.setStroke(Color.rgb(255, 215, 0));
+        gc.setLineWidth(8);
+        gc.strokeLine(startX, startY, endX, endY);
+
     }
 
     /**
