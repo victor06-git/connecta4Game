@@ -1,6 +1,8 @@
 package com.connect4;
 
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.ResourceBundle;
 
 import org.json.JSONObject;
@@ -33,9 +35,13 @@ public class CtrlPlay implements Initializable {
     private double mouseOffsetX, mouseOffsetY;
 
     private GameObject selectedObject = null;
-    private GameObject animatingPiece = null;
+
+    private boolean isAnimating = false;
     private double animationTargetY = 0; // Animación en columna
     private double animationSpeed = 600; // Velocidad animación
+
+    // Lista de fichas que están en el tablero
+    private List<GameObject> objects = new ArrayList<>();
 
     // Zona del tablero para dejar caer la ficha
     private double dropZoneHeight = 40;
@@ -63,7 +69,7 @@ public class CtrlPlay implements Initializable {
             }
         }
 
-        //Set listeners
+        // Set listeners
         UtilsViews.parentContainer.heightProperty().addListener((observable, oldValue, newvalue) -> {
             onSizeChanged();
         });
@@ -191,11 +197,13 @@ public class CtrlPlay implements Initializable {
         double mouseX = event.getX();
         double mouseY = event.getY();
 
-        // Actualizar columna hover
-        if (isPositionInDropZone(mouseX, mouseY)) {
-            hoveredColumn = getDropZoneColumn(mouseX);
-        } else {
-            hoveredColumn = -1;
+        // Update hovered column only if not animating
+        if (!isAnimating) {
+            if (isPositionInDropZone(mouseX, mouseY)) {
+                hoveredColumn = getDropZoneColumn(mouseX);
+            } else {
+                hoveredColumn = -1;
+            }
         }
 
         String color = Main.clients.stream()
@@ -240,8 +248,7 @@ public class CtrlPlay implements Initializable {
             if (go.col == -1 && go.row == -1) {
                 // Verificar si el mouse está dentro del círculo de la ficha
                 if (isMouseInsideCircle(mouseX, mouseY, go.center_x, go.center_y, correctRadius)) {
-                    selectedObject = new GameObject(go.id, go.center_x, go.center_y, correctRadius, go.col, go.row);
-                    selectedObject.color = go.color;
+                    selectedObject = go; // Seleccionar la ficha
                     mouseDragging = true;
                     mouseOffsetX = mouseX - go.center_x;
                     mouseOffsetY = mouseY - go.center_y;
@@ -317,7 +324,7 @@ public class CtrlPlay implements Initializable {
 
                 if (row != -1) {
                     // Iniciar animación de caída
-                    startDropAnimation(selectedObject, col, row);
+                    startDropAnimation(col, row);
 
                     // Actualizar estado del tablero
                     boardState[row][col] = selectedObject.id;
@@ -333,11 +340,14 @@ public class CtrlPlay implements Initializable {
                         Main.wsClient.safeSend(msg.toString());
                     }
 
-                    // Remover la ficha del pool en Main.objects
-                    Main.objects.removeIf(obj -> obj.id.equals(selectedObject.id));
+                    // Desactivate dragging and selection
+                    mouseDragging = false;
+                    hoveredColumn = -1;
+                    return;
                 }
             }
 
+            // If not valid drop, return to pool position
             selectedObject = null;
             mouseDragging = false;
             hoveredColumn = -1;
@@ -351,19 +361,18 @@ public class CtrlPlay implements Initializable {
      * @param col
      * @param row
      */
-    private void startDropAnimation(GameObject piece, int col, int row) {
-        double correctRadius = grid.getCellSize() * 0.40;
+    private void startDropAnimation(int col, int row) {
 
-        animatingPiece = new GameObject(piece.id, piece.center_x, piece.center_y, correctRadius, col, row); //Creació de la peça per animarla
-        animatingPiece.color = piece.color;
+        isAnimating = true;
 
-        // Calcular posición objetivo (centro de la celda)
         double cellSize = grid.getCellSize();
-        animatingPiece.center_x = grid.getCellX(col) + cellSize / 2;
+        selectedObject.col = col;
+        selectedObject.row = row;
+        selectedObject.center_x = grid.getCellX(col) + cellSize / 2;
         animationTargetY = grid.getCellY(row) + cellSize / 2;
 
-        // La pieza empieza desde arriba de la columna (en la drop zone)
-        animatingPiece.center_y = grid.getStartY() - 20;
+        selectedObject.center_y = grid.getStartY() - 20;
+
     }
 
     /**
@@ -378,27 +387,22 @@ public class CtrlPlay implements Initializable {
         }
 
         // Actualizar animación de caída
-        if (animatingPiece != null) {
+        if (isAnimating && selectedObject != null) {
             double deltaTime = 1.0 / fps;
             double movement = animationSpeed * deltaTime;
 
-            if (animatingPiece.center_y < animationTargetY) {
-                animatingPiece.center_y += movement;
+            if (selectedObject.center_y < animationTargetY) {
+                selectedObject.center_y += movement;
 
-                // Si llegó al objetivo
-                if (animatingPiece.center_y >= animationTargetY) {
-                    animatingPiece.center_y = animationTargetY;
+                if (selectedObject.center_y >= animationTargetY) {
+                    selectedObject.center_y = animationTargetY;
 
-                    // Añadir a objetos del tablero (representación visual local)
-                    // El servidor ya tiene el estado actualizado
-                    boolean exists = Main.objects.stream()
-                            .anyMatch(obj -> obj.col == animatingPiece.col && obj.row == animatingPiece.row);
+                    objects.add(selectedObject);
 
-                    if (!exists) {
-                        Main.objects.add(animatingPiece);
-                    }
+                    Main.objects.removeIf(obj -> obj.id.equals(selectedObject.id));
 
-                    animatingPiece = null;
+                    isAnimating = false;
+                    selectedObject = null;
                 }
             }
         }
@@ -454,8 +458,8 @@ public class CtrlPlay implements Initializable {
         drawBoard();
 
         // Draw selected object on top
-        if (selectedObject != null && mouseDragging) {
-            drawObject(selectedObject);
+        for (GameObject piece : objects) {
+            drawObject(piece);
         }
 
         // Draw objects (fichas en el tablero)
@@ -463,15 +467,13 @@ public class CtrlPlay implements Initializable {
             // Saltar la ficha que está siendo arrastrada o animándose
             if (selectedObject != null && go.id.equals(selectedObject.id))
                 continue;
-            if (animatingPiece != null && go.id.equals(animatingPiece.id))
-                continue;
 
             drawObject(go);
         }
 
         // Draw animating piece
-        if (animatingPiece != null) {
-            drawObject(animatingPiece);
+        if (selectedObject != null) {
+            drawObject(selectedObject);
         }
 
         // Draw mouse circles (Consigue el color de clients)
@@ -603,8 +605,8 @@ public class CtrlPlay implements Initializable {
         gc.fillOval(centerX - radius, centerY - radius, radius * 2, radius * 2);
 
         // Dibuixar el contorn
-        gc.setStroke(getColor("black"));
-        gc.setLineWidth(3);
+        gc.setStroke(obj.id.startsWith("R_") ? getColor("dark_red") : getColor("dark_yellow"));
+        gc.setLineWidth(5);
         gc.strokeOval(centerX - radius, centerY - radius, radius * 2, radius * 2);
 
     }
@@ -619,12 +621,16 @@ public class CtrlPlay implements Initializable {
         switch (colorName.toLowerCase()) {
             case "red":
                 return Color.RED;
+            case "dark_red":
+                return Color.rgb(117, 4, 4, 1);
             case "blue":
                 return Color.BLUE;
             case "green":
                 return Color.GREEN;
             case "yellow":
                 return Color.YELLOW;
+            case "dark_yellow":
+                return Color.rgb(124, 129, 3, 1);
             case "orange":
                 return Color.ORANGE;
             case "purple":
