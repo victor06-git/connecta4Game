@@ -400,13 +400,10 @@ public class CtrlPlay implements Initializable {
     private void startDropAnimation(int col, int row) {
 
         isAnimating = true;
-
         double cellSize = grid.getCellSize();
-        selectedObject.col = col;
-        selectedObject.row = row;
+
         selectedObject.center_x = grid.getCellX(col) + cellSize / 2;
         animationTargetY = grid.getCellY(row) + cellSize / 2;
-
         selectedObject.center_y = grid.getStartY() - 20;
 
     }
@@ -590,7 +587,7 @@ public class CtrlPlay implements Initializable {
     }
 
     private void drawBoardPieces() {
-        selectedObject = null; // Asegurarse de que no se dibuje la pieza seleccionada aquí
+        // selectedObject = null;
 
         double cellSize = grid.getCellSize();
         double radius = cellSize * 0.40;
