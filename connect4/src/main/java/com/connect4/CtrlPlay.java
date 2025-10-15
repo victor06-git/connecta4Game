@@ -1,8 +1,6 @@
 package com.connect4;
 
 import java.net.URL;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.ResourceBundle;
 
 import org.json.JSONObject;
@@ -360,7 +358,7 @@ public class CtrlPlay implements Initializable {
     }
 
     /**
-     * Function to start the drop animation
+     * Function to start the drop animation from the hover
      * 
      * @param piece
      * @param col
@@ -391,7 +389,6 @@ public class CtrlPlay implements Initializable {
             return;
         }
 
-        // Actualizar animación de caída
         if (isAnimating && selectedObject != null) {
             double deltaTime = 1.0 / fps;
             double movement = animationSpeed * deltaTime;
@@ -401,6 +398,16 @@ public class CtrlPlay implements Initializable {
 
                 if (selectedObject.center_y >= animationTargetY) {
                     selectedObject.center_y = animationTargetY;
+
+                    for (GameObject go : Main.objects) {
+                        if (go.id.equals(selectedObject.id)) {
+                            go.center_x = selectedObject.center_x;
+                            go.center_y = selectedObject.center_y;
+                            go.row = selectedObject.row;
+                            go.col = selectedObject.col;
+                            break;
+                        }
+                    }
 
                     // Winning
                     checkWinner();
