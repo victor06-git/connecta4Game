@@ -432,16 +432,6 @@ public class CtrlPlay implements Initializable {
                 if (selectedObject.center_y >= animationTargetY) {
                     selectedObject.center_y = animationTargetY;
 
-                    for (GameObject go : Main.objects) {
-                        if (go.id.equals(selectedObject.id)) {
-                            go.center_x = selectedObject.center_x;
-                            go.center_y = selectedObject.center_y;
-                            go.row = selectedObject.row;
-                            go.col = selectedObject.col;
-                            break;
-                        }
-                    }
-
                     // Winning
                     checkWinner();
 
@@ -556,15 +546,7 @@ public class CtrlPlay implements Initializable {
         // Draw grid
         drawBoard();
 
-        // Draw pieces of the board (selected)
-        for (GameObject go : Main.objects) {
-            if (go.row != -1 && go.col != -1) {
-                // Saltar la ficha que está siendo arrastrada o animándose
-                if (selectedObject != null && go.id.equals(selectedObject.id))
-                    continue;
-                drawObject(go);
-            }
-        }
+        drawBoardPieces();
 
         // Draw pieces of pool (non-selected)
         for (GameObject go : Main.objects) {
@@ -594,6 +576,43 @@ public class CtrlPlay implements Initializable {
         // Draw FPS if needed
         if (showFPS) {
             animationTimer.drawFPS(gc);
+        }
+    }
+
+    private void drawBoardPieces() {
+        double cellSize = grid.getCellSize();
+        double radius = cellSize * 0.40;
+
+        for (int row = 0; row < grid.getRows(); row++) {
+            for (int col = 0; col < grid.getCols(); col++) {
+                String pieceId = boardState[row][col];
+
+                if (pieceId != null) {
+
+                    double centerX = grid.getCellX(col) + cellSize / 2;
+                    double centerY = grid.getCellY(row) + cellSize / 2;
+
+                    Color color;
+                    Color borderColor;
+                    if (pieceId.startsWith("R_")) {
+                        color = getColor("red");
+                        borderColor = getColor("dark_red");
+                    } else if (pieceId.startsWith("Y_")) {
+                        color = getColor("yellow");
+                        borderColor = getColor("dark_yellow");
+                    } else {
+                        color = getColor("gray");
+                        borderColor = getColor("black");
+                    }
+
+                    gc.setFill(color);
+                    gc.fillOval(centerX - radius, centerY - radius, radius * 2, radius * 2);
+
+                    gc.setStroke(borderColor);
+                    gc.setLineWidth(5);
+                    gc.strokeOval(centerX - radius, centerY - radius, radius * 2, radius * 2);
+                }
+            }
         }
     }
 
