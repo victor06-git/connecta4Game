@@ -12,7 +12,7 @@ public class ClientData {
 
     public ClientData(String name, String color) {
         this.name = name;
-        this.color = "RED";
+        this.color = color;
         this.mouseX = -1;
         this.mouseY = -1;
         this.row = -1;

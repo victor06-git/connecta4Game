@@ -96,8 +96,8 @@ public class Main extends WebSocketServer {
         int piecesPerRow = 7;
         int numRows = 6;
 
-        double spacingX = (poolWidth - (piecesPerRow * pieceDiameter)) / (piecesPerRow + 1);
-        double spacingY = pieceDiameter + 5;
+        double spacingX = (poolWidth - (piecesPerRow * pieceDiameter - 10)) / (piecesPerRow + 1);
+        double spacingY = pieceDiameter + 10;
 
         int yellowCount = 0;
         int redCount = 0;
