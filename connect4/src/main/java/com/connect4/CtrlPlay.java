@@ -353,6 +353,7 @@ public class CtrlPlay implements Initializable {
                     mouseDragging = true;
                     mouseOffsetX = mouseX - go.center_x;
                     mouseOffsetY = mouseY - go.center_y;
+
                     System.out.println("Selected piece: " + go.id);
                     break;
                 }
@@ -600,6 +601,9 @@ public class CtrlPlay implements Initializable {
                 }
             }
         }
+
+        System.out.println("Non winner");
+        printBoardState();
     }
 
     private void printBoardState() {
