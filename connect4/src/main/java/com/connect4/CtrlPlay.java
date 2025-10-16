@@ -536,46 +536,89 @@ public class CtrlPlay implements Initializable {
                         && piece.equals(boardState[row][col + 3])) {
                     winningLineCoords = new int[] { row, col, row, col + 3 };
                     winningColor = piece;
+                    System.out.println(
+                            "WINNER HORIZONTAL: " + piece + " at row " + row + ", cols " + col + "-" + (col + 3));
+                    printBoardState();
                     return;
                 }
             }
         }
 
         // Vertical
-        for (int row = 0; row < 3; row++) {
-            for (int col = 0; col < 4; col++) {
+        for (int col = 0; col < 7; col++) {
+            for (int row = 0; row <= 2; row++) { // Solo hasta row 2 (0,1,2 -> verifica hasta row 5)
                 String piece = boardState[row][col];
-                if (piece != null && piece.equals(boardState[row + 1][col]) && piece.equals(boardState[row + 2][col])
-                        && piece.equals(boardState[row + 3][col])) {
+                if (piece != null &&
+                        piece.equals(boardState[row + 1][col]) &&
+                        piece.equals(boardState[row + 2][col]) &&
+                        piece.equals(boardState[row + 3][col])) {
+
                     winningLineCoords = new int[] { row, col, row + 3, col };
                     winningColor = piece;
+                    System.out.println(
+                            "WINNER VERTICAL: " + piece + " at col " + col + ", rows " + row + "-" + (row + 3));
+                    printBoardState();
+                    return;
                 }
             }
         }
 
         // Diagonal a la izquierda (\)
-        for (int row = 0; row < 3; row++) {
-            for (int col = 0; col < 4; col++) {
+        for (int row = 0; row <= 2; row++) {
+            for (int col = 0; col <= 3; col++) {
                 String piece = boardState[row][col];
-                if (piece != null && piece.equals(boardState[row + 1][col + 1])
-                        && piece.equals(boardState[row + 2][col + 2]) && piece.equals(boardState[row + 3][col + 3])) {
+                if (piece != null &&
+                        piece.equals(boardState[row + 1][col + 1]) &&
+                        piece.equals(boardState[row + 2][col + 2]) &&
+                        piece.equals(boardState[row + 3][col + 3])) {
+
                     winningLineCoords = new int[] { row, col, row + 3, col + 3 };
                     winningColor = piece;
+                    System.out.println("WINNER DIAGONAL \\: " + piece + " from [" + row + "," + col + "] to ["
+                            + (row + 3) + "," + (col + 3) + "]");
+                    printBoardState();
+                    return;
                 }
             }
         }
 
         // Diagonal a la derecha (/)
-        for (int row = 0; row < 3; row++) {
-            for (int col = 0; col < 4; col++) {
+        for (int row = 3; row <= 5; row++) { // Empezar desde row 3 hacia abajo
+            for (int col = 0; col <= 3; col++) {
                 String piece = boardState[row][col];
-                if (piece != null && piece.equals(boardState[row - 1][col + 1])
-                        && piece.equals(boardState[row - 2][col + 2]) && piece.equals(boardState[row - 3][col + 3])) {
+                if (piece != null &&
+                        piece.equals(boardState[row - 1][col + 1]) &&
+                        piece.equals(boardState[row - 2][col + 2]) &&
+                        piece.equals(boardState[row - 3][col + 3])) {
+
                     winningLineCoords = new int[] { row, col, row - 3, col + 3 };
                     winningColor = piece;
+                    System.out.println("WINNER DIAGONAL /: " + piece + " from [" + row + "," + col + "] to ["
+                            + (row - 3) + "," + (col + 3) + "]");
+                    printBoardState();
+                    return;
                 }
             }
         }
+    }
+
+    private void printBoardState() {
+        System.out.println("\n===== BOARD STATE =====");
+        for (int row = 0; row < 6; row++) {
+            System.out.print("Row " + row + ": ");
+            for (int col = 0; col < 7; col++) {
+                String cell = boardState[row][col];
+                if (cell == null) {
+                    System.out.print("[ ] ");
+                } else if (cell.startsWith("R_")) {
+                    System.out.print("[R] ");
+                } else if (cell.startsWith("Y_")) {
+                    System.out.print("[Y] ");
+                }
+            }
+            System.out.println();
+        }
+        System.out.println("=======================\n");
     }
 
     // Draw game to canvas
