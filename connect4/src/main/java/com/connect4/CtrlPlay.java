@@ -255,12 +255,21 @@ public class CtrlPlay implements Initializable {
      */
     private boolean canMoveThisPiece(GameObject piece) {
         if (myColor.isEmpty()) {
-            myColor = Main.clients.stream().filter(c -> c.name.equals(Main.clientName))
+            myColor = Main.clients.stream()
+                    .filter(c -> c.name.equals(Main.clientName))
                     .map(c -> c.color)
                     .findFirst()
-                    .orElse("RED");
+                    .orElse("");
         }
-        return currentTurn.equals(myColor) && piece.id.startsWith(myColor.charAt(0) + "_");
+
+        // Debug: mostrar información
+        System.out.println("My color: " + myColor + ", Current turn: " + currentTurn + ", Piece: " + piece.id);
+
+        // Verificar que sea mi turno y que la pieza sea de mi color
+        boolean isMyTurn = currentTurn.equals(myColor);
+        boolean isMyPiece = piece.id.startsWith(myColor.charAt(0) + "_");
+
+        return isMyTurn && isMyPiece;
     }
 
     // Start animation timer
@@ -334,6 +343,7 @@ public class CtrlPlay implements Initializable {
                 // Verificar si el mouse está dentro del círculo de la ficha
                 if (isMouseInsideCircle(mouseX, mouseY, go.center_x, go.center_y, correctRadius)) {
                     if (!canMoveThisPiece(go)) {
+                        System.out.println("Cannot move piece " + go.id + " - not your turn or not your piece");
                         return;
                     }
 
@@ -343,6 +353,7 @@ public class CtrlPlay implements Initializable {
                     mouseDragging = true;
                     mouseOffsetX = mouseX - go.center_x;
                     mouseOffsetY = mouseY - go.center_y;
+                    System.out.println("Selected piece: " + go.id);
                     break;
                 }
             }
@@ -582,6 +593,8 @@ public class CtrlPlay implements Initializable {
         // Clean drawing area
         gc.clearRect(0, 0, canvas.getWidth(), canvas.getHeight());
 
+        drawTurnIndicator();
+
         drawDropZone();
 
         // Draw colored 'over' cells
@@ -648,6 +661,50 @@ public class CtrlPlay implements Initializable {
         // Draw FPS if needed
         if (showFPS) {
             animationTimer.drawFPS(gc);
+        }
+    }
+
+    private void drawTurnIndicator() {
+        // Obtener mi color
+        if (myColor.isEmpty()) {
+            myColor = Main.clients.stream()
+                    .filter(c -> c.name.equals(Main.clientName))
+                    .map(c -> c.color)
+                    .findFirst()
+                    .orElse("");
+        }
+
+        // Posición del indicador (arriba a la izquierda)
+        double indicatorX = 10;
+        double indicatorY = 10;
+
+        // Dibujar fondo
+        gc.setFill(Color.rgb(255, 255, 255, 0.8));
+        gc.fillRoundRect(indicatorX, indicatorY, 200, 50, 10, 10);
+
+        // Dibujar borde
+        gc.setStroke(Color.BLACK);
+        gc.setLineWidth(2);
+        gc.strokeRoundRect(indicatorX, indicatorY, 200, 50, 10, 10);
+
+        // Texto del turno
+        gc.setFill(Color.BLACK);
+        gc.setFont(new Font("Arial Bold", 16));
+
+        boolean isMyTurn = currentTurn.equals(myColor);
+        String turnText = isMyTurn ? "YOUR TURN" : currentTurn + "'S TURN";
+
+        gc.fillText("Turn: " + currentTurn, indicatorX + 10, indicatorY + 25);
+
+        // Indicador de color del turno actual
+        Color turnColor = getColor(currentTurn.toLowerCase());
+        gc.setFill(turnColor);
+        gc.fillOval(indicatorX + 150, indicatorY + 15, 20, 20);
+
+        // Si es tu turno, añadir indicador extra
+        if (isMyTurn) {
+            gc.setFill(Color.GREEN);
+            gc.fillText("▶", indicatorX + 180, indicatorY + 30);
         }
     }
 
