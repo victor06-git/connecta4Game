@@ -107,34 +107,36 @@ public class Main extends WebSocketServer {
         double poolX = 610;
         double poolY = 130;
         double poolWidth = 250;
-
         double pieceRadius = 80.0 * 0.15;
         double pieceDiameter = pieceRadius * 2;
 
-        int numPiecesPerRow = 7;
+        int piecesPerRow = 7;
         int numRows = 6;
 
-        double spacingX = (poolWidth - (numPiecesPerRow * pieceDiameter)) / (numPiecesPerRow + 1);
-        // Espaciado vertical entre filas (ajusta según tu UI, e.g., 10px + diámetro)
-        double spacingY = pieceDiameter + 10; // Ajusta si necesitas más/menos espacio
-        int fichaIndex = 0; // Contador global para IDs (0 a 41)
+        double spacingX = (poolWidth - (piecesPerRow * pieceDiameter)) / (piecesPerRow + 1);
+        double spacingY = pieceDiameter + 5; // Ajusta si necesitas más/menos espacio
+
+        int yellowCount = 0; // count ids for yellow pieces
+        int redCount = 0; // count ids for red pieces
 
         for (int fila = 0; fila < numRows; fila++) {
             // Alternar color por fila: filas 0,2,4 = YELLOW; 1,3,5 = RED
             String colorPiece = (fila % 2 == 0) ? "YELLOW" : "RED";
             String prefix = (fila % 2 == 0) ? "Y_" : "R_";
             double startY = poolY + (fila * spacingY) + pieceRadius; // Posición Y base para la fila
-            for (int col = 0; col < numPiecesPerRow; col++) {
+
+            for (int col = 0; col < piecesPerRow; col++) {
                 // Solo crear hasta 21 por color (total 42)
-                if (fichaIndex >= 42)
-                    break;
-                // alterna bloques
-                if ((colorPiece.equals("YELLOW") && fichaIndex >= 21)
-                        || (colorPiece.equals("RED") && fichaIndex >= 42)) {
-                    continue; // Salta si excede 21 por color
+                if (colorPiece.equals("YELLOW") && yellowCount >= 21) {
+                    continue;
                 }
-                String id = prefix + fichaIndex; // e.g., "Y_0", "R_21", etc.
-                // Posición X: Centrada en el pool, espaciada horizontalmente
+                if (colorPiece.equals("RED") && redCount >= 21) {
+                    continue;
+                }
+
+                int index = colorPiece.equals("YELLOW") ? yellowCount : redCount;
+                String id = prefix + index;
+
                 double startX = poolX + spacingX + (col * (pieceDiameter + spacingX));
                 double centerX = startX + pieceRadius;
                 double centerY = startY;
@@ -143,66 +145,16 @@ public class Main extends WebSocketServer {
                 GameObject obj = new GameObject(id, centerX, centerY, pieceRadius, -1, -1);
                 obj.color = colorPiece;
                 gameObjects.put(obj.id, obj);
-                fichaIndex++; // Incrementa el contador global
+
+                if (colorPiece.equals("YELLOW")) {
+                    yellowCount++;
+                } else {
+                    redCount++;
+                }
             }
         }
-    }
 
-    // 21 fichas amarillas
-    /*
-     * for (int group = 0; group < 21; group++) {
-     * for (int i = 0; i < 7; i++) {
-     * String id = "Y_" + group;
-     * 
-     * // Determinar fila y columna según zig-zag
-     * int row;
-     * if (groupIndex == 0) {
-     * row = 1;
-     * } else if (groupIndex == 1) {
-     * row = 3;
-     * } else {
-     * row = 5;
-     * }
-     * int col = 1;
-     * 
-     * // Calcular posición
-     * double centerX = poolX + pieceRadius + (col * spacingX);
-     * double centerY = poolY + pieceRadius + row;
-     * 
-     * GameObject obj = new GameObject(id, centerX, centerY, pieceRadius, -1, -1);
-     * obj.color = "YELLOW";
-     * gameObjects.put(obj.id, obj);
-     * }
-     * groupIndex++;
-     * }
-     * 
-     * // 21 fichas rojas
-     * for (int group = 0; group < 21; group++) {
-     * for (int i = 0; i < 7; i++) {
-     * String id = "R_" + group;
-     * 
-     * // Determinar fila y columna según zig-zag
-     * int row;
-     * if (groupIndex == 3) {
-     * row = 2;
-     * } else if (groupIndex == 4) {
-     * row = 4;
-     * } else {
-     * row = 6;
-     * }
-     * int col = 2;
-     * 
-     * // Calcular posición
-     * double centerX = poolX + pieceRadius + (col * spacingX);
-     * double centerY = poolY + pieceRadius + row;
-     * 
-     * GameObject obj = new GameObject(id, centerX, centerY, pieceRadius, -1, -1);
-     * obj.color = "RED";
-     * gameObjects.put(obj.id, obj);
-     * }
-     * groupIndex++;
-     * }
-     */
+    }
 
     /**
      * Obté el color per un nom de client.
@@ -210,9 +162,6 @@ public class Main extends WebSocketServer {
      * @return color assignat
      */
     private synchronized String getColor() {
-        // int idx = PLAYER_NAMES.indexOf(name);
-        // if (idx < 0) idx = 0; // fallback si el nom no està a la llista
-        // return PLAYER_COLORS.get(idx % PLAYER_COLORS.size());
         return clients.snapshot().size() == 1 ? PLAYER_COLORS.get(0) : PLAYER_COLORS.get(1);
     }
 

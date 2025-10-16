@@ -1,10 +1,9 @@
 package com.connect4;
 
 import java.net.URL;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.ResourceBundle;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import javafx.fxml.FXML;
@@ -61,7 +60,8 @@ public class CtrlPlay implements Initializable {
 
     // Matriz de las posiciones de las fichas, se inicializa null
     private String[][] boardState = new String[6][7];
-    // private List<GameObject> boardObjects = new ArrayList<>();
+    private String currentTurn = "RED";
+    private String myColor = "";
 
     @Override
     public void initialize(URL url, ResourceBundle rb) {
@@ -99,6 +99,67 @@ public class CtrlPlay implements Initializable {
         // Start run/draw timer bucle
         animationTimer = new PlayTimer(this::run, this::draw, 0);
         start();
+    }
+
+    /**
+     * Function that updates the boardState matrix
+     * 
+     * @param state
+     */
+    public void updateGameState(JSONObject state) {
+        currentTurn = state.optString("currentTurn", "RED");
+
+        if (state.has("boardState")) {
+            JSONArray boardArray = state.getJSONArray("boardState");
+            for (int i = 0; i < 6; i++) {
+                JSONArray row = boardArray.getJSONArray(i);
+                for (int j = 0; j < 7; j++) {
+                    Object cell = row.get(j);
+                    boardState[i][j] = cell == JSONObject.NULL ? null : (String) cell;
+                }
+            }
+        }
+    }
+
+    /**
+     * Function that handles from the server if the current action is accepted
+     * 
+     * @param pieceId
+     * @param col
+     * @param row
+     */
+    public void handlePlayAccepted(String pieceId, int col, int row) {
+        boardState[row][col] = pieceId;
+
+        for (GameObject go : Main.objects) {
+            if (go.id.equals(pieceId)) {
+                go.row = row;
+                go.col = col;
+                selectedObject = go;
+                startDropAnimation(col, row);
+                break;
+            }
+        }
+    }
+
+    /**
+     * Function that handles if the current action is rejected for the server
+     * 
+     * @param pieceId
+     */
+    public void handlePlayRejected(String pieceId) {
+        if (selectedObject != null && selectedObject.id.equals(pieceId)) {
+            for (GameObject go : Main.objects) {
+                if (go.id.equals(selectedObject.id)) {
+                    go.center_x = originalX;
+                    go.center_y = originalY;
+                    break;
+                }
+            }
+            selectedObject = null;
+        }
+        mouseDragging = false;
+        hoveredColumn = -1;
     }
 
     /**
@@ -175,14 +236,31 @@ public class CtrlPlay implements Initializable {
      * 
      * @param col
      * @return
+     * 
+     *         private int getLowestAvailableRow(int col) {
+     *         for (int row = grid.getRows() - 1; row >= 0; row--) {
+     *         if (boardState[row][col] == null) {
+     *         return row;
+     *         }
+     *         }
+     *         return -1; // Full column
+     *         }
      */
-    private int getLowestAvailableRow(int col) {
-        for (int row = grid.getRows() - 1; row >= 0; row--) {
-            if (boardState[row][col] == null) {
-                return row;
-            }
+
+    /**
+     * Function that verify if the player can move a piece (ficha)
+     * 
+     * @param piece
+     * @return
+     */
+    private boolean canMoveThisPiece(GameObject piece) {
+        if (myColor.isEmpty()) {
+            myColor = Main.clients.stream().filter(c -> c.name.equals(Main.clientName))
+                    .map(c -> c.color)
+                    .findFirst()
+                    .orElse("RED");
         }
-        return -1; // Full column
+        return currentTurn.equals(myColor) && piece.id.startsWith(myColor.charAt(0) + "_");
     }
 
     // Start animation timer
@@ -255,11 +333,13 @@ public class CtrlPlay implements Initializable {
             if (go.col == -1 && go.row == -1) {
                 // Verificar si el mouse está dentro del círculo de la ficha
                 if (isMouseInsideCircle(mouseX, mouseY, go.center_x, go.center_y, correctRadius)) {
-                    selectedObject = go; // Seleccionar la ficha
+                    if (!canMoveThisPiece(go)) {
+                        return;
+                    }
 
+                    selectedObject = go; // Seleccionar la ficha
                     originalX = go.center_x;
                     originalY = go.center_y;
-
                     mouseDragging = true;
                     mouseOffsetX = mouseX - go.center_x;
                     mouseOffsetY = mouseY - go.center_y;
@@ -339,30 +419,14 @@ public class CtrlPlay implements Initializable {
             // Verificar si se soltó en la drop zone
             if (isPositionInDropZone(centerX, centerY)) {
                 int col = getDropZoneColumn(centerX);
-                int row = getLowestAvailableRow(col);
 
-                if (row != -1) {
-
-                    // Actualizar estado del tablero
-                    boardState[row][col] = selectedObject.id;
-
-                    for (GameObject go : Main.objects) {
-                        if (go.id.equals(selectedObject.id)) {
-                            go.row = row;
-                            go.col = col;
-                            break;
-                        }
-                    }
-
-                    // Iniciar animación de caída
-                    startDropAnimation(col, row);
+                if (col != -1) {
 
                     // Enviar jugada al servidor
                     JSONObject msg = new JSONObject();
-                    msg.put("type", "clientPlay");
+                    msg.put("type", "clientRequestPlay");
                     msg.put("pieceId", selectedObject.id);
                     msg.put("column", col);
-                    msg.put("row", row);
 
                     if (Main.wsClient != null) {
                         Main.wsClient.safeSend(msg.toString());
@@ -371,6 +435,7 @@ public class CtrlPlay implements Initializable {
                     // Desactivate dragging and selection
                     mouseDragging = false;
                     hoveredColumn = -1;
+
                     return;
                 }
             }
@@ -571,7 +636,7 @@ public class CtrlPlay implements Initializable {
         drawBoardPieces();
 
         if (winningLineCoords != null) {
-            drawWinningLine();
+            drawWinningCircles();
         }
 
         // Draw mouse circles (Consigue el color de clients)
@@ -629,7 +694,7 @@ public class CtrlPlay implements Initializable {
      * Function that draws the circles of the winner
      * 
      */
-    private void drawWinningLine() {
+    private void drawWinningCircles() {
         if (winningLineCoords == null)
             return;
 
