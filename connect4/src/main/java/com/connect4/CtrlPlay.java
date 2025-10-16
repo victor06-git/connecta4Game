@@ -6,6 +6,9 @@ import java.util.ResourceBundle;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import com.shared.ClientData;
+import com.shared.GameObject;
+
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.canvas.Canvas;
@@ -17,9 +20,6 @@ import javafx.scene.paint.CycleMethod;
 import javafx.scene.paint.LinearGradient;
 import javafx.scene.paint.Stop;
 import javafx.scene.text.Font;
-
-import com.shared.ClientData;
-import com.shared.GameObject;
 
 public class CtrlPlay implements Initializable {
 
@@ -60,7 +60,7 @@ public class CtrlPlay implements Initializable {
 
     // Matriz de las posiciones de las fichas, se inicializa null
     private String[][] boardState = new String[6][7];
-    private String currentTurn = "RED";
+    private String currentTurn = ""; // Actual turn
     private String myColor = "";
 
     @Override
@@ -532,9 +532,11 @@ public class CtrlPlay implements Initializable {
         // Horizontal
         for (int row = 0; row < 6; row++) {
             for (int col = 0; col < 4; col++) {
-                String piece = boardState[row][col];
-                if (piece != null && piece.equals(boardState[row][col + 1]) && piece.equals(boardState[row][col + 2])
-                        && piece.equals(boardState[row][col + 3])) {
+                String piece = getColorPiece(boardState[row][col]);
+                System.out.println(piece);
+                if (piece != null && piece.equals(getColorPiece(boardState[row][col + 1]))
+                        && piece.equals(getColorPiece(boardState[row][col + 2]))
+                        && piece.equals(getColorPiece(boardState[row][col + 3]))) {
                     winningLineCoords = new int[] { row, col, row, col + 3 };
                     winningColor = piece;
                     System.out.println(
@@ -547,12 +549,13 @@ public class CtrlPlay implements Initializable {
 
         // Vertical
         for (int col = 0; col < 7; col++) {
-            for (int row = 0; row <= 2; row++) { // Solo hasta row 2 (0,1,2 -> verifica hasta row 5)
-                String piece = boardState[row][col];
+            for (int row = 0; row < 3; row++) { // Solo hasta row 2 (0,1,2 -> verifica hasta row 5)
+                String piece = getColorPiece(boardState[row][col]);
+                System.out.println(piece);
                 if (piece != null &&
-                        piece.equals(boardState[row + 1][col]) &&
-                        piece.equals(boardState[row + 2][col]) &&
-                        piece.equals(boardState[row + 3][col])) {
+                        piece.equals(getColorPiece(boardState[row + 1][col])) &&
+                        piece.equals(getColorPiece(boardState[row + 2][col])) &&
+                        piece.equals(getColorPiece(boardState[row + 3][col]))) {
 
                     winningLineCoords = new int[] { row, col, row + 3, col };
                     winningColor = piece;
@@ -567,11 +570,12 @@ public class CtrlPlay implements Initializable {
         // Diagonal a la izquierda (\)
         for (int row = 0; row <= 2; row++) {
             for (int col = 0; col <= 3; col++) {
-                String piece = boardState[row][col];
+                String piece = getColorPiece(boardState[row][col]);
+                System.out.println(piece);
                 if (piece != null &&
-                        piece.equals(boardState[row + 1][col + 1]) &&
-                        piece.equals(boardState[row + 2][col + 2]) &&
-                        piece.equals(boardState[row + 3][col + 3])) {
+                        piece.equals(getColorPiece(boardState[row + 1][col + 1])) &&
+                        piece.equals(getColorPiece(boardState[row + 2][col + 2])) &&
+                        piece.equals(getColorPiece(boardState[row + 3][col + 3]))) {
 
                     winningLineCoords = new int[] { row, col, row + 3, col + 3 };
                     winningColor = piece;
@@ -586,11 +590,12 @@ public class CtrlPlay implements Initializable {
         // Diagonal a la derecha (/)
         for (int row = 3; row <= 5; row++) { // Empezar desde row 3 hacia abajo
             for (int col = 0; col <= 3; col++) {
-                String piece = boardState[row][col];
+                String piece = getColorPiece(boardState[row][col]);
+                System.out.println(piece);
                 if (piece != null &&
-                        piece.equals(boardState[row - 1][col + 1]) &&
-                        piece.equals(boardState[row - 2][col + 2]) &&
-                        piece.equals(boardState[row - 3][col + 3])) {
+                        piece.equals(getColorPiece(boardState[row - 1][col + 1])) &&
+                        piece.startsWith(getColorPiece(boardState[row - 2][col + 2])) &&
+                        piece.startsWith(getColorPiece(boardState[row - 3][col + 3]))) {
 
                     winningLineCoords = new int[] { row, col, row - 3, col + 3 };
                     winningColor = piece;
@@ -604,6 +609,10 @@ public class CtrlPlay implements Initializable {
 
         System.out.println("Non winner");
         printBoardState();
+    }
+
+    private String getColorPiece(String piece) {
+        return piece.substring(0, 1);
     }
 
     private void printBoardState() {
