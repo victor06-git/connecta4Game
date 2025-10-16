@@ -242,9 +242,9 @@ public class Main extends WebSocketServer {
                     if (i == 0) {
                         synchronized (this) {
                             gameStarted = true;
-                            currentTurn = "RED"; // Sempre comença RED
+                            // currentTurn = "RED"; // Sempre comença RED
                         }
-                        System.out.println("Game started! Turn: " + currentTurn);
+                        // System.out.println("Game started! Turn: " + currentTurn);
                     }
 
                     if (i > 0)
@@ -343,14 +343,25 @@ public class Main extends WebSocketServer {
     @Override
     public void onOpen(WebSocket conn, ClientHandshake handshake) {
 
-        int clientIndex = clients.snapshot().size();
+        int clientIndex = clientsData.size();
 
         String name = clients.add(conn);
-        String color = getColorForClient(clientIndex);
+
+        // Asignar color basado en el índice
+        String color;
+        if (clientIndex == 0) {
+            color = "RED";
+        } else if (clientIndex == 1) {
+            color = "YELLOW";
+        } else {
+            color = "GRAY"; // Por si hay más de 2 clientes
+        }
 
         clientsData.put(name, new ClientData(name, color));
 
-        System.out.println("WebSocket client connected: " + name);
+        System.out
+                .println("WebSocket client connected: " + name + " (Index: " + clientIndex + ", Color: " + color + ")");
+        System.out.println("Total clients connected: " + clientsData.size());
 
         if (clientsData.size() == REQUIRED_CLIENTS) {
             sendCountdown();
