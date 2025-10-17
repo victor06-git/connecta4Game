@@ -3,22 +3,28 @@ package com.connect4;
 import java.net.URL;
 import java.util.ResourceBundle;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
+
+import com.shared.ClientData;
+import com.shared.GameObject;
 
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.control.Label;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.paint.Color;
-
-import com.shared.ClientData;
-import com.shared.GameObject;
+import javafx.scene.paint.CycleMethod;
+import javafx.scene.paint.LinearGradient;
+import javafx.scene.paint.Stop;
+import javafx.scene.text.Font;
 
 public class CtrlPlay implements Initializable {
 
     @FXML
-    public javafx.scene.control.Label title;
+    public Label title;
 
     @FXML
     private Canvas canvas;
@@ -26,12 +32,36 @@ public class CtrlPlay implements Initializable {
     private Boolean showFPS = false;
 
     private PlayTimer animationTimer;
-    private PlayGrid grid;
+    private PlayGrid grid; // La cuadrícula del juego
 
-    private Boolean mouseDragging = false;
+    private Boolean mouseDragging = false; // Si se está arrastrando una ficha
     private double mouseOffsetX, mouseOffsetY;
 
-    private GameObject selectedObject = null;
+    private GameObject selectedObject = null; // Ficha seleccionada
+    private double originalX, originalY; // Posición original de la ficha seleccionada
+
+    private boolean isAnimating = false; // Si se está animando una ficha
+    private double animationTargetY = 0; // Animación en columna
+    private double animationSpeed = 600; // Velocidad animación
+
+    // Zona del tablero para dejar caer la ficha
+    private double dropZoneHeight = 40;
+    private int hoveredColumn = -1;
+
+    // pool (mesa donde estan las fichas)
+    private double poolX, poolY, poolWidth, poolHeight;
+    private static final double BOARD_POOL_GAP = 50;
+    private static final double FIXED_CELL_SIZE = 80;
+    private static final double LEFT_MARGIN = 50;
+
+    // Winner variables
+    private int[] winningLineCoords = null;
+    private String winningColor = null;
+
+    // Matriz de las posiciones de las fichas, se inicializa null
+    private String[][] boardState = new String[6][7];
+    private String currentTurn = ""; // Actual turn
+    private String myColor = "";
 
     @Override
     public void initialize(URL url, ResourceBundle rb) {
@@ -39,30 +69,207 @@ public class CtrlPlay implements Initializable {
         // Get drawing context
         this.gc = canvas.getGraphicsContext2D();
 
+        // Inicializar estado del tablero
+        for (int i = 0; i < 6; i++) {
+            for (int j = 0; j < 7; j++) {
+                boardState[i][j] = null;
+            }
+        }
+
         // Set listeners
-        UtilsViews.parentContainer.heightProperty().addListener((observable, oldValue, newvalue) -> { onSizeChanged(); });
-        UtilsViews.parentContainer.widthProperty().addListener((observable, oldValue, newvalue) -> { onSizeChanged(); });
-        
+        UtilsViews.parentContainer.heightProperty().addListener((observable, oldValue, newvalue) -> {
+            onSizeChanged();
+        });
+        UtilsViews.parentContainer.widthProperty().addListener((observable, oldValue, newvalue) -> {
+            onSizeChanged();
+        });
+
         canvas.setOnMouseMoved(this::setOnMouseMoved);
         canvas.setOnMousePressed(this::onMousePressed);
         canvas.setOnMouseDragged(this::onMouseDragged);
         canvas.setOnMouseReleased(this::onMouseReleased);
 
         // Define grid
-        grid = new PlayGrid(25, 25, 25, 10, 10);
+        double startX = LEFT_MARGIN;
+        double startY = dropZoneHeight + 50;
+        grid = new PlayGrid(startX, startY, FIXED_CELL_SIZE, 6, 7);
+
+        updatePoolDimensions();
 
         // Start run/draw timer bucle
         animationTimer = new PlayTimer(this::run, this::draw, 0);
         start();
     }
 
-    // When window changes its size
+    /**
+     * Function that updates the boardState matrix
+     * 
+     * @param state
+     */
+    public void updateGameState(JSONObject state) {
+        currentTurn = state.optString("currentTurn", "RED");
+
+        if (state.has("boardState")) {
+            JSONArray boardArray = state.getJSONArray("boardState");
+            for (int i = 0; i < 6; i++) {
+                JSONArray row = boardArray.getJSONArray(i);
+                for (int j = 0; j < 7; j++) {
+                    Object cell = row.get(j);
+                    boardState[i][j] = cell == JSONObject.NULL ? null : (String) cell;
+                }
+            }
+        }
+    }
+
+    /**
+     * Function that handles from the server if the current action is accepted
+     * 
+     * @param pieceId
+     * @param col
+     * @param row
+     */
+    public void handlePlayAccepted(String pieceId, int col, int row) {
+        boardState[row][col] = pieceId;
+
+        for (GameObject go : Main.objects) {
+            if (go.id.equals(pieceId)) {
+                go.row = row;
+                go.col = col;
+                selectedObject = go;
+                startDropAnimation(col, row);
+                break;
+            }
+        }
+    }
+
+    /**
+     * Function that handles if the current action is rejected for the server
+     * 
+     * @param pieceId
+     */
+    public void handlePlayRejected(String pieceId) {
+        if (selectedObject != null && selectedObject.id.equals(pieceId)) {
+            for (GameObject go : Main.objects) {
+                if (go.id.equals(selectedObject.id)) {
+                    go.center_x = originalX;
+                    go.center_y = originalY;
+                    break;
+                }
+            }
+            selectedObject = null;
+        }
+        mouseDragging = false;
+        hoveredColumn = -1;
+    }
+
+    /**
+     * Function called when the window size changes
+     * 
+     */
     public void onSizeChanged() {
 
         double width = UtilsViews.parentContainer.getWidth();
         double height = UtilsViews.parentContainer.getHeight();
-        canvas.setWidth(width);
-        canvas.setHeight(height);
+
+        // Calcular tamaño mínimo necesario
+        double minWidth = LEFT_MARGIN + (7 * FIXED_CELL_SIZE) + BOARD_POOL_GAP + 200 + 50; // width minimum
+        double minHeight = dropZoneHeight + 50 + (6 * FIXED_CELL_SIZE) + 50; // height minimum
+
+        // Aplicar tamaño mínimo
+        width = Math.max(width, minWidth);
+        height = Math.max(height, minHeight);
+
+        canvas.setWidth(width); // set minimum width
+        canvas.setHeight(height); // set minimum height
+    }
+
+    /**
+     * Function to update the dimensions of the pool based on grid size
+     * 
+     */
+    private void updatePoolDimensions() {
+        // El pool empieza después del tablero + el gap
+        double boardEndX = grid.getStartX() + (grid.getCols() * grid.getCellSize());
+        poolX = boardEndX + BOARD_POOL_GAP;
+
+        // Dimensiones fijas del pool
+        poolWidth = 250; // Ancho fijo del pool
+        poolHeight = grid.getRows() * grid.getCellSize(); // Misma altura que el tablero
+
+        // Misma posición Y que el tablero
+        poolY = grid.getStartY();
+    }
+
+    /**
+     * Function to check if the position is inside the drop zone
+     * 
+     * @param x
+     * @param y
+     * @return
+     */
+    private boolean isPositionInDropZone(double x, double y) {
+        double gridStartX = grid.getStartX();
+        double gridEndX = gridStartX + (grid.getCols() * grid.getCellSize());
+        double dropZoneStartY = grid.getStartY() - dropZoneHeight;
+        double dropZoneEndY = grid.getStartY();
+
+        return x >= gridStartX && x <= gridEndX &&
+                y >= dropZoneStartY && y <= dropZoneEndY;
+    }
+
+    /**
+     * Function to get the column index based on x position in drop zone
+     * 
+     * @param x
+     * @return
+     */
+    private int getDropZoneColumn(double x) {
+        if (x < grid.getStartX() || x > grid.getStartX() + grid.getCols() * grid.getCellSize()) {
+            return -1;
+        }
+        int col = (int) ((x - grid.getStartX()) / grid.getCellSize());
+        return Math.max(0, Math.min(col, grid.getCols() - 1));
+    }
+
+    /**
+     * Function to get the lowest available row in a column
+     * 
+     * @param col
+     * @return
+     * 
+     *         private int getLowestAvailableRow(int col) {
+     *         for (int row = grid.getRows() - 1; row >= 0; row--) {
+     *         if (boardState[row][col] == null) {
+     *         return row;
+     *         }
+     *         }
+     *         return -1; // Full column
+     *         }
+     */
+
+    /**
+     * Function that verify if the player can move a piece (ficha)
+     * 
+     * @param piece
+     * @return
+     */
+    private boolean canMoveThisPiece(GameObject piece) {
+        if (myColor.isEmpty()) {
+            myColor = Main.clients.stream()
+                    .filter(c -> c.name.equals(Main.clientName))
+                    .map(c -> c.color)
+                    .findFirst()
+                    .orElse("");
+        }
+
+        // Debug: mostrar información
+        System.out.println("My color: " + myColor + ", Current turn: " + currentTurn + ", Piece: " + piece.id);
+
+        // Verificar que sea mi turno y que la pieza sea de mi color
+        boolean isMyTurn = currentTurn.equals(myColor);
+        boolean isMyPiece = piece.id.startsWith(myColor.charAt(0) + "_");
+
+        return isMyTurn && isMyPiece;
     }
 
     // Start animation timer
@@ -75,24 +282,37 @@ public class CtrlPlay implements Initializable {
         animationTimer.stop();
     }
 
+    /**
+     * Function for mouse moved
+     * 
+     * @param event
+     */
     private void setOnMouseMoved(MouseEvent event) {
         double mouseX = event.getX();
         double mouseY = event.getY();
 
+        // Update hovered column only if not animating
+        if (!isAnimating) {
+            if (isPositionInDropZone(mouseX, mouseY)) {
+                hoveredColumn = getDropZoneColumn(mouseX);
+            } else {
+                hoveredColumn = -1;
+            }
+        }
+
         String color = Main.clients.stream()
-            .filter(c -> c.name.equals(Main.clientName))
-            .map(c -> c.color)
-            .findFirst()
-            .orElse("gray");
+                .filter(c -> c.name.equals(Main.clientName))
+                .map(c -> c.color)
+                .findFirst()
+                .orElse("gray");
 
         ClientData cd = new ClientData(
-            Main.clientName, 
-            color,
-            (int)mouseX, 
-            (int)mouseY,  
-            grid.isPositionInsideGrid(mouseX, mouseY) ? grid.getRow(mouseY) : -1,
-            grid.isPositionInsideGrid(mouseX, mouseY) ? grid.getCol(mouseX) : -1
-        );
+                Main.clientName,
+                color,
+                (int) mouseX,
+                (int) mouseY,
+                grid.isPositionInsideGrid(mouseX, mouseY) ? grid.getRow(mouseY) : -1,
+                grid.isPositionInsideGrid(mouseX, mouseY) ? grid.getCol(mouseX) : -1);
 
         JSONObject msg = new JSONObject();
         msg.put("type", "clientMouseMoving");
@@ -103,34 +323,92 @@ public class CtrlPlay implements Initializable {
         }
     }
 
+    /**
+     * Function for mouse pressed
+     * 
+     * @param event
+     */
     private void onMousePressed(MouseEvent event) {
-
         double mouseX = event.getX();
         double mouseY = event.getY();
 
         selectedObject = null;
         mouseDragging = false;
 
+        // Radio correcto igual al del tablero
+        double correctRadius = grid.getCellSize() * 0.40;
+
         for (GameObject go : Main.objects) {
-            if (isPositionInsideObject(mouseX, mouseY, go.x, go.y, go.col, go.row)) {
-                selectedObject = new GameObject(go.id, go.x, go.y, go.col, go.row);
-                mouseDragging = true;
-                mouseOffsetX = event.getX() - go.x;
-                mouseOffsetY = event.getY() - go.y;
-                break;
+            if (go.col == -1 && go.row == -1) {
+                // Verificar si el mouse está dentro del círculo de la ficha
+                if (isMouseInsideCircle(mouseX, mouseY, go.center_x, go.center_y, correctRadius)) {
+                    if (!canMoveThisPiece(go)) {
+                        System.out.println("Cannot move piece " + go.id + " - not your turn or not your piece");
+                        return;
+                    }
+
+                    selectedObject = go; // Seleccionar la ficha
+                    originalX = go.center_x;
+                    originalY = go.center_y;
+                    mouseDragging = true;
+                    mouseOffsetX = mouseX - go.center_x;
+                    mouseOffsetY = mouseY - go.center_y;
+
+                    System.out.println("Selected piece: " + go.id);
+                    break;
+                }
             }
         }
     }
 
-    private void onMouseDragged(MouseEvent event) {
-        if (mouseDragging) {
-            double objX = event.getX() - mouseOffsetX;
-            double objY = event.getY() - mouseOffsetY;
+    /**
+     * 
+     * Function to verify position mouse on object (piece game)
+     * 
+     * @param mouseX
+     * @param mouseY
+     * @param centerX
+     * @param centerY
+     * @param radius
+     * @return
+     */
+    private boolean isMouseInsideCircle(double mouseX, double mouseY, double centerX, double centerY, double radius) {
+        double dx = mouseX - centerX;
+        double dy = mouseY - centerY;
+        double distanceSquared = dx * dx + dy * dy;
+        return distanceSquared <= radius * radius;
+    }
 
-            selectedObject = new GameObject(selectedObject.id, (int)objX, (int)objY, (int)selectedObject.col, (int)selectedObject.row);
+    /**
+     * Function for mouse dragged
+     * 
+     * @param event
+     */
+    private void onMouseDragged(MouseEvent event) {
+        if (mouseDragging && selectedObject != null) {
+            double centerX = event.getX() - mouseOffsetX;
+            double centerY = event.getY() - mouseOffsetY;
+
+            selectedObject.center_x = centerX;
+            selectedObject.center_y = centerY;
+
+            for (GameObject go : Main.objects) {
+                if (go.id.equals(selectedObject.id)) {
+                    go.center_x = centerX;
+                    go.center_y = centerY;
+                    break;
+                }
+            }
+
+            // Actualizar columna hover
+            if (isPositionInDropZone(centerX, centerY)) {
+                hoveredColumn = getDropZoneColumn(centerX);
+            } else {
+                hoveredColumn = -1;
+            }
 
             JSONObject msg = new JSONObject();
-            msg.put("type", "clientObjectMoving");
+            msg.put("type", "clientPieceMoving");
             msg.put("value", selectedObject.toJSON());
 
             if (Main.wsClient != null) {
@@ -140,77 +418,243 @@ public class CtrlPlay implements Initializable {
         setOnMouseMoved(event);
     }
 
+    /**
+     * Function for mouse released
+     * 
+     * @param event
+     */
     private void onMouseReleased(MouseEvent event) {
         if (selectedObject != null) {
-            double objX = event.getX() - mouseOffsetX; // left tip X
-            double objY = event.getY() - mouseOffsetY; // left tip Y
+            double centerX = event.getX() - mouseOffsetX;
+            double centerY = event.getY() - mouseOffsetY;
 
-            // build object with dragged position (size stays in col/row)
-            selectedObject = new GameObject(
-                selectedObject.id,
-                (int) objX,
-                (int) objY,
-                selectedObject.col,
-                selectedObject.row
-            );
+            // Verificar si se soltó en la drop zone
+            if (isPositionInDropZone(centerX, centerY)) {
+                int col = getDropZoneColumn(centerX);
 
-            // snap by left-top corner to underlying cell
-            if (grid.isPositionInsideGrid(objX, objY)) {
-                snapObjectLeftTop(selectedObject);
+                if (col != -1) {
+
+                    // Enviar jugada al servidor
+                    JSONObject msg = new JSONObject();
+                    msg.put("type", "clientRequestPlay");
+                    msg.put("pieceId", selectedObject.id);
+                    msg.put("column", col);
+
+                    if (Main.wsClient != null) {
+                        Main.wsClient.safeSend(msg.toString());
+                    }
+
+                    // Desactivate dragging and selection
+                    mouseDragging = false;
+                    hoveredColumn = -1;
+
+                    return;
+                }
             }
 
-            JSONObject msg = new JSONObject();
-            msg.put("type", "clientObjectMoving");
-            msg.put("value", selectedObject.toJSON());
-            if (Main.wsClient != null) Main.wsClient.safeSend(msg.toString());
+            for (GameObject go : Main.objects) {
+                if (go.id.equals(selectedObject.id)) {
+                    go.center_x = originalX;
+                    go.center_y = originalY;
+                    break;
+                }
+            }
 
-            mouseDragging = false;
+            // If not valid drop, return to pool position
             selectedObject = null;
+            mouseDragging = false;
+            hoveredColumn = -1;
         }
     }
 
-    // Snap piece so its left-top corner sits exactly on the grid cell under its left tip.
-    private void snapObjectLeftTop(GameObject obj) {
-        int col = grid.getCol(obj.x); // left X -> column
-        int row = grid.getRow(obj.y); // top Y  -> row
+    /**
+     * Function to start the drop animation from the hover
+     * 
+     * @param piece
+     * @param col
+     * @param row
+     */
+    private void startDropAnimation(int col, int row) {
 
-        // clamp inside grid
-        col = (int) Math.max(0, Math.min(col, grid.getCols() - 1));
-        row = (int) Math.max(0, Math.min(row, grid.getRows() - 1));
-
-        obj.x = grid.getCellX(col);
-        obj.y = grid.getCellY(row);
-    }
-
-    public Boolean isPositionInsideObject(double positionX, double positionY, int objX, int objY, int cols, int rows) {
+        isAnimating = true;
         double cellSize = grid.getCellSize();
-        double objectWidth = cols * cellSize;
-        double objectHeight = rows * cellSize;
 
-        double objectLeftX = objX;
-        double objectRightX = objX + objectWidth;
-        double objectTopY = objY;
-        double objectBottomY = objY + objectHeight;
+        selectedObject.center_x = grid.getCellX(col) + cellSize / 2;
+        animationTargetY = grid.getCellY(row) + cellSize / 2;
+        selectedObject.center_y = grid.getStartY() - 20;
 
-        return positionX >= objectLeftX && positionX < objectRightX &&
-               positionY >= objectTopY && positionY < objectBottomY;
     }
 
-    // Run game (and animations)
+    /**
+     * Main loop update function
+     * 
+     * @param fps
+     */
     private void run(double fps) {
 
-        if (animationTimer.fps < 1) { return; }
+        if (animationTimer.fps < 1) {
+            return;
+        }
 
-        // Update objects and animations here
+        if (isAnimating && selectedObject != null) {
+            double deltaTime = 1.0 / fps;
+            double movement = animationSpeed * deltaTime;
+
+            if (selectedObject.center_y < animationTargetY) {
+                selectedObject.center_y += movement;
+
+                for (GameObject go : Main.objects) {
+                    if (go.id.equals(selectedObject.id)) {
+                        go.center_x = selectedObject.center_x;
+                        go.center_y = selectedObject.center_y;
+                        break;
+                    }
+                }
+
+                if (selectedObject.center_y >= animationTargetY) {
+                    selectedObject.center_y = animationTargetY;
+
+                    // Winning
+                    checkWinner();
+
+                    isAnimating = false;
+                    selectedObject = null;
+                }
+            }
+        }
+    }
+
+    /**
+     * Function that checks the winner
+     * 
+     */
+    private void checkWinner() {
+        // Horizontal
+        for (int row = 0; row < 6; row++) {
+            for (int col = 0; col < 4; col++) {
+                String piece = getColorPiece(boardState[row][col]);
+                System.out.println(piece);
+                if (piece != null && piece.equals(getColorPiece(boardState[row][col + 1]))
+                        && piece.equals(getColorPiece(boardState[row][col + 2]))
+                        && piece.equals(getColorPiece(boardState[row][col + 3]))) {
+                    winningLineCoords = new int[] { row, col, row, col + 3 };
+                    winningColor = piece;
+                    System.out.println(
+                            "WINNER HORIZONTAL: " + piece + " at row " + row + ", cols " + col + "-" + (col + 3));
+                    printBoardState();
+                    return;
+                }
+            }
+        }
+
+        // Vertical
+        for (int col = 0; col < 7; col++) {
+            for (int row = 0; row < 3; row++) { // Solo hasta row 2 (0,1,2 -> verifica hasta row 5)
+                String piece = getColorPiece(boardState[row][col]);
+                System.out.println(piece);
+                if (piece != null &&
+                        piece.equals(getColorPiece(boardState[row + 1][col])) &&
+                        piece.equals(getColorPiece(boardState[row + 2][col])) &&
+                        piece.equals(getColorPiece(boardState[row + 3][col]))) {
+
+                    winningLineCoords = new int[] { row, col, row + 3, col };
+                    winningColor = piece;
+                    System.out.println(
+                            "WINNER VERTICAL: " + piece + " at col " + col + ", rows " + row + "-" + (row + 3));
+                    printBoardState();
+                    return;
+                }
+            }
+        }
+
+        // Diagonal a la izquierda (\)
+        for (int row = 0; row <= 2; row++) {
+            for (int col = 0; col <= 3; col++) {
+                String piece = getColorPiece(boardState[row][col]);
+                System.out.println(piece);
+                if (piece != null &&
+                        piece.equals(getColorPiece(boardState[row + 1][col + 1])) &&
+                        piece.equals(getColorPiece(boardState[row + 2][col + 2])) &&
+                        piece.equals(getColorPiece(boardState[row + 3][col + 3]))) {
+
+                    winningLineCoords = new int[] { row, col, row + 3, col + 3 };
+                    winningColor = piece;
+                    System.out.println("WINNER DIAGONAL \\: " + piece + " from [" + row + "," + col + "] to ["
+                            + (row + 3) + "," + (col + 3) + "]");
+                    printBoardState();
+                    return;
+                }
+            }
+        }
+
+        // Diagonal a la derecha (/)
+        for (int row = 3; row <= 5; row++) { // Empezar desde row 3 hacia abajo
+            for (int col = 0; col <= 3; col++) {
+                String piece = getColorPiece(boardState[row][col]);
+                System.out.println(piece);
+                if (piece != null &&
+                        piece.equals(getColorPiece(boardState[row - 1][col + 1])) &&
+                        piece.startsWith(getColorPiece(boardState[row - 2][col + 2])) &&
+                        piece.startsWith(getColorPiece(boardState[row - 3][col + 3]))) {
+
+                    winningLineCoords = new int[] { row, col, row - 3, col + 3 };
+                    winningColor = piece;
+                    System.out.println("WINNER DIAGONAL /: " + piece + " from [" + row + "," + col + "] to ["
+                            + (row - 3) + "," + (col + 3) + "]");
+                    printBoardState();
+                    return;
+                }
+            }
+        }
+
+        System.out.println("Non winner");
+        printBoardState();
+    }
+
+    private String getColorPiece(String piece) {
+        if (piece != null) {
+            return piece.substring(0, 1);
+        }
+        return piece;
+    }
+
+    private void printBoardState() {
+        System.out.println("\n===== BOARD STATE =====");
+        for (int row = 0; row < 6; row++) {
+            System.out.print("Row " + row + ": ");
+            for (int col = 0; col < 7; col++) {
+                String cell = boardState[row][col];
+                if (cell == null) {
+                    System.out.print("[ ] ");
+                } else if (cell.startsWith("R_")) {
+                    System.out.print("[R] ");
+                } else if (cell.startsWith("Y_")) {
+                    System.out.print("[Y] ");
+                }
+            }
+            System.out.println();
+        }
+        System.out.println("=======================\n");
     }
 
     // Draw game to canvas
+    // Dibujar celdas con background azul, interior blanco y borde en gris
+    /**
+     * Function to draw the game
+     * 
+     */
     public void draw() {
 
-        if (Main.clients == null) { return; }
+        if (Main.clients == null) {
+            return;
+        }
 
         // Clean drawing area
         gc.clearRect(0, 0, canvas.getWidth(), canvas.getHeight());
+
+        drawTurnIndicator();
+
+        drawDropZone();
 
         // Draw colored 'over' cells
         for (ClientData clientData : Main.clients) {
@@ -218,80 +662,341 @@ public class CtrlPlay implements Initializable {
             if (clientData.row >= 0 && clientData.col >= 0) {
                 Color base = getColor(clientData.color);
                 Color alpha = new Color(base.getRed(), base.getGreen(), base.getBlue(), 0.5);
-                gc.setFill(alpha); 
-                gc.fillRect(grid.getCellX(clientData.col), grid.getCellY(clientData.row), grid.getCellSize(), grid.getCellSize());
+                gc.setFill(alpha);
+                gc.fillRect(grid.getCellX(clientData.col), grid.getCellY(clientData.row), grid.getCellSize(),
+                        grid.getCellSize());
             }
         }
 
+        // Crear gradiente simple de madera (marrón medio a claro)
+        LinearGradient woodGradient = new LinearGradient(
+                0, 0, 0, 1, true,
+                CycleMethod.NO_CYCLE,
+                new Stop(0, Color.rgb(139, 90, 43)), // Marrón medio
+                new Stop(1, Color.rgb(120, 80, 40)) // Marrón más oscuro
+        );
+
+        // Dibujar pool con dimensiones adaptativas
+        gc.setFill(woodGradient);
+        gc.fillRect(poolX, poolY, poolWidth, poolHeight);
+
+        // Borde exterior simple
+        gc.setStroke(Color.rgb(80, 50, 20));
+        gc.setLineWidth(3);
+        gc.strokeRect(poolX, poolY, poolWidth, poolHeight);
+
         // Draw grid
-        drawGrid();
+        drawBoard();
 
-        // Draw mouse circles
-        for (ClientData clientData : Main.clients) {
-            gc.setFill(getColor(clientData.color)); 
-            gc.fillOval(clientData.mouseX - 5, clientData.mouseY - 5, 10, 10);
-        }
+        // drawBoardPieces();
 
-        // Draw objects
+        // Draw pieces of pool (non-selected)
         for (GameObject go : Main.objects) {
-            if (selectedObject != null && go.id.equals(selectedObject.id)) {
-                drawObject(selectedObject);
-            } else {
+            if (go.row == -1 && go.col == -1) {
+                // Saltar la ficha que está siendo arrastrada o animándose
+                if (selectedObject != null && go.id.equals(selectedObject.id))
+                    continue;
                 drawObject(go);
             }
         }
 
+        // Draw animating piece
+        if (selectedObject != null) {
+            drawObject(selectedObject);
+        }
+
+        drawBoardPieces();
+
+        if (winningLineCoords != null) {
+            drawWinningCircles();
+        }
+
+        // Draw mouse circles (Consigue el color de clients)
+        for (ClientData clientData : Main.clients) {
+            gc.setFill(getColor(clientData.color));
+            gc.fillOval(clientData.mouseX - 5, clientData.mouseY - 5, 20, 20);
+        }
+
         // Draw FPS if needed
-        if (showFPS) { animationTimer.drawFPS(gc); }   
+        if (showFPS) {
+            animationTimer.drawFPS(gc);
+        }
     }
 
-    public void drawGrid() {
+    private void drawTurnIndicator() {
+        // Obtener mi color
+        if (myColor.isEmpty()) {
+            myColor = Main.clients.stream()
+                    .filter(c -> c.name.equals(Main.clientName))
+                    .map(c -> c.color)
+                    .findFirst()
+                    .orElse("");
+        }
+
+        // Posición del indicador (arriba a la izquierda)
+        double indicatorX = 10;
+        double indicatorY = 10;
+
+        // Dibujar fondo
+        gc.setFill(Color.rgb(255, 255, 255, 0.8));
+        gc.fillRoundRect(indicatorX, indicatorY, 200, 50, 10, 10);
+
+        // Dibujar borde
         gc.setStroke(Color.BLACK);
+        gc.setLineWidth(2);
+        gc.strokeRoundRect(indicatorX, indicatorY, 200, 50, 10, 10);
+
+        // Texto del turno
+        gc.setFill(Color.BLACK);
+        gc.setFont(new Font("Arial Bold", 16));
+
+        boolean isMyTurn = currentTurn.equals(myColor);
+        String turnText = isMyTurn ? "YOUR TURN" : currentTurn + "'S TURN";
+
+        gc.fillText("Turn: " + currentTurn, indicatorX + 10, indicatorY + 25);
+
+        // Indicador de color del turno actual
+        Color turnColor = getColor(currentTurn.toLowerCase());
+        gc.setFill(turnColor);
+        gc.fillOval(indicatorX + 150, indicatorY + 15, 20, 20);
+
+        // Si es tu turno, añadir indicador extra
+        if (isMyTurn) {
+            gc.setFill(Color.GREEN);
+            gc.fillText("▶", indicatorX + 180, indicatorY + 30);
+        }
+    }
+
+    private void drawBoardPieces() {
+        // selectedObject = null;
+
+        double cellSize = grid.getCellSize();
+        double radius = cellSize * 0.40;
 
         for (int row = 0; row < grid.getRows(); row++) {
             for (int col = 0; col < grid.getCols(); col++) {
-                double cellSize = grid.getCellSize();
-                double x = grid.getStartX() + col * cellSize;
-                double y = grid.getStartY() + row * cellSize;
-                gc.strokeRect(x, y, cellSize, cellSize);
+                String pieceId = boardState[row][col];
+
+                if (pieceId != null) {
+
+                    double centerX = grid.getCellX(col) + cellSize / 2;
+                    double centerY = grid.getCellY(row) + cellSize / 2;
+
+                    Color color;
+                    Color borderColor;
+                    if (pieceId.startsWith("R_")) {
+                        color = getColor("red");
+                        borderColor = getColor("dark_red");
+                    } else if (pieceId.startsWith("Y_")) {
+                        color = getColor("yellow");
+                        borderColor = getColor("dark_yellow");
+                    } else {
+                        color = getColor("gray");
+                        borderColor = getColor("black");
+                    }
+
+                    gc.setFill(color);
+                    gc.fillOval(centerX - radius, centerY - radius, radius * 2, radius * 2);
+
+                    gc.setStroke(borderColor);
+                    gc.setLineWidth(5);
+                    gc.strokeOval(centerX - radius, centerY - radius, radius * 2, radius * 2);
+                }
             }
         }
     }
 
-    public void drawObject(GameObject obj) {
+    /**
+     * Function that draws the circles of the winner
+     * 
+     */
+    private void drawWinningCircles() {
+        if (winningLineCoords == null)
+            return;
+
         double cellSize = grid.getCellSize();
+        double radius = cellSize * 0.40;
 
-        int x = obj.x;
-        int y = obj.y;
-        double width = obj.col * cellSize;
-        double height = obj.row * cellSize;
+        int startRow = winningLineCoords[0];
+        int startCol = winningLineCoords[1];
+        int endRow = winningLineCoords[2];
+        int endCol = winningLineCoords[3];
 
-        // Seleccionar un color basat en l'objectId
-        Color color = Color.GRAY;
+        // Calcular dirección
+        int rowStep = (endRow > startRow) ? 1 : (endRow < startRow) ? -1 : 0;
+        int colStep = (endCol > startCol) ? 1 : (endCol < startCol) ? -1 : 0;
 
-        // Dibuixar el rectangle
-        gc.setFill(color);
-        gc.fillRect(x, y, width, height);
+        // Dibujar círculo en cada una de las 4 fichas ganadoras
+        int currentRow = startRow;
+        int currentCol = startCol;
 
-        // Dibuixar el contorn
-        gc.setStroke(Color.BLACK);
-        gc.strokeRect(x, y, width, height);
+        for (int i = 0; i < 4; i++) {
+            double centerX = grid.getCellX(currentCol) + cellSize / 2;
+            double centerY = grid.getCellY(currentRow) + cellSize / 2;
 
-        // Opcionalment, afegir text (per exemple, l'objectId)
-        gc.setFill(Color.BLACK);
-        gc.fillText(obj.id, x + 5, y + 15);
+            // Sombra del círculo
+            gc.setFill(Color.rgb(0, 0, 0, 0.3));
+            gc.fillOval(centerX - radius + 3, centerY - radius + 3, radius * 2, radius * 2);
+
+            // Círculo verde fosforito (brillante)
+            gc.setFill(Color.rgb(0, 255, 0, 0.7)); // Verde neón con transparencia
+            gc.fillOval(centerX - radius, centerY - radius, radius * 2, radius * 2);
+
+            // Borde del círculo verde más brillante
+            gc.setStroke(Color.rgb(50, 255, 50)); // Verde fosforito
+            gc.setLineWidth(4);
+            gc.strokeOval(centerX - radius, centerY - radius, radius * 2, radius * 2);
+
+            // Avanzar a la siguiente ficha
+            currentRow += rowStep;
+            currentCol += colStep;
+        }
+
     }
 
+    /**
+     * Function that draw the drop zone
+     * 
+     */
+    private void drawDropZone() {
+        double startX = grid.getStartX();
+        double startY = grid.getStartY() - dropZoneHeight;
+        double cellSize = grid.getCellSize();
+
+        for (int col = 0; col < grid.getCols(); col++) {
+            double x = startX + col * cellSize;
+
+            // Fondo de la columna
+            if (col == hoveredColumn) {
+                // Columna iluminada
+                gc.setFill(Color.rgb(100, 200, 255, 0.5));
+            } else {
+                gc.setFill(Color.rgb(200, 200, 200, 0.3));
+            }
+            gc.fillRect(x, startY, cellSize, dropZoneHeight);
+
+            // Borde
+            gc.setStroke(getColor("gray"));
+            gc.setLineWidth(1);
+            gc.strokeRect(x, startY, cellSize, dropZoneHeight);
+
+            // Letra de la columna (A-G)
+            gc.setFill(getColor("black"));
+            gc.setFont(new Font("Arial Bold", 24));
+            String letter = String.valueOf((char) ('A' + col));
+            gc.fillText(letter, x + cellSize / 2 - 8, startY + dropZoneHeight / 2 + 8);
+        }
+    }
+
+    /**
+     * Function that draw the board
+     * 
+     */
+    public void drawBoard() {
+        double cellSize = grid.getCellSize();
+        double gridWidth = grid.getCols() * cellSize;
+        double gridHeight = grid.getRows() * cellSize;
+        double startX = grid.getStartX();
+        double startY = grid.getStartY();
+
+        // Dibujar el fondo azul del tablero
+        gc.setFill(getColor("dodger_blue"));
+        gc.fillRect(startX, startY, gridWidth, gridHeight);
+
+        // Dibujar los círculos grises (sombra) en cada celda
+        for (int row = 0; row < grid.getRows(); row++) {
+            for (int col = 0; col < grid.getCols(); col++) {
+                double cellX = startX + col * cellSize;
+                double cellY = startY + row * cellSize;
+
+                double centerX = cellX + cellSize / 2;
+                double centerY = cellY + cellSize / 2;
+
+                double holeRadius = cellSize * 0.45;
+
+                gc.setFill(getColor("gray"));
+                gc.fillOval(centerX - holeRadius, centerY - holeRadius, holeRadius * 2, holeRadius * 2);
+            }
+        }
+
+        // Dibujar los círculos blancos (agujeros) en cada celda
+        for (int row = 0; row < grid.getRows(); row++) {
+            for (int col = 0; col < grid.getCols(); col++) {
+                double cellX = startX + col * cellSize;
+                double cellY = startY + row * cellSize;
+
+                double centerX = cellX + cellSize / 2;
+                double centerY = cellY + cellSize / 2;
+
+                double holeRadius = cellSize * 0.4;
+
+                gc.setFill(getColor("white"));
+                gc.fillOval(centerX - holeRadius, centerY - holeRadius, holeRadius * 2, holeRadius * 2);
+            }
+        }
+
+        // Dibujar borde del tablero
+        gc.setStroke(getColor("dark_blue"));
+        gc.setLineWidth(3);
+        gc.strokeRect(startX, startY, gridWidth, gridHeight);
+    }
+
+    /**
+     * Function that created the object (fichas)
+     * 
+     * @param obj
+     */
+    public void drawObject(GameObject obj) {
+        double centerX = obj.center_x;
+        double centerY = obj.center_y;
+        double radius = grid.getCellSize() * 0.40;
+
+        // Seleccionar un color basat en l'objectId
+        Color color;
+        if (obj.color != null && !obj.color.isEmpty()) {
+            color = getColor(obj.color);
+        } else {
+            // Color por ID
+            if (obj.id.startsWith("R_")) {
+                color = getColor("red");
+            } else if (obj.id.startsWith("Y_")) {
+                color = getColor("yellow");
+            } else {
+                color = getColor("gray");
+            }
+        }
+
+        // Dibuixar el cercle
+        gc.setFill(color);
+        gc.fillOval(centerX - radius, centerY - radius, radius * 2, radius * 2);
+
+        // Dibuixar el contorn
+        gc.setStroke(obj.id.startsWith("R_") ? getColor("dark_red") : getColor("dark_yellow"));
+        gc.setLineWidth(5);
+        gc.strokeOval(centerX - radius, centerY - radius, radius * 2, radius * 2);
+
+    }
+
+    /**
+     * Function to get color by name
+     * 
+     * @param colorName
+     * @return
+     */
     public Color getColor(String colorName) {
         switch (colorName.toLowerCase()) {
             case "red":
                 return Color.RED;
+            case "dark_red":
+                return Color.rgb(117, 4, 4, 1);
             case "blue":
                 return Color.BLUE;
             case "green":
                 return Color.GREEN;
             case "yellow":
                 return Color.YELLOW;
+            case "dark_yellow":
+                return Color.rgb(124, 129, 3, 1);
             case "orange":
                 return Color.ORANGE;
             case "purple":
@@ -304,6 +1009,12 @@ public class CtrlPlay implements Initializable {
                 return Color.GRAY;
             case "black":
                 return Color.BLACK;
+            case "dark_blue":
+                return Color.DARKBLUE;
+            case "white":
+                return Color.WHITE;
+            case "dodger_blue":
+                return Color.DODGERBLUE;
             default:
                 return Color.LIGHTGRAY; // Default color
         }

@@ -11,7 +11,7 @@ public class ClientData {
     public int col;
     public boolean isPlaying;
 
-    public ClientData(String name) {
+    public ClientData(String name, String color) {
         this.name = name;
         this.color = color;
         this.mouseX = -1;
@@ -62,8 +62,8 @@ public class ClientData {
         String name = obj.optString("name", null);
         String color = obj.optString("color", null);
 
-        ClientData cd = new ClientData(name);
-        cd.color = obj.optString("color", "BLACK");
+        ClientData cd = new ClientData(name, color);
+        // cd.color = obj.optString("color", color);
         cd.mouseX = obj.optInt("mouseX", -1);
         cd.mouseY = obj.optInt("mouseY", -1);
         cd.row = obj.optInt("row", -1);
