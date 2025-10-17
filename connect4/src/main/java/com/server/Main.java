@@ -40,11 +40,23 @@ public class Main extends WebSocketServer {
     private static final String K_CURRENT_TURN = "currentTurn";
     private static final String K_BOARD_STATE = "boardState";
 
+<<<<<<< HEAD
+=======
+    // Tipos de mensaje
+    private static final String T_CLIENT_MOUSE_MOVING = "clientMouseMoving";
+    private static final String T_CLIENT_PIECE_MOVING = "clientPieceMoving";
+    private static final String T_CLIENT_PLAY = "clientPlay";
+    private static final String T_CLIENT_SEND_INVITATION = "clientSendInvitation";
+    private static final String T_CLIENT_ANSWER_INVITATION = "clientAnswerInvitation";
+>>>>>>> parent of e7b7716 (Merge branch 'dev' into victor-asensio)
     private static final String T_CLIENT_REQUEST_PLAY = "clientRequestPlay";
+    private static final String T_SERVER_DATA = "serverData";
+    private static final String T_COUNTDOWN = "countdown";
     private static final String T_PLAY_ACCEPTED = "playAccepted";
     private static final String T_PLAY_REJECTED = "playRejected";
     private static final String T_GAME_STATE = "gameState";
 
+<<<<<<< HEAD
     // Tipus de missatge nous i (alguns) heretats
     private static final String T_CLIENT_MOUSE_MOVING = "clientMouseMoving"; // client -> server
     private static final String T_CLIENT_PIECE_MOVING = "clientPieceMoving"; // client -> server
@@ -63,6 +75,10 @@ public class Main extends WebSocketServer {
     private final List<String> playersNames = new ArrayList<>();
 
     /** Mapa d'objectes seleccionables compartits. */
+=======
+    private final ClientRegistry clients;
+    private final Map<String, ClientData> clientsData = new HashMap<>();
+>>>>>>> parent of e7b7716 (Merge branch 'dev' into victor-asensio)
     private final Map<String, GameObject> gameObjects = new HashMap<>();
 
     private String[][] boardState = new String[6][7];
@@ -168,7 +184,11 @@ public class Main extends WebSocketServer {
         synchronized (this) {
             if (countdownRunning)
                 return;
+<<<<<<< HEAD
             if (playersNames.size() != REQUIRED_CLIENTS)
+=======
+            if (clientsData.size() != REQUIRED_CLIENTS)
+>>>>>>> parent of e7b7716 (Merge branch 'dev' into victor-asensio)
                 return;
             countdownRunning = true;
         }
@@ -176,9 +196,16 @@ public class Main extends WebSocketServer {
         new Thread(() -> {
             try {
                 for (int i = 3; i >= 0; i--) {
+<<<<<<< HEAD
                     // Si durant el compte enrere ja no hi ha els clients requerits, cancel·la
                     if (playersNames.size() < REQUIRED_CLIENTS) {
                         gameStarted = false;
+=======
+                    if (clientsData.size() < REQUIRED_CLIENTS) {
+                        synchronized (this) {
+                            gameStarted = false;
+                        }
+>>>>>>> parent of e7b7716 (Merge branch 'dev' into victor-asensio)
                         break;
                     }
 
@@ -231,6 +258,7 @@ public class Main extends WebSocketServer {
         }
     }
 
+<<<<<<< HEAD
     /** Envia un missatge a tots els jugadors. */
     private void broadcastExcept(String payload) {
         for (Map.Entry<WebSocket, String> e : clients.snapshot().entrySet()) {
@@ -242,6 +270,8 @@ public class Main extends WebSocketServer {
         }
     }
 
+=======
+>>>>>>> parent of e7b7716 (Merge branch 'dev' into victor-asensio)
     private void broadcastStatus() {
         JSONArray arrClients = new JSONArray();
         for (ClientData c : clientsData.values()) {
@@ -278,28 +308,7 @@ public class Main extends WebSocketServer {
 
     private void sendCountdownToAll(int n) {
         JSONObject rst = msg(T_COUNTDOWN).put(K_VALUE, n);
-        broadcastExcept(rst.toString());
-    }
-
-    private String sendAllClients() {
-        JSONObject response = msg(T_SERVER_CLIENTS_LIST);
-        JSONArray clientsDataArray = new JSONArray();
-
-        for (ClientData cd : clientsData.values()) {
-            JSONObject clientData = new JSONObject();
-            clientData.put("name", cd.name);
-            clientsDataArray.put(clientData);
-        }
-
-        response.put(K_CLIENTS_LIST, clientsDataArray);
-
-        return response.toString();
-    }
-
-    private void sendClientName(WebSocket conn, String name) {
-        JSONObject response = msg(K_CLIENT_NAME);
-        response.put(K_VALUE, name);
-        sendSafe(conn, response.toString());
+        broadcastExcept(null, rst.toString());
     }
 
     @Override
@@ -332,8 +341,9 @@ public class Main extends WebSocketServer {
         System.out.println("  Total clients: " + clientsData.size());
         System.out.println("==============================================");
 
-        sendClientName(conn, name);
-        broadcastExcept(null, sendAllClients());
+        if (clientsData.size() == REQUIRED_CLIENTS) {
+            sendCountdown();
+        }
     }
 
     @Override
