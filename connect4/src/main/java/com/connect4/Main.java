@@ -168,6 +168,8 @@ public class Main extends Application {
 
             case "countdown":
                 if (!UtilsViews.getActiveView().equals("ViewWait")) {
+                    // Rebutgem la resta de peticions
+                    ((CtrlOpponentSelection)UtilsViews.getController("ViewOpponentSelection")).rejectAllPetions();
                     UtilsViews.setView("ViewWait");
                 }
 
@@ -186,9 +188,14 @@ public class Main extends Application {
 
                 for (int i = 0; i < arr.length(); i++) {
                     JSONObject object = arr.getJSONObject(i);
+                    System.out.println(object);
                     String name = object.getString("name");
+                    boolean isPlaying = object.getBoolean("play");
+
+                    ClientData cd = new ClientData(name);
+                    cd.SetIsPlaying(isPlaying);
                     
-                    clients.add(new ClientData(name));
+                    clients.add(cd);
                 }
 
                 ((CtrlOpponentSelection)UtilsViews.getController("ViewOpponentSelection")).loadSendList();

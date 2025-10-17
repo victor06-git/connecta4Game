@@ -1,6 +1,5 @@
 package com.connect4;
 
-import java.util.List;
 import java.util.Objects;
 
 import org.json.JSONObject;
@@ -73,14 +72,7 @@ public class CtrlSubViewReceive {
 
     @FXML
     public void acceptInvitation() {
-
-        List<String> invitations = ((CtrlOpponentSelection)UtilsViews.getController("ViewOpponentSelection")).getSendInvitations();
-
-        for (String n : invitations) {
-            name = n;
-            if (!name.equals(userName.getText())) rejectInvitation();
-        }
-
+        
         // Hacer cambio al counter y comenzar partida
         // Conectar al servidor
         if (Main.wsClient != null && Main.wsClient.isOpen()) {
