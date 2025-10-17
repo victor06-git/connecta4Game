@@ -612,7 +612,10 @@ public class CtrlPlay implements Initializable {
     }
 
     private String getColorPiece(String piece) {
-        return piece.substring(0, 1);
+        if (piece != null) {
+            return piece.substring(0, 1);
+        }
+        return piece;
     }
 
     private void printBoardState() {
