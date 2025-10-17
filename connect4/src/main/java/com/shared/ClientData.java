@@ -9,6 +9,7 @@ public class ClientData {
     public int mouseY;
     public int row;
     public int col;
+    public boolean isPlaying;
 
     public ClientData(String name, String color) {
         this.name = name;
@@ -17,6 +18,7 @@ public class ClientData {
         this.mouseY = -1;
         this.row = -1;
         this.col = -1;
+        this.isPlaying = false;
     }
 
     public ClientData(String name, String color, int mouseX, int mouseY, int row, int col) {
@@ -26,10 +28,15 @@ public class ClientData {
         this.mouseY = mouseY;
         this.row = row;
         this.col = col;
+        this.isPlaying = false;
     }
 
     public void SetColor(String color) {
         this.color = color;
+    }
+
+    public void SetIsPlaying(boolean isPlaying) {
+        this.isPlaying = isPlaying;
     }
 
     @Override
@@ -46,6 +53,7 @@ public class ClientData {
         obj.put("mouseY", mouseY);
         obj.put("row", row);
         obj.put("col", col);
+        obj.put("play", isPlaying);
         return obj;
     }
 
@@ -60,6 +68,7 @@ public class ClientData {
         cd.mouseY = obj.optInt("mouseY", -1);
         cd.row = obj.optInt("row", -1);
         cd.col = obj.optInt("col", -1);
+        cd.isPlaying = obj.optBoolean("play", false);
         return cd;
     }
 }
