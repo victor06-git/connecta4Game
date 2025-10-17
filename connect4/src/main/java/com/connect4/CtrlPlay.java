@@ -232,6 +232,22 @@ public class CtrlPlay implements Initializable {
     }
 
     /**
+     * Function to get the lowest available row in a column
+     * 
+     * @param col
+     * @return
+     * 
+     *         private int getLowestAvailableRow(int col) {
+     *         for (int row = grid.getRows() - 1; row >= 0; row--) {
+     *         if (boardState[row][col] == null) {
+     *         return row;
+     *         }
+     *         }
+     *         return -1; // Full column
+     *         }
+     */
+
+    /**
      * Function that verify if the player can move a piece (ficha)
      * 
      * @param piece
@@ -596,10 +612,7 @@ public class CtrlPlay implements Initializable {
     }
 
     private String getColorPiece(String piece) {
-        if (piece != null) {
-            return piece.substring(0, 1);
-        }
-        return piece;
+        return piece.substring(0, 1);
     }
 
     private void printBoardState() {

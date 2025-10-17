@@ -23,8 +23,8 @@ public class Main extends Application {
     public static UtilsWS wsClient;
 
     public static String clientName = "";
-    public static List<ClientData> clients = new ArrayList<>(); // Usuarios conectados
-    public static List<GameObject> objects = new ArrayList<>();
+    public static List<ClientData> clients; // Usuarios conectados
+    public static List<GameObject> objects;
 
     public static CtrlConfig ctrlConfig;
     public static CtrlWait ctrlWait;
@@ -46,9 +46,9 @@ public class Main extends Application {
         UtilsViews.parentContainer.setStyle("-fx-font: 14 arial;");
 
         UtilsViews.addView(getClass(), "ViewConfig", "/assets/viewConfig.fxml");
-        UtilsViews.addView(getClass(), "ViewOpponentSelection", "/assets/opponent_selection.fxml");
         UtilsViews.addView(getClass(), "ViewWait", "/assets/viewWait.fxml");
         UtilsViews.addView(getClass(), "ViewPlay", "/assets/viewPlay.fxml");
+        UtilsViews.addView(getClass(), "ViewOpponentSelection", "/assets/opponent_selection.fxml");
 
         ctrlConfig = (CtrlConfig) UtilsViews.getController("ViewConfig");
         ctrlWait = (CtrlWait) UtilsViews.getController("ViewWait");
@@ -106,9 +106,6 @@ public class Main extends Application {
             String port = ctrlConfig.txtPort.getText();
             wsClient = UtilsWS.getSharedInstance(protocol + "://" + host + ":" + port);
 
-            clients = new ArrayList<>();
-            objects = new ArrayList<>();
-
             wsClient.onMessage((response) -> {
                 Platform.runLater(() -> {
                     wsMessage(response);
@@ -127,10 +124,6 @@ public class Main extends Application {
         JSONObject msgObj = new JSONObject(response);
 
         switch (msgObj.getString("type")) {
-            case "clientName":
-                clientName = msgObj.getString("value");
-                break;
-
             case "serverData":
                 clientName = msgObj.getString("clientName");
 
@@ -164,16 +157,12 @@ public class Main extends Application {
                 }
 
                 if (UtilsViews.getActiveView().equals("ViewConfig")) {
-                    UtilsViews.setViewAnimating("ViewOpponentSelection");
+                    UtilsViews.setViewAnimating("ViewWait");
                 }
 
                 break;
 
             case "countdown":
-                if (!UtilsViews.getActiveView().equals("ViewWait")) {
-                    UtilsViews.setView("ViewWait");
-                }
-
                 int value = msgObj.getInt("value");
                 String txt = String.valueOf(value);
                 if (value == 0) {
@@ -201,37 +190,6 @@ public class Main extends Application {
                 if (ctrlPlay != null) {
                     ctrlPlay.handlePlayRejected(rejectedPieceId);
                 }
-
-            case "clientsList":
-                JSONArray arr = msgObj.getJSONArray("clientsList");
-                clients.clear();
-
-                for (int i = 0; i < arr.length(); i++) {
-                    JSONObject object = arr.getJSONObject(i);
-                    String name = object.getString("name");
-
-                    clients.add(new ClientData(name, color));
-                }
-
-                ((CtrlOpponentSelection) UtilsViews.getController("ViewOpponentSelection")).loadSendList();
-
-                break;
-
-            case "clientSendInvitation":
-                String username = msgObj.getString("sendFrom");
-                ((CtrlOpponentSelection) UtilsViews.getController("ViewOpponentSelection"))
-                        .addFromReceiveList(username);
-                ((CtrlOpponentSelection) UtilsViews.getController("ViewOpponentSelection"))
-                        .addToSendInvitation(username);
-                break;
-
-            case "clientAnswerInvitation":
-                System.out.println(msgObj);
-                String user = msgObj.getString("sendTo");
-                ((CtrlOpponentSelection) UtilsViews.getController("ViewOpponentSelection"))
-                        .reactivateFromSendList(user);
-                ((CtrlOpponentSelection) UtilsViews.getController("ViewOpponentSelection"))
-                        .removeFromSendInvitation(user);
                 break;
         }
     }
