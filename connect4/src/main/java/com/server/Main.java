@@ -58,19 +58,23 @@ public class Main extends WebSocketServer {
     private static final String K_OBJECTS_LIST = "objectsList";
 
     // Tipus de missatge nous i (alguns) heretats
-    private static final String T_CLIENT_MOUSE_MOVING = "clientMouseMoving"; // client -> server
-    private static final String T_CLIENT_PIECE_MOVING = "clientPieceMoving"; // client -> server
-    private static final String T_CLIENT_PLAY = "clientPlay"; // client -> server
-    private static final String T_CLIENT_SEND_INVITATION = "clientSendInvitation"; // client -> server
-    private static final String T_CLIENT_ANSWER_INVITATION = "clientAnswerInvitation"; // client -> server
-    private static final String T_SERVER_DATA = "serverData"; // server -> clients
-    private static final String T_COUNTDOWN = "countdown"; // server -> clients
+    private static final String T_CLIENT_MOUSE_MOVING = "clientMouseMoving";            // client -> server
+    private static final String T_CLIENT_PIECE_MOVING = "clientPieceMoving";            // client -> server
+    private static final String T_CLIENT_PLAY = "clientPlay";                           // client -> server
+    private static final String T_CLIENT_SEND_INVITATION = "clientSendInvitation";      // client -> server
+    private static final String T_CLIENT_ANSWER_INVITATION = "clientAnswerInvitation";  // client -> server
+    private static final String T_SERVER_DATA = "serverData";                           // server -> clients
+    private static final String T_SERVER_CLIENTS_LIST = "clientsList";                           // server -> clients
+    private static final String T_COUNTDOWN = "countdown";                              // server -> clients
 
     /** Registre de clients i assignació de noms (pool integrat). */
     private final ClientRegistry clients;
 
     /** Mapa d’estat per client (source of truth del servidor). Clau = name/id. */
     private final Map<String, ClientData> clientsData = new HashMap<>();
+
+    /*+ Llista amb els jugadors que estaran a la partida */
+    private final List<String> playersNames = new ArrayList<>();
 
     /** Mapa d'objectes seleccionables compartits. */
     private final Map<String, GameObject> gameObjects = new HashMap<>();
@@ -171,10 +175,8 @@ public class Main extends WebSocketServer {
      */
     private void sendCountdown() {
         synchronized (this) {
-            if (countdownRunning)
-                return;
-            if (clientsData.size() != REQUIRED_CLIENTS)
-                return;
+            if (countdownRunning) return;
+            if (playersNames.size() != REQUIRED_CLIENTS) return;
             countdownRunning = true;
         }
 
@@ -182,7 +184,7 @@ public class Main extends WebSocketServer {
             try {
                 for (int i = 3; i >= 0; i--) {
                     // Si durant el compte enrere ja no hi ha els clients requerits, cancel·la
-                    if (clientsData.size() < REQUIRED_CLIENTS) {
+                    if (playersNames.size() < REQUIRED_CLIENTS) {
                         break;
                     }
 
@@ -228,11 +230,20 @@ public class Main extends WebSocketServer {
         for (Map.Entry<WebSocket, String> e : clients.snapshot().entrySet()) {
             WebSocket conn = e.getKey();
 
-            if (!clientsData.containsKey(e.getValue()))
-                continue;
+            if (!clientsData.containsKey((e.getValue()))) continue;
 
             if (!Objects.equals(conn, sender))
                 sendSafe(conn, payload);
+        }
+    }
+
+    /** Envia un missatge a tots els jugadors. */
+    private void broadcastExcept(String payload) {
+        for (Map.Entry<WebSocket, String> e : clients.snapshot().entrySet()) {
+            WebSocket conn = e.getKey();
+
+            if (!playersNames.contains((e.getValue()))) continue;
+            sendSafe(conn, payload);
         }
     }
 
@@ -263,7 +274,28 @@ public class Main extends WebSocketServer {
     /** Envia a tots els clients el compte enrere. */
     private void sendCountdownToAll(int n) {
         JSONObject rst = msg(T_COUNTDOWN).put(K_VALUE, n);
-        broadcastExcept(null, rst.toString());
+        broadcastExcept(rst.toString());
+    }
+
+    private String sendAllClients() {
+        JSONObject response = msg(T_SERVER_CLIENTS_LIST);
+        JSONArray clientsDataArray = new JSONArray();
+
+        for (ClientData cd : clientsData.values()) {
+            JSONObject clientData = new JSONObject();
+            clientData.put("name", cd.name);
+            clientsDataArray.put(clientData);
+        }
+
+        response.put(K_CLIENTS_LIST, clientsDataArray);
+
+        return response.toString();
+    }
+
+    private void sendClientName(WebSocket conn, String name) {
+        JSONObject response = msg(K_CLIENT_NAME);
+        response.put(K_VALUE, name);
+        sendSafe(conn, response.toString());
     }
 
     // ----------------- WebSocketServer overrides -----------------
@@ -272,12 +304,10 @@ public class Main extends WebSocketServer {
     @Override
     public void onOpen(WebSocket conn, ClientHandshake handshake) {
         String name = clients.add(conn);
-
         clientsData.put(name, new ClientData(name));
-
+        sendClientName(conn, name);
+        broadcastExcept(null, sendAllClients());
         System.out.println("WebSocket client connected: " + name);
-        // Comentar sendCountDown
-        sendCountdown();
     }
 
     /** Elimina el client del registre i envia l’STATE complet. */
@@ -311,7 +341,7 @@ public class Main extends WebSocketServer {
             }
 
             case T_CLIENT_PLAY -> {
-                // Fer compte enrere
+                // Gestionar la jugada
 
                 sendCountdown();
 
@@ -319,23 +349,30 @@ public class Main extends WebSocketServer {
             }
 
             case T_CLIENT_SEND_INVITATION -> {
-                // Revem un value amb el nom de l'usuari a enviar la petició
-
-                // Formatem la resposta
+                // Rebem una petició amb el nom de l'usuari i destinatari a enviar la petició
+                // Rebem l'usuari a qui hem d'enviar la petició
+                System.out.println(obj);
+                String receiver = obj.getString("sendTo");
 
                 // Enviem a l'usuari rebut, la petició d'invitació
+                sendSafe(clients.socketByName(receiver), obj.toString());
             }
 
             case T_CLIENT_ANSWER_INVITATION -> {
-                // Revem un value amb el nom de l'usuari respondre la petició i un valor booleà
-                // amb la resposta
-
-                // SI ACCEPTA
-                // Comencen countdown per a la partida
-
-                // SI NO ACCEPTA
-                // Formatem la resposta
-                // Enviem a l'usuari rebut, la resposta de la petició d'invitació
+                // Rebem una petició amb el nom de l'usuari i destinatari a enviar la petició i un boolà amb la resposta
+                if (obj.getBoolean(K_VALUE)) {
+                    // SI ACCEPTA
+                    // Comencen countdown per a la partida
+                    playersNames.add(obj.getString("sendFrom"));
+                    playersNames.add(obj.getString("sendTo"));
+                    sendCountdown();
+                }
+                else {
+                    // SI NO ACCEPTA
+                    // Enviem a l'usuari que ha fet la peticiól a resposta de l'invitació
+                    String sender = obj.getString("sendFrom");
+                    sendSafe(clients.socketByName(sender), obj.toString());
+                }
             }
 
             default -> {
