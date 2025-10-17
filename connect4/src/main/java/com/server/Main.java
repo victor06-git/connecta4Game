@@ -41,13 +41,19 @@ public class Main extends WebSocketServer {
     private static final String K_BOARD_STATE = "boardState";
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
+=======
+>>>>>>> parent of e7b7716 (Merge branch 'dev' into victor-asensio)
     // Tipos de mensaje
     private static final String T_CLIENT_MOUSE_MOVING = "clientMouseMoving";
     private static final String T_CLIENT_PIECE_MOVING = "clientPieceMoving";
     private static final String T_CLIENT_PLAY = "clientPlay";
     private static final String T_CLIENT_SEND_INVITATION = "clientSendInvitation";
     private static final String T_CLIENT_ANSWER_INVITATION = "clientAnswerInvitation";
+<<<<<<< HEAD
+>>>>>>> parent of e7b7716 (Merge branch 'dev' into victor-asensio)
+=======
 >>>>>>> parent of e7b7716 (Merge branch 'dev' into victor-asensio)
     private static final String T_CLIENT_REQUEST_PLAY = "clientRequestPlay";
     private static final String T_SERVER_DATA = "serverData";
@@ -56,6 +62,7 @@ public class Main extends WebSocketServer {
     private static final String T_PLAY_REJECTED = "playRejected";
     private static final String T_GAME_STATE = "gameState";
 
+<<<<<<< HEAD
 <<<<<<< HEAD
     // Tipus de missatge nous i (alguns) heretats
     private static final String T_CLIENT_MOUSE_MOVING = "clientMouseMoving"; // client -> server
@@ -75,6 +82,10 @@ public class Main extends WebSocketServer {
     private final List<String> playersNames = new ArrayList<>();
 
     /** Mapa d'objectes seleccionables compartits. */
+=======
+    private final ClientRegistry clients;
+    private final Map<String, ClientData> clientsData = new HashMap<>();
+>>>>>>> parent of e7b7716 (Merge branch 'dev' into victor-asensio)
 =======
     private final ClientRegistry clients;
     private final Map<String, ClientData> clientsData = new HashMap<>();
@@ -185,7 +196,11 @@ public class Main extends WebSocketServer {
             if (countdownRunning)
                 return;
 <<<<<<< HEAD
+<<<<<<< HEAD
             if (playersNames.size() != REQUIRED_CLIENTS)
+=======
+            if (clientsData.size() != REQUIRED_CLIENTS)
+>>>>>>> parent of e7b7716 (Merge branch 'dev' into victor-asensio)
 =======
             if (clientsData.size() != REQUIRED_CLIENTS)
 >>>>>>> parent of e7b7716 (Merge branch 'dev' into victor-asensio)
@@ -197,14 +212,20 @@ public class Main extends WebSocketServer {
             try {
                 for (int i = 3; i >= 0; i--) {
 <<<<<<< HEAD
+<<<<<<< HEAD
                     // Si durant el compte enrere ja no hi ha els clients requerits, cancel·la
                     if (playersNames.size() < REQUIRED_CLIENTS) {
                         gameStarted = false;
 =======
+=======
+>>>>>>> parent of e7b7716 (Merge branch 'dev' into victor-asensio)
                     if (clientsData.size() < REQUIRED_CLIENTS) {
                         synchronized (this) {
                             gameStarted = false;
                         }
+<<<<<<< HEAD
+>>>>>>> parent of e7b7716 (Merge branch 'dev' into victor-asensio)
+=======
 >>>>>>> parent of e7b7716 (Merge branch 'dev' into victor-asensio)
                         break;
                     }
@@ -259,6 +280,7 @@ public class Main extends WebSocketServer {
     }
 
 <<<<<<< HEAD
+<<<<<<< HEAD
     /** Envia un missatge a tots els jugadors. */
     private void broadcastExcept(String payload) {
         for (Map.Entry<WebSocket, String> e : clients.snapshot().entrySet()) {
@@ -270,6 +292,8 @@ public class Main extends WebSocketServer {
         }
     }
 
+=======
+>>>>>>> parent of e7b7716 (Merge branch 'dev' into victor-asensio)
 =======
 >>>>>>> parent of e7b7716 (Merge branch 'dev' into victor-asensio)
     private void broadcastStatus() {
