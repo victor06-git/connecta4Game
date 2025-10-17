@@ -3,10 +3,12 @@ package com.server;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Random;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -24,11 +26,13 @@ import com.shared.ClientData;
 import com.shared.GameObject;
 
 /**
- * Servidor WebSocket que manté l'estat complet dels clients i objectes seleccionables.
+ * Servidor WebSocket que manté l'estat complet dels clients i objectes
+ * seleccionables.
  *
  * Protocol simplificat:
- *  - Client -> Server:  { "type": "clientData", "data": { ...ClientData... } }
- *  - Server -> Clients: { "type": "state", "clientId": <clientId>, "clients": [ ...ClientData... ], "gameObjects": { ... }, "countdown": n? }
+ * - Client -> Server: { "type": "clientData", "data": { ...ClientData... } }
+ * - Server -> Clients: { "type": "state", "clientId": <clientId>, "clients": [
+ * ...ClientData... ], "gameObjects": { ... }, "countdown": n? }
  */
 public class Main extends WebSocketServer {
 
@@ -37,13 +41,11 @@ public class Main extends WebSocketServer {
 
     /** Llista de noms disponibles per als clients connectats. */
     private static final List<String> PLAYER_NAMES = Arrays.asList(
-        "Bulbasaur", "Charizard", "Blaziken", "Umbreon", "Mewtwo", "Pikachu", "Wartortle"
-    );
+            "Alejandro", "Victor");
 
     /** Llista de colors disponibles per als clients connectats. */
     private static final List<String> PLAYER_COLORS = Arrays.asList(
-        "RED", "YELLOW"
-    );
+            "RED", "YELLOW");
 
     /** Nombre de clients necessaris per iniciar el compte enrere. */
     private static final int REQUIRED_CLIENTS = 2;
@@ -52,8 +54,8 @@ public class Main extends WebSocketServer {
     private static final String K_TYPE = "type";
     private static final String K_VALUE = "value";
     private static final String K_CLIENT_NAME = "clientName";
-    private static final String K_CLIENTS_LIST = "clientsList";             
-    private static final String K_OBJECTS_LIST = "objectsList"; 
+    private static final String K_CLIENTS_LIST = "clientsList";
+    private static final String K_OBJECTS_LIST = "objectsList";
 
     // Tipus de missatge nous i (alguns) heretats
     private static final String T_CLIENT_MOUSE_MOVING = "clientMouseMoving";            // client -> server
@@ -105,13 +107,57 @@ public class Main extends WebSocketServer {
      * Inicialitza els objectes seleccionables predefinits.
      */
     private void initializegameObjects() {
-        String objId = "O0";
-        GameObject obj0 = new GameObject(objId, 300, 50, 4, 1);
-        gameObjects.put(objId, obj0);
 
-        objId = "O1";
-        GameObject obj1 = new GameObject(objId, 300, 100, 1, 3);
-        gameObjects.put(objId, obj1);
+        double poolX = 610;
+        double poolY = 130;
+        double poolWidth = 250;
+        double pieceRadius = 80.0 * 0.15;
+        double pieceDiameter = pieceRadius * 2;
+
+        int piecesPerRow = 7;
+        int numRows = 6;
+
+        double spacingX = (poolWidth - (piecesPerRow * pieceDiameter)) / (piecesPerRow + 1);
+        double spacingY = pieceDiameter + 5; // Ajusta si necesitas más/menos espacio
+
+        int yellowCount = 0; // count ids for yellow pieces
+        int redCount = 0; // count ids for red pieces
+
+        for (int fila = 0; fila < numRows; fila++) {
+            // Alternar color por fila: filas 0,2,4 = YELLOW; 1,3,5 = RED
+            String colorPiece = (fila % 2 == 0) ? "YELLOW" : "RED";
+            String prefix = (fila % 2 == 0) ? "Y_" : "R_";
+            double startY = poolY + (fila * spacingY) + pieceRadius; // Posición Y base para la fila
+
+            for (int col = 0; col < piecesPerRow; col++) {
+                // Solo crear hasta 21 por color (total 42)
+                if (colorPiece.equals("YELLOW") && yellowCount >= 21) {
+                    continue;
+                }
+                if (colorPiece.equals("RED") && redCount >= 21) {
+                    continue;
+                }
+
+                int index = colorPiece.equals("YELLOW") ? yellowCount : redCount;
+                String id = prefix + index;
+
+                double startX = poolX + spacingX + (col * (pieceDiameter + spacingX));
+                double centerX = startX + pieceRadius;
+                double centerY = startY;
+
+                // Crea el objeto
+                GameObject obj = new GameObject(id, centerX, centerY, pieceRadius, -1, -1);
+                obj.color = colorPiece;
+                gameObjects.put(obj.id, obj);
+
+                if (colorPiece.equals("YELLOW")) {
+                    yellowCount++;
+                } else {
+                    redCount++;
+                }
+            }
+        }
+
     }
 
     /**
@@ -120,14 +166,13 @@ public class Main extends WebSocketServer {
      * @return color assignat
      */
     private synchronized String getColor() {
-        //int idx = PLAYER_NAMES.indexOf(name);
-        //if (idx < 0) idx = 0; // fallback si el nom no està a la llista
-        //return PLAYER_COLORS.get(idx % PLAYER_COLORS.size());
         return clients.snapshot().size() == 1 ? PLAYER_COLORS.get(0) : PLAYER_COLORS.get(1);
     }
 
-    /** Envia un compte enrere (3..0) com a part del mateix STATE.
-     *  Evita comptes simultanis i es cancel·la si baixa el nombre de clients. */
+    /**
+     * Envia un compte enrere (3..0) com a part del mateix STATE.
+     * Evita comptes simultanis i es cancel·la si baixa el nombre de clients.
+     */
     private void sendCountdown() {
         synchronized (this) {
             if (countdownRunning) return;
@@ -144,7 +189,8 @@ public class Main extends WebSocketServer {
                     }
 
                     sendCountdownToAll(i);
-                    if (i > 0) Thread.sleep(750); // ritme del compte enrere
+                    if (i > 0)
+                        Thread.sleep(750); // ritme del compte enrere
                 }
             } catch (InterruptedException ie) {
                 Thread.currentThread().interrupt();
@@ -161,9 +207,13 @@ public class Main extends WebSocketServer {
         return new JSONObject().put(K_TYPE, type);
     }
 
-    /** Envia de forma segura un payload i, si el socket no està connectat, el neteja del registre. */
+    /**
+     * Envia de forma segura un payload i, si el socket no està connectat, el neteja
+     * del registre.
+     */
     private void sendSafe(WebSocket to, String payload) {
-        if (to == null) return;
+        if (to == null)
+            return;
         try {
             to.send(payload);
         } catch (WebsocketNotConnectedException e) {
@@ -182,7 +232,8 @@ public class Main extends WebSocketServer {
 
             if (!clientsData.containsKey((e.getValue()))) continue;
 
-            if (!Objects.equals(conn, sender)) sendSafe(conn, payload);
+            if (!Objects.equals(conn, sender))
+                sendSafe(conn, payload);
         }
     }
 
@@ -209,8 +260,8 @@ public class Main extends WebSocketServer {
         }
 
         JSONObject rst = msg(T_SERVER_DATA)
-                        .put(K_CLIENTS_LIST, arrClients)
-                        .put(K_OBJECTS_LIST, arrObjects);
+                .put(K_CLIENTS_LIST, arrClients)
+                .put(K_OBJECTS_LIST, arrObjects);
 
         for (Map.Entry<WebSocket, String> e : clients.snapshot().entrySet()) {
             WebSocket conn = e.getKey();
@@ -281,7 +332,7 @@ public class Main extends WebSocketServer {
         switch (type) {
             case T_CLIENT_MOUSE_MOVING -> {
                 String clientName = clients.nameBySocket(conn);
-                clientsData.put(clientName, ClientData.fromJSON(obj.getJSONObject(K_VALUE))); 
+                clientsData.put(clientName, ClientData.fromJSON(obj.getJSONObject(K_VALUE)));
             }
 
             case T_CLIENT_PIECE_MOVING -> {
@@ -292,6 +343,9 @@ public class Main extends WebSocketServer {
             case T_CLIENT_PLAY -> {
                 // Gestionar la jugada
 
+                sendCountdown();
+
+                // Enviar dades als jugadors
             }
 
             case T_CLIENT_SEND_INVITATION -> {
@@ -343,12 +397,15 @@ public class Main extends WebSocketServer {
 
     // ----------------- Lifecycle util -----------------
 
-    /** Registra un shutdown hook per aturar netament el servidor en finalitzar el procés. */
+    /**
+     * Registra un shutdown hook per aturar netament el servidor en finalitzar el
+     * procés.
+     */
     private static void registerShutdownHook(Main server) {
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             System.out.println("Aturant servidor (shutdown hook)...");
             try {
-                server.stopTicker();      // <- atura el bucle periòdic
+                server.stopTicker(); // <- atura el bucle periòdic
                 server.stop(1000);
             } catch (InterruptedException e) {
                 e.printStackTrace();
@@ -367,7 +424,6 @@ public class Main extends WebSocketServer {
             Thread.currentThread().interrupt();
         }
     }
-
 
     // ----------------- Ticker util -----------------
 

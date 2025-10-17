@@ -29,6 +29,7 @@ public class Main extends Application {
     public static CtrlConfig ctrlConfig;
     public static CtrlWait ctrlWait;
     public static CtrlPlay ctrlPlay;
+    public static CtrlOpponentSelection ctrlOpponentSelection;
 
     public static void main(String[] args) {
 
@@ -39,10 +40,12 @@ public class Main extends Application {
     @Override
     public void start(Stage stage) throws Exception {
 
-        final int windowWidth = 400;
-        final int windowHeight = 300;
+        final int windowWidth = 850;
+        final int windowHeight = 700;
 
         UtilsViews.parentContainer.setStyle("-fx-font: 14 arial;");
+
+       
         UtilsViews.addView(getClass(), "ViewConfig", "/assets/viewConfig.fxml"); 
         UtilsViews.addView(getClass(), "ViewOpponentSelection", "/assets/opponent_selection.fxml");
         UtilsViews.addView(getClass(), "ViewWait", "/assets/viewWait.fxml");
@@ -51,7 +54,7 @@ public class Main extends Application {
         ctrlConfig = (CtrlConfig) UtilsViews.getController("ViewConfig");
         ctrlWait = (CtrlWait) UtilsViews.getController("ViewWait");
         ctrlPlay = (CtrlPlay) UtilsViews.getController("ViewPlay");
-        //CtrlOpponentSelection = (CtrlOpponentSelection) UtilsViews.getController("ViewOpponentSelection");
+        ctrlOpponentSelection = (CtrlOpponentSelection) UtilsViews.getController("ViewOpponentSelection");
 
         Scene scene = new Scene(UtilsViews.parentContainer);
 
@@ -122,9 +125,8 @@ public class Main extends Application {
 
     private static void wsMessage(String response) {
 
-        // System.out.println(response);
-
         JSONObject msgObj = new JSONObject(response);
+
         switch (msgObj.getString("type")) {
             case "clientName":
                 clientName = msgObj.getString("value");
@@ -149,12 +151,14 @@ public class Main extends Application {
                 }
                 objects = newObjects;
 
+                // AÑADIDO DE PRUEBA
+                if (ctrlPlay != null) {
+                    ctrlPlay.updateGameState(msgObj);
+                }
+
                 if (clients.size() == 1) {
-
                     ctrlWait.txtPlayer0.setText(clients.get(0).name);
-
                 } else if (clients.size() > 1) {
-
                     ctrlWait.txtPlayer0.setText(clients.get(0).name);
                     ctrlWait.txtPlayer1.setText(clients.get(1).name);
                     ctrlPlay.title.setText(clients.get(0).name + " vs " + clients.get(1).name);
@@ -179,6 +183,25 @@ public class Main extends Application {
                 }
                 ctrlWait.txtTitle.setText(txt);
                 break;
+
+            // AÑADIDO DE PRUEBA
+            case "playAccepted":
+                String pieceId = msgObj.getString("pieceId");
+                int col = msgObj.getInt("column");
+                int row = msgObj.getInt("row");
+                if (ctrlPlay != null) {
+                    ctrlPlay.handlePlayAccepted(pieceId, col, row);
+                }
+                break;
+
+            // AÑADIDO DE PRUEBA
+            case "playRejected":
+                String rejectedPieceId = msgObj.getString("pieceId");
+                String reason = msgObj.optString("reason", "Invalid move");
+                System.out.println("Play rejected: " + reason);
+                if (ctrlPlay != null) {
+                    ctrlPlay.handlePlayRejected(rejectedPieceId);
+                }
                 
             case "clientsList":
                 JSONArray arr = msgObj.getJSONArray("clientsList");
