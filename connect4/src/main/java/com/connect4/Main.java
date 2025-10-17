@@ -23,7 +23,7 @@ public class Main extends Application {
     public static UtilsWS wsClient;
 
     public static String clientName = "";
-    public static List<ClientData> clients = new ArrayList<>(); //Usuarios conectados
+    public static List<ClientData> clients = new ArrayList<>(); // Usuarios conectados
     public static List<GameObject> objects = new ArrayList<>();
 
     public static CtrlConfig ctrlConfig;
@@ -45,8 +45,7 @@ public class Main extends Application {
 
         UtilsViews.parentContainer.setStyle("-fx-font: 14 arial;");
 
-       
-        UtilsViews.addView(getClass(), "ViewConfig", "/assets/viewConfig.fxml"); 
+        UtilsViews.addView(getClass(), "ViewConfig", "/assets/viewConfig.fxml");
         UtilsViews.addView(getClass(), "ViewOpponentSelection", "/assets/opponent_selection.fxml");
         UtilsViews.addView(getClass(), "ViewWait", "/assets/viewWait.fxml");
         UtilsViews.addView(getClass(), "ViewPlay", "/assets/viewPlay.fxml");
@@ -131,7 +130,7 @@ public class Main extends Application {
             case "clientName":
                 clientName = msgObj.getString("value");
                 break;
-                
+
             case "serverData":
                 clientName = msgObj.getString("clientName");
 
@@ -202,7 +201,7 @@ public class Main extends Application {
                 if (ctrlPlay != null) {
                     ctrlPlay.handlePlayRejected(rejectedPieceId);
                 }
-                
+
             case "clientsList":
                 JSONArray arr = msgObj.getJSONArray("clientsList");
                 clients.clear();
@@ -210,25 +209,29 @@ public class Main extends Application {
                 for (int i = 0; i < arr.length(); i++) {
                     JSONObject object = arr.getJSONObject(i);
                     String name = object.getString("name");
-                    
-                    clients.add(new ClientData(name));
+
+                    clients.add(new ClientData(name, color));
                 }
 
-                ((CtrlOpponentSelection)UtilsViews.getController("ViewOpponentSelection")).loadSendList();
-                
+                ((CtrlOpponentSelection) UtilsViews.getController("ViewOpponentSelection")).loadSendList();
+
                 break;
-        
+
             case "clientSendInvitation":
                 String username = msgObj.getString("sendFrom");
-                ((CtrlOpponentSelection)UtilsViews.getController("ViewOpponentSelection")).addFromReceiveList(username);
-                ((CtrlOpponentSelection)UtilsViews.getController("ViewOpponentSelection")).addToSendInvitation(username);
+                ((CtrlOpponentSelection) UtilsViews.getController("ViewOpponentSelection"))
+                        .addFromReceiveList(username);
+                ((CtrlOpponentSelection) UtilsViews.getController("ViewOpponentSelection"))
+                        .addToSendInvitation(username);
                 break;
 
             case "clientAnswerInvitation":
                 System.out.println(msgObj);
                 String user = msgObj.getString("sendTo");
-                ((CtrlOpponentSelection)UtilsViews.getController("ViewOpponentSelection")).reactivateFromSendList(user);
-                ((CtrlOpponentSelection)UtilsViews.getController("ViewOpponentSelection")).removeFromSendInvitation(user);
+                ((CtrlOpponentSelection) UtilsViews.getController("ViewOpponentSelection"))
+                        .reactivateFromSendList(user);
+                ((CtrlOpponentSelection) UtilsViews.getController("ViewOpponentSelection"))
+                        .removeFromSendInvitation(user);
                 break;
         }
     }
