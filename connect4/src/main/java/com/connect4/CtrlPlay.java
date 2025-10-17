@@ -6,6 +6,9 @@ import java.util.ResourceBundle;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import com.shared.ClientData;
+import com.shared.GameObject;
+
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.canvas.Canvas;
@@ -17,9 +20,6 @@ import javafx.scene.paint.CycleMethod;
 import javafx.scene.paint.LinearGradient;
 import javafx.scene.paint.Stop;
 import javafx.scene.text.Font;
-
-import com.shared.ClientData;
-import com.shared.GameObject;
 
 public class CtrlPlay implements Initializable {
 
@@ -230,22 +230,6 @@ public class CtrlPlay implements Initializable {
         int col = (int) ((x - grid.getStartX()) / grid.getCellSize());
         return Math.max(0, Math.min(col, grid.getCols() - 1));
     }
-
-    /**
-     * Function to get the lowest available row in a column
-     * 
-     * @param col
-     * @return
-     * 
-     *         private int getLowestAvailableRow(int col) {
-     *         for (int row = grid.getRows() - 1; row >= 0; row--) {
-     *         if (boardState[row][col] == null) {
-     *         return row;
-     *         }
-     *         }
-     *         return -1; // Full column
-     *         }
-     */
 
     /**
      * Function that verify if the player can move a piece (ficha)
