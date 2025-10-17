@@ -1,6 +1,7 @@
 package com.server;
 
 import java.net.InetSocketAddress;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -39,27 +40,26 @@ public class Main extends WebSocketServer {
     private static final String K_CURRENT_TURN = "currentTurn";
     private static final String K_BOARD_STATE = "boardState";
 
-    
     private static final String T_CLIENT_REQUEST_PLAY = "clientRequestPlay";
     private static final String T_PLAY_ACCEPTED = "playAccepted";
     private static final String T_PLAY_REJECTED = "playRejected";
     private static final String T_GAME_STATE = "gameState";
 
     // Tipus de missatge nous i (alguns) heretats
-    private static final String T_CLIENT_MOUSE_MOVING = "clientMouseMoving";            // client -> server
-    private static final String T_CLIENT_PIECE_MOVING = "clientPieceMoving";            // client -> server
-    private static final String T_CLIENT_PLAY = "clientPlay";                           // client -> server
-    private static final String T_CLIENT_SEND_INVITATION = "clientSendInvitation";      // client -> server
-    private static final String T_CLIENT_ANSWER_INVITATION = "clientAnswerInvitation";  // client -> server
-    private static final String T_SERVER_DATA = "serverData";                           // server -> clients
-    private static final String T_SERVER_CLIENTS_LIST = "clientsList";                           // server -> clients
-    private static final String T_COUNTDOWN = "countdown";                              // server -> clients
+    private static final String T_CLIENT_MOUSE_MOVING = "clientMouseMoving"; // client -> server
+    private static final String T_CLIENT_PIECE_MOVING = "clientPieceMoving"; // client -> server
+    private static final String T_CLIENT_PLAY = "clientPlay"; // client -> server
+    private static final String T_CLIENT_SEND_INVITATION = "clientSendInvitation"; // client -> server
+    private static final String T_CLIENT_ANSWER_INVITATION = "clientAnswerInvitation"; // client -> server
+    private static final String T_SERVER_DATA = "serverData"; // server -> clients
+    private static final String T_SERVER_CLIENTS_LIST = "clientsList"; // server -> clients
+    private static final String T_COUNTDOWN = "countdown"; // server -> clients
 
     /** Registre de clients i assignació de noms (pool integrat). */
     private final ClientRegistry clients;
     private final Map<String, ClientData> clientsData = new HashMap<>();
 
-    /*+ Llista amb els jugadors que estaran a la partida */
+    /* + Llista amb els jugadors que estaran a la partida */
     private final List<String> playersNames = new ArrayList<>();
 
     /** Mapa d'objectes seleccionables compartits. */
@@ -166,8 +166,10 @@ public class Main extends WebSocketServer {
 
     private void sendCountdown() {
         synchronized (this) {
-            if (countdownRunning) return;
-            if (playersNames.size() != REQUIRED_CLIENTS) return;
+            if (countdownRunning)
+                return;
+            if (playersNames.size() != REQUIRED_CLIENTS)
+                return;
             countdownRunning = true;
         }
 
@@ -176,7 +178,7 @@ public class Main extends WebSocketServer {
                 for (int i = 3; i >= 0; i--) {
                     // Si durant el compte enrere ja no hi ha els clients requerits, cancel·la
                     if (playersNames.size() < REQUIRED_CLIENTS) {
-                      gameStarted = false;
+                        gameStarted = false;
                         break;
                     }
 
@@ -234,7 +236,8 @@ public class Main extends WebSocketServer {
         for (Map.Entry<WebSocket, String> e : clients.snapshot().entrySet()) {
             WebSocket conn = e.getKey();
 
-            if (!playersNames.contains((e.getValue()))) continue;
+            if (!playersNames.contains((e.getValue())))
+                continue;
             sendSafe(conn, payload);
         }
     }
@@ -362,7 +365,6 @@ public class Main extends WebSocketServer {
             case T_CLIENT_MOUSE_MOVING -> {
                 String clientName = clients.nameBySocket(conn);
                 ClientData updatedData = ClientData.fromJSON(obj.getJSONObject(K_VALUE));
-                // MANTENER EL COLOR ORIGINAL
                 ClientData existingData = clientsData.get(clientName);
                 if (existingData != null) {
                     updatedData.color = existingData.color;
@@ -376,8 +378,6 @@ public class Main extends WebSocketServer {
             }
 
             case T_CLIENT_PLAY -> {
-                // Gestionar la jugada
-
                 sendCountdown();
             }
 
@@ -406,34 +406,6 @@ public class Main extends WebSocketServer {
                     sendSafe(conn, response.toString());
                     return;
                 }
-              
-            case T_CLIENT_SEND_INVITATION -> {
-                // Rebem una petició amb el nom de l'usuari i destinatari a enviar la petició
-                // Rebem l'usuari a qui hem d'enviar la petició
-                System.out.println(obj);
-                String receiver = obj.getString("sendTo");
-
-                // Enviem a l'usuari rebut, la petició d'invitació
-                sendSafe(clients.socketByName(receiver), obj.toString());
-            }
-
-            case T_CLIENT_ANSWER_INVITATION -> {
-                // Rebem una petició amb el nom de l'usuari i destinatari a enviar la petició i un boolà amb la resposta
-                if (obj.getBoolean(K_VALUE)) {
-                    // SI ACCEPTA
-                    // Comencen countdown per a la partida
-                    playersNames.add(obj.getString("sendFrom"));
-                    playersNames.add(obj.getString("sendTo"));
-                    sendCountdown();
-                }
-              
-                else {
-                    // SI NO ACCEPTA
-                    // Enviem a l'usuari que ha fet la peticiól a resposta de l'invitació
-                    String sender = obj.getString("sendFrom");
-                    sendSafe(clients.socketByName(sender), obj.toString());
-                }
-            }
 
                 if (isValidPlay(pieceId, col)) {
                     int row = getLowestAvailableRow(col);
@@ -467,6 +439,23 @@ public class Main extends WebSocketServer {
                             .put("pieceId", pieceId)
                             .put("reason", "Invalid piece for current turn");
                     sendSafe(conn, response.toString());
+                }
+            }
+
+            case T_CLIENT_SEND_INVITATION -> {
+                System.out.println(obj);
+                String receiver = obj.getString("sendTo");
+                sendSafe(clients.socketByName(receiver), obj.toString());
+            }
+
+            case T_CLIENT_ANSWER_INVITATION -> {
+                if (obj.getBoolean(K_VALUE)) {
+                    playersNames.add(obj.getString("sendFrom"));
+                    playersNames.add(obj.getString("sendTo"));
+                    sendCountdown();
+                } else {
+                    String sender = obj.getString("sendFrom");
+                    sendSafe(clients.socketByName(sender), obj.toString());
                 }
             }
         }
