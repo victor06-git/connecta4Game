@@ -6,6 +6,9 @@ import java.util.ResourceBundle;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import com.shared.ClientData;
+import com.shared.GameObject;
+
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.canvas.Canvas;
@@ -17,9 +20,6 @@ import javafx.scene.paint.CycleMethod;
 import javafx.scene.paint.LinearGradient;
 import javafx.scene.paint.Stop;
 import javafx.scene.text.Font;
-
-import com.shared.ClientData;
-import com.shared.GameObject;
 
 public class CtrlPlay implements Initializable {
 
@@ -60,7 +60,7 @@ public class CtrlPlay implements Initializable {
 
     // Matriz de las posiciones de las fichas, se inicializa null
     private String[][] boardState = new String[6][7];
-    private String currentTurn = "RED";
+    private String currentTurn = ""; // Actual turn
     private String myColor = "";
 
     @Override
@@ -255,12 +255,21 @@ public class CtrlPlay implements Initializable {
      */
     private boolean canMoveThisPiece(GameObject piece) {
         if (myColor.isEmpty()) {
-            myColor = Main.clients.stream().filter(c -> c.name.equals(Main.clientName))
+            myColor = Main.clients.stream()
+                    .filter(c -> c.name.equals(Main.clientName))
                     .map(c -> c.color)
                     .findFirst()
-                    .orElse("RED");
+                    .orElse("");
         }
-        return currentTurn.equals(myColor) && piece.id.startsWith(myColor.charAt(0) + "_");
+
+        // Debug: mostrar información
+        System.out.println("My color: " + myColor + ", Current turn: " + currentTurn + ", Piece: " + piece.id);
+
+        // Verificar que sea mi turno y que la pieza sea de mi color
+        boolean isMyTurn = currentTurn.equals(myColor);
+        boolean isMyPiece = piece.id.startsWith(myColor.charAt(0) + "_");
+
+        return isMyTurn && isMyPiece;
     }
 
     // Start animation timer
@@ -334,6 +343,7 @@ public class CtrlPlay implements Initializable {
                 // Verificar si el mouse está dentro del círculo de la ficha
                 if (isMouseInsideCircle(mouseX, mouseY, go.center_x, go.center_y, correctRadius)) {
                     if (!canMoveThisPiece(go)) {
+                        System.out.println("Cannot move piece " + go.id + " - not your turn or not your piece");
                         return;
                     }
 
@@ -343,6 +353,8 @@ public class CtrlPlay implements Initializable {
                     mouseDragging = true;
                     mouseOffsetX = mouseX - go.center_x;
                     mouseOffsetY = mouseY - go.center_y;
+
+                    System.out.println("Selected piece: " + go.id);
                     break;
                 }
             }
@@ -520,51 +532,109 @@ public class CtrlPlay implements Initializable {
         // Horizontal
         for (int row = 0; row < 6; row++) {
             for (int col = 0; col < 4; col++) {
-                String piece = boardState[row][col];
-                if (piece != null && piece.equals(boardState[row][col + 1]) && piece.equals(boardState[row][col + 2])
-                        && piece.equals(boardState[row][col + 3])) {
+                String piece = getColorPiece(boardState[row][col]);
+                System.out.println(piece);
+                if (piece != null && piece.equals(getColorPiece(boardState[row][col + 1]))
+                        && piece.equals(getColorPiece(boardState[row][col + 2]))
+                        && piece.equals(getColorPiece(boardState[row][col + 3]))) {
                     winningLineCoords = new int[] { row, col, row, col + 3 };
                     winningColor = piece;
+                    System.out.println(
+                            "WINNER HORIZONTAL: " + piece + " at row " + row + ", cols " + col + "-" + (col + 3));
+                    printBoardState();
                     return;
                 }
             }
         }
 
         // Vertical
-        for (int row = 0; row < 3; row++) {
-            for (int col = 0; col < 4; col++) {
-                String piece = boardState[row][col];
-                if (piece != null && piece.equals(boardState[row + 1][col]) && piece.equals(boardState[row + 2][col])
-                        && piece.equals(boardState[row + 3][col])) {
+        for (int col = 0; col < 7; col++) {
+            for (int row = 0; row < 3; row++) { // Solo hasta row 2 (0,1,2 -> verifica hasta row 5)
+                String piece = getColorPiece(boardState[row][col]);
+                System.out.println(piece);
+                if (piece != null &&
+                        piece.equals(getColorPiece(boardState[row + 1][col])) &&
+                        piece.equals(getColorPiece(boardState[row + 2][col])) &&
+                        piece.equals(getColorPiece(boardState[row + 3][col]))) {
+
                     winningLineCoords = new int[] { row, col, row + 3, col };
                     winningColor = piece;
+                    System.out.println(
+                            "WINNER VERTICAL: " + piece + " at col " + col + ", rows " + row + "-" + (row + 3));
+                    printBoardState();
+                    return;
                 }
             }
         }
 
         // Diagonal a la izquierda (\)
-        for (int row = 0; row < 3; row++) {
-            for (int col = 0; col < 4; col++) {
-                String piece = boardState[row][col];
-                if (piece != null && piece.equals(boardState[row + 1][col + 1])
-                        && piece.equals(boardState[row + 2][col + 2]) && piece.equals(boardState[row + 3][col + 3])) {
+        for (int row = 0; row <= 2; row++) {
+            for (int col = 0; col <= 3; col++) {
+                String piece = getColorPiece(boardState[row][col]);
+                System.out.println(piece);
+                if (piece != null &&
+                        piece.equals(getColorPiece(boardState[row + 1][col + 1])) &&
+                        piece.equals(getColorPiece(boardState[row + 2][col + 2])) &&
+                        piece.equals(getColorPiece(boardState[row + 3][col + 3]))) {
+
                     winningLineCoords = new int[] { row, col, row + 3, col + 3 };
                     winningColor = piece;
+                    System.out.println("WINNER DIAGONAL \\: " + piece + " from [" + row + "," + col + "] to ["
+                            + (row + 3) + "," + (col + 3) + "]");
+                    printBoardState();
+                    return;
                 }
             }
         }
 
         // Diagonal a la derecha (/)
-        for (int row = 0; row < 3; row++) {
-            for (int col = 0; col < 4; col++) {
-                String piece = boardState[row][col];
-                if (piece != null && piece.equals(boardState[row - 1][col + 1])
-                        && piece.equals(boardState[row - 2][col + 2]) && piece.equals(boardState[row - 3][col + 3])) {
+        for (int row = 3; row <= 5; row++) { // Empezar desde row 3 hacia abajo
+            for (int col = 0; col <= 3; col++) {
+                String piece = getColorPiece(boardState[row][col]);
+                System.out.println(piece);
+                if (piece != null &&
+                        piece.equals(getColorPiece(boardState[row - 1][col + 1])) &&
+                        piece.startsWith(getColorPiece(boardState[row - 2][col + 2])) &&
+                        piece.startsWith(getColorPiece(boardState[row - 3][col + 3]))) {
+
                     winningLineCoords = new int[] { row, col, row - 3, col + 3 };
                     winningColor = piece;
+                    System.out.println("WINNER DIAGONAL /: " + piece + " from [" + row + "," + col + "] to ["
+                            + (row - 3) + "," + (col + 3) + "]");
+                    printBoardState();
+                    return;
                 }
             }
         }
+
+        System.out.println("Non winner");
+        printBoardState();
+    }
+
+    private String getColorPiece(String piece) {
+        if (piece != null) {
+            return piece.substring(0, 1);
+        }
+        return piece;
+    }
+
+    private void printBoardState() {
+        System.out.println("\n===== BOARD STATE =====");
+        for (int row = 0; row < 6; row++) {
+            System.out.print("Row " + row + ": ");
+            for (int col = 0; col < 7; col++) {
+                String cell = boardState[row][col];
+                if (cell == null) {
+                    System.out.print("[ ] ");
+                } else if (cell.startsWith("R_")) {
+                    System.out.print("[R] ");
+                } else if (cell.startsWith("Y_")) {
+                    System.out.print("[Y] ");
+                }
+            }
+            System.out.println();
+        }
+        System.out.println("=======================\n");
     }
 
     // Draw game to canvas
@@ -581,6 +651,8 @@ public class CtrlPlay implements Initializable {
 
         // Clean drawing area
         gc.clearRect(0, 0, canvas.getWidth(), canvas.getHeight());
+
+        drawTurnIndicator();
 
         drawDropZone();
 
@@ -648,6 +720,50 @@ public class CtrlPlay implements Initializable {
         // Draw FPS if needed
         if (showFPS) {
             animationTimer.drawFPS(gc);
+        }
+    }
+
+    private void drawTurnIndicator() {
+        // Obtener mi color
+        if (myColor.isEmpty()) {
+            myColor = Main.clients.stream()
+                    .filter(c -> c.name.equals(Main.clientName))
+                    .map(c -> c.color)
+                    .findFirst()
+                    .orElse("");
+        }
+
+        // Posición del indicador (arriba a la izquierda)
+        double indicatorX = 10;
+        double indicatorY = 10;
+
+        // Dibujar fondo
+        gc.setFill(Color.rgb(255, 255, 255, 0.8));
+        gc.fillRoundRect(indicatorX, indicatorY, 200, 50, 10, 10);
+
+        // Dibujar borde
+        gc.setStroke(Color.BLACK);
+        gc.setLineWidth(2);
+        gc.strokeRoundRect(indicatorX, indicatorY, 200, 50, 10, 10);
+
+        // Texto del turno
+        gc.setFill(Color.BLACK);
+        gc.setFont(new Font("Arial Bold", 16));
+
+        boolean isMyTurn = currentTurn.equals(myColor);
+        String turnText = isMyTurn ? "YOUR TURN" : currentTurn + "'S TURN";
+
+        gc.fillText("Turn: " + currentTurn, indicatorX + 10, indicatorY + 25);
+
+        // Indicador de color del turno actual
+        Color turnColor = getColor(currentTurn.toLowerCase());
+        gc.setFill(turnColor);
+        gc.fillOval(indicatorX + 150, indicatorY + 15, 20, 20);
+
+        // Si es tu turno, añadir indicador extra
+        if (isMyTurn) {
+            gc.setFill(Color.GREEN);
+            gc.fillText("▶", indicatorX + 180, indicatorY + 30);
         }
     }
 
