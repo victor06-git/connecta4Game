@@ -213,9 +213,10 @@ public class Main extends Application {
                     JSONObject object = arr.getJSONObject(i);
                     System.out.println(object);
                     String name = object.getString("name");
+                    String color = object.getString("color");
                     boolean isPlaying = object.getBoolean("play");
 
-                    ClientData cd = new ClientData(name);
+                    ClientData cd = new ClientData(name, color);
                     cd.SetIsPlaying(isPlaying);
                     
                     clients.add(cd);
