@@ -18,7 +18,8 @@ import javafx.scene.layout.VBox;
 
 public class CtrlOpponentSelection implements Initializable {
 
-    private Map<Node, CtrlSubViewSend> controllers = new HashMap<>();
+    private Map<Node, CtrlSubViewSend> controllersSend = new HashMap<>();
+    private Map<Node, CtrlSubViewReceive> controllersReceive = new HashMap<>();
     private List<String>sendInvitations = new ArrayList<>();
 
     @FXML
@@ -42,19 +43,25 @@ public class CtrlOpponentSelection implements Initializable {
             // Iterar sobre todos los clientes conectados
             for (ClientData client : Main.clients) {
                 // Filtrar: no mostrar el propio usuario
-                if (!client.name.equals(Main.clientName) && !sendInvitations.contains(client.name)) {
+                if (!client.name.equals(Main.clientName)) {
 
                     URL resource = getClass().getResource("/assets/subviewSend.fxml");
                     FXMLLoader loader = new FXMLLoader(resource);
                     Parent itemPane = loader.load();
                     CtrlSubViewSend itemController = loader.getController();
 
-                    controllers.put(itemPane, itemController);
+                    controllersSend.put(itemPane, itemController);
 
                     itemController.setUser(client.name);
                     // itemController.setImage("/assets/images/default-avatar.png"); //User Image
 
                     list_send.getChildren().add(itemPane);
+
+                    System.out.println(client.isPlaying);
+
+                    if (client.isPlaying || sendInvitations.contains(client.name)) {
+                        itemPane.setDisable(true);
+                    }
                 }
             }
         } catch (Exception e) {
@@ -99,6 +106,7 @@ public class CtrlOpponentSelection implements Initializable {
     // Método para eliminar la parte
     public void removeFromReceiveList(Node node) {
         list_receive.getChildren().remove(node);
+        loadSendList();
     }
 
     // Añadimos una petición a partir de un nombre de usuario
@@ -113,6 +121,8 @@ public class CtrlOpponentSelection implements Initializable {
             itemController.setUser(name);
             itemController.setRootNode(itemPane);
 
+            controllersReceive.put(itemPane, itemController);
+
             removeFromSendList(name);
             list_receive.getChildren().add(itemPane);
         } catch (Exception e) {
@@ -124,7 +134,7 @@ public class CtrlOpponentSelection implements Initializable {
     public void removeFromReceiveList(String name) {
         Node toRemove = null;
         for (Node n : list_send.getChildren()) {
-            if (controllers.get(n).getUserName().equals(name)) {
+            if (controllersSend.get(n).getUserName().equals(name)) {
                 toRemove = n;
                 break;
             }
@@ -134,8 +144,8 @@ public class CtrlOpponentSelection implements Initializable {
 
     public void removeFromSendList(String name) {
         for (Node n : list_send.getChildren()) {
-            if (controllers.get(n).getUserName().equals(name)) {
-                n.setVisible(false);
+            if (controllersSend.get(n).getUserName().equals(name)) {
+                n.setDisable(true);
                 break;
             }
         }
@@ -143,8 +153,8 @@ public class CtrlOpponentSelection implements Initializable {
 
     public void reactivateFromSendList(String name) {
         for (Node n : list_send.getChildren()) {
-            if (controllers.get(n).getUserName().equals(name)) {
-                n.setVisible(true);
+            if (controllersSend.get(n).getUserName().equals(name)) {
+                n.setDisable(false);
                 break;
             }
         }
@@ -156,5 +166,15 @@ public class CtrlOpponentSelection implements Initializable {
 
     public void removeFromSendInvitation(String name) {
         sendInvitations.remove(name);
+        loadSendList();
+    }
+
+    public void rejectAllPetions() {
+
+        if (list_receive.getChildren().isEmpty()) return;
+
+        for (Node n : list_receive.getChildren()) {
+            controllersReceive.get(n).rejectInvitation();
+        }
     }
 }
