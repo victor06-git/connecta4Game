@@ -23,18 +23,8 @@ public class Main extends Application {
     public static UtilsWS wsClient;
 
     public static String clientName = "";
-<<<<<<< HEAD
-<<<<<<< HEAD
     public static List<ClientData> clients = new ArrayList<>(); // Usuarios conectados
     public static List<GameObject> objects = new ArrayList<>();
-=======
-    public static List<ClientData> clients; // Usuarios conectados
-    public static List<GameObject> objects;
->>>>>>> parent of e7b7716 (Merge branch 'dev' into victor-asensio)
-=======
-    public static List<ClientData> clients; // Usuarios conectados
-    public static List<GameObject> objects;
->>>>>>> parent of e7b7716 (Merge branch 'dev' into victor-asensio)
 
     public static CtrlConfig ctrlConfig;
     public static CtrlWait ctrlWait;
@@ -56,16 +46,9 @@ public class Main extends Application {
         UtilsViews.parentContainer.setStyle("-fx-font: 14 arial;");
 
         UtilsViews.addView(getClass(), "ViewConfig", "/assets/viewConfig.fxml");
-<<<<<<< HEAD
-<<<<<<< HEAD
         UtilsViews.addView(getClass(), "ViewOpponentSelection", "/assets/opponent_selection.fxml");
-=======
->>>>>>> parent of e7b7716 (Merge branch 'dev' into victor-asensio)
-=======
->>>>>>> parent of e7b7716 (Merge branch 'dev' into victor-asensio)
         UtilsViews.addView(getClass(), "ViewWait", "/assets/viewWait.fxml");
         UtilsViews.addView(getClass(), "ViewPlay", "/assets/viewPlay.fxml");
-        UtilsViews.addView(getClass(), "ViewOpponentSelection", "/assets/opponent_selection.fxml");
 
         ctrlConfig = (CtrlConfig) UtilsViews.getController("ViewConfig");
         ctrlWait = (CtrlWait) UtilsViews.getController("ViewWait");
@@ -141,16 +124,11 @@ public class Main extends Application {
         JSONObject msgObj = new JSONObject(response);
 
         switch (msgObj.getString("type")) {
-<<<<<<< HEAD
-<<<<<<< HEAD
+
             case "clientName":
                 clientName = msgObj.getString("value");
                 break;
 
-=======
->>>>>>> parent of e7b7716 (Merge branch 'dev' into victor-asensio)
-=======
->>>>>>> parent of e7b7716 (Merge branch 'dev' into victor-asensio)
             case "serverData":
                 clientName = msgObj.getString("clientName");
 
@@ -217,8 +195,6 @@ public class Main extends Application {
                 if (ctrlPlay != null) {
                     ctrlPlay.handlePlayRejected(rejectedPieceId);
                 }
-<<<<<<< HEAD
-<<<<<<< HEAD
 
             case "clientsList":
                 JSONArray arr = msgObj.getJSONArray("clientsList");
@@ -251,10 +227,6 @@ public class Main extends Application {
                         .reactivateFromSendList(user);
                 ((CtrlOpponentSelection) UtilsViews.getController("ViewOpponentSelection"))
                         .removeFromSendInvitation(user);
-=======
->>>>>>> parent of e7b7716 (Merge branch 'dev' into victor-asensio)
-=======
->>>>>>> parent of e7b7716 (Merge branch 'dev' into victor-asensio)
                 break;
         }
     }
