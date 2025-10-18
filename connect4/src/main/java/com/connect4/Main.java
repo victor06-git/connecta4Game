@@ -23,13 +23,16 @@ public class Main extends Application {
     public static UtilsWS wsClient;
 
     public static String clientName = "";
+    public static String playerName = "";
+    public static String myColor = ""; // Color asignado por el servidor
     public static List<ClientData> clients = new ArrayList<>(); // Usuarios conectados
-    public static List<GameObject> objects = new ArrayList<>();
+    public static List<GameObject> objects = new ArrayList<>(); // Objetos del juego
 
     public static CtrlConfig ctrlConfig;
     public static CtrlWait ctrlWait;
     public static CtrlPlay ctrlPlay;
     public static CtrlOpponentSelection ctrlOpponentSelection;
+    public static CtrlResult ctrlResult;
 
     public static void main(String[] args) {
 
@@ -49,11 +52,13 @@ public class Main extends Application {
         UtilsViews.addView(getClass(), "ViewWait", "/assets/viewWait.fxml");
         UtilsViews.addView(getClass(), "ViewPlay", "/assets/viewPlay.fxml");
         UtilsViews.addView(getClass(), "ViewOpponentSelection", "/assets/opponent_selection.fxml");
+        UtilsViews.addView(getClass(), "ViewResult", "/assets/viewResult.fxml");
 
         ctrlConfig = (CtrlConfig) UtilsViews.getController("ViewConfig");
         ctrlWait = (CtrlWait) UtilsViews.getController("ViewWait");
         ctrlPlay = (CtrlPlay) UtilsViews.getController("ViewPlay");
         ctrlOpponentSelection = (CtrlOpponentSelection) UtilsViews.getController("ViewOpponentSelection");
+        ctrlResult = (CtrlResult) UtilsViews.getController("ViewResult");
 
         Scene scene = new Scene(UtilsViews.parentContainer);
 
@@ -94,6 +99,10 @@ public class Main extends Application {
         return list;
     }
 
+    /**
+     * Function to connect to the WebSocket server
+     * 
+     */
     public static void connectToServer() {
 
         ctrlConfig.txtMessage.setTextFill(Color.BLACK);
@@ -140,6 +149,14 @@ public class Main extends Application {
                 }
                 clients = newClients;
 
+                // Actualizar mi color basado en el cliente actual
+                for (ClientData client : clients) {
+                    if (client.name.equals(clientName)) {
+                        myColor = client.color;
+                        break;
+                    }
+                }
+
                 JSONArray arrObjects = msgObj.getJSONArray("objectsList");
                 List<GameObject> newObjects = new ArrayList<>();
                 for (int i = 0; i < arrObjects.length(); i++) {
@@ -182,8 +199,39 @@ public class Main extends Application {
                 String pieceId = msgObj.getString("pieceId");
                 int col = msgObj.getInt("column");
                 int row = msgObj.getInt("row");
+                boolean gameEnded = msgObj.getBoolean("gameEnded");
+                String winner = msgObj.optString("winner", null);
+
+                // Procesar coordenadas de línea ganadora si existen
+                int[] winningLineCoords = null;
+                if (msgObj.has("winningLineCoords") && !msgObj.isNull("winningLineCoords")) {
+                    JSONArray coordsArray = msgObj.getJSONArray("winningLineCoords");
+                    winningLineCoords = new int[coordsArray.length()];
+                    for (int i = 0; i < coordsArray.length(); i++) {
+                        winningLineCoords[i] = coordsArray.getInt(i);
+                    }
+                }
+
                 if (ctrlPlay != null) {
-                    ctrlPlay.handlePlayAccepted(pieceId, col, row);
+                    ctrlPlay.handlePlayAccepted(pieceId, col, row, winner, winningLineCoords);
+                }
+
+                // Si el juego terminó
+                if (gameEnded && winner != null) {
+                    pauseDuring(1500, () -> {
+                        String result = "";
+                        if (winner.equals("DRAW")) {
+                            result = "DRAW";
+                        } else if (winner.equals(myColor)) {
+                            result = "WIN";
+                        } else {
+                            result = "LOSE";
+                        }
+
+                        CtrlResult ctrlResult = (CtrlResult) UtilsViews.getController("ViewResult");
+                        ctrlResult.setResultData(result, myColor, winner, ctrlPlay.boardState);
+                        UtilsViews.setViewAnimating("ViewResult");
+                    });
                 }
                 break;
 

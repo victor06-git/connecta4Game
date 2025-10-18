@@ -11,6 +11,9 @@ import javafx.scene.control.TextField;
 public class CtrlConfig implements Initializable {
 
     @FXML
+    public TextField txtPlayerName;
+
+    @FXML
     public TextField txtProtocol;
 
     @FXML
@@ -28,6 +31,13 @@ public class CtrlConfig implements Initializable {
 
     @FXML
     private void connectToServer() {
+        String playerName = txtPlayerName.getText().trim();
+        if (playerName.isEmpty()) {
+            txtMessage.setStyle("-fx-text-fill: red;");
+            txtMessage.setText("Please enter a player name");
+            return;
+        }
+        Main.playerName = playerName;
         Main.connectToServer();
     }
 

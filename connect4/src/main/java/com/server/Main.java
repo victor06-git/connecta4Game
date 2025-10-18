@@ -26,7 +26,7 @@ public class Main extends WebSocketServer {
 
     public static final int DEFAULT_PORT = 3000;
 
-    private static final List<String> PLAYER_NAMES = Arrays.asList("Alejandro", "Victor");
+    private static final List<String> PLAYER_NAMES = Arrays.asList();
     private static final List<String> PLAYER_COLORS = Arrays.asList("RED", "YELLOW");
     private static final int REQUIRED_CLIENTS = 2;
 
@@ -57,9 +57,14 @@ public class Main extends WebSocketServer {
     private final Map<String, GameObject> gameObjects = new HashMap<>();
 
     private String[][] boardState = new String[6][7];
-    private String currentTurn = "RED";
+    private String currentTurn = "";
     private boolean gameStarted = false;
     private volatile boolean countdownRunning = false;
+
+    // Variables para controlar el estado del ganador
+    private boolean gameEnded = false;
+    private String winnerColor = null;
+    private int[] winningLineCoords = null;
 
     private static final int SEND_FPS = 30;
     private final ScheduledExecutorService ticker;
@@ -91,46 +96,30 @@ public class Main extends WebSocketServer {
         double poolY = 130;
         double poolWidth = 250;
         double pieceRadius = 80.0 * 0.15;
-        double pieceDiameter = pieceRadius * 2;
+        // double pieceDiameter = pieceRadius * 2;
 
         int piecesPerRow = 7;
         int numRows = 6;
 
-        double spacingX = (poolWidth - (piecesPerRow * pieceDiameter - 15)) / (piecesPerRow + 1);
-        double spacingY = pieceDiameter + 30;
+        double marginX = 15;
+        double marginY = 15;
+        double availableWidth = poolWidth - (2 * marginX);
+        double spacingX = availableWidth / piecesPerRow;
+        double spacingY = 50; // Mayor espaciado vertical
 
         int yellowCount = 0;
         int redCount = 0;
-
         for (int fila = 0; fila < numRows; fila++) {
-            String colorPiece = (fila % 2 == 0) ? "YELLOW" : "RED";
-            String prefix = (fila % 2 == 0) ? "Y_" : "R_";
-            double startY = poolY + (fila * spacingY) + pieceRadius;
-
             for (int col = 0; col < piecesPerRow; col++) {
-                if (colorPiece.equals("YELLOW") && yellowCount >= 21) {
-                    continue;
-                }
-                if (colorPiece.equals("RED") && redCount >= 21) {
-                    continue;
-                }
+                double centerX = poolX + marginX + (col + 0.5) * spacingX;
+                double centerY = poolY + marginY + fila * spacingY;
 
-                int index = colorPiece.equals("YELLOW") ? yellowCount : redCount;
-                String id = prefix + index;
+                String color = (fila < 3) ? "RED" : "YELLOW";
+                String id = (color.equals("RED") ? "R_" : "Y_") + (color.equals("RED") ? redCount++ : yellowCount++);
 
-                double startX = poolX + spacingX + (col * (pieceDiameter + spacingX));
-                double centerX = startX + pieceRadius;
-                double centerY = startY;
-
-                GameObject obj = new GameObject(id, centerX, centerY, pieceRadius, -1, -1);
-                obj.color = colorPiece;
-                gameObjects.put(obj.id, obj);
-
-                if (colorPiece.equals("YELLOW")) {
-                    yellowCount++;
-                } else {
-                    redCount++;
-                }
+                GameObject piece = new GameObject(id, centerX, centerY, pieceRadius, -1, -1);
+                piece.color = color;
+                gameObjects.put(id, piece);
             }
         }
     }
@@ -304,6 +293,8 @@ public class Main extends WebSocketServer {
 
         synchronized (this) {
             gameStarted = false;
+            gameEnded = false;
+            winnerColor = null;
             initializeBoard();
             currentTurn = "RED";
         }
@@ -352,6 +343,14 @@ public class Main extends WebSocketServer {
                     return;
                 }
 
+                if (gameEnded) {
+                    JSONObject response = msg(T_PLAY_REJECTED)
+                            .put("pieceId", obj.optString("pieceId", ""))
+                            .put("reason", "Game has ended");
+                    sendSafe(conn, response.toString());
+                    return;
+                }
+
                 String pieceId = obj.getString("pieceId");
                 int col = obj.getInt("column");
 
@@ -380,6 +379,8 @@ public class Main extends WebSocketServer {
                             piece.col = col;
                         }
 
+                        checkWinner();
+
                         switchTurn();
 
                         System.out.println("Play accepted: " + pieceId + " at [" + row + "," + col + "]. Next turn: "
@@ -388,7 +389,19 @@ public class Main extends WebSocketServer {
                         JSONObject response = msg(T_PLAY_ACCEPTED)
                                 .put("pieceId", pieceId)
                                 .put("column", col)
-                                .put("row", row);
+                                .put("row", row)
+                                .put("gameEnded", gameEnded)
+                                .put("winner", winnerColor != null ? winnerColor : JSONObject.NULL);
+
+                        // Si hay ganador, enviar las coordenadas de la línea ganadora
+                        if (winnerColor != null && !winnerColor.equals("DRAW") && winningLineCoords != null) {
+                            JSONArray winningCoords = new JSONArray();
+                            for (int coord : winningLineCoords) {
+                                winningCoords.put(coord);
+                            }
+                            response.put("winningLineCoords", winningCoords);
+                        }
+
                         sendSafe(conn, response.toString());
                     } else {
                         JSONObject response = msg(T_PLAY_REJECTED)
@@ -461,6 +474,137 @@ public class Main extends WebSocketServer {
         } catch (InterruptedException ie) {
             Thread.currentThread().interrupt();
         }
+    }
+
+    /**
+     * Function that checks the winner
+     * 
+     */
+    private void checkWinner() {
+        // Horizontal
+        for (int row = 0; row < 6; row++) {
+            for (int col = 0; col < 4; col++) {
+                String piece = getColorPiece(boardState[row][col]);
+                if (piece != null && piece.equals(getColorPiece(boardState[row][col + 1]))
+                        && piece.equals(getColorPiece(boardState[row][col + 2]))
+                        && piece.equals(getColorPiece(boardState[row][col + 3]))) {
+                    winningLineCoords = new int[] { row, col, row, col + 3 };
+                    winnerColor = piece;
+                    gameEnded = true;
+                    System.out.println(
+                            "WINNER HORIZONTAL: " + piece + " at row " + row + ", cols " + col + "-" + (col + 3));
+                    printBoardState();
+                    return;
+                }
+            }
+        }
+
+        // Vertical
+        for (int col = 0; col < 7; col++) {
+            for (int row = 0; row < 3; row++) { // Solo hasta row 2 (0,1,2 -> verifica hasta row 5)
+                String piece = getColorPiece(boardState[row][col]);
+                if (piece != null &&
+                        piece.equals(getColorPiece(boardState[row + 1][col])) &&
+                        piece.equals(getColorPiece(boardState[row + 2][col])) &&
+                        piece.equals(getColorPiece(boardState[row + 3][col]))) {
+
+                    winningLineCoords = new int[] { row, col, row + 3, col };
+                    winnerColor = piece;
+                    gameEnded = true;
+                    System.out.println(
+                            "WINNER VERTICAL: " + piece + " at col " + col + ", rows " + row + "-" + (row + 3));
+                    printBoardState();
+                    return;
+                }
+            }
+        }
+
+        // Diagonal a la izquierda (\)
+        for (int row = 0; row <= 2; row++) {
+            for (int col = 0; col <= 3; col++) {
+                String piece = getColorPiece(boardState[row][col]);
+                if (piece != null &&
+                        piece.equals(getColorPiece(boardState[row + 1][col + 1])) &&
+                        piece.equals(getColorPiece(boardState[row + 2][col + 2])) &&
+                        piece.equals(getColorPiece(boardState[row + 3][col + 3]))) {
+
+                    winningLineCoords = new int[] { row, col, row + 3, col + 3 };
+                    winnerColor = piece;
+                    gameEnded = true;
+                    System.out.println("WINNER DIAGONAL \\: " + piece + " from [" + row + "," + col + "] to ["
+                            + (row + 3) + "," + (col + 3) + "]");
+                    printBoardState();
+                    return;
+                }
+            }
+        }
+
+        // Diagonal a la derecha (/)
+        for (int row = 3; row <= 5; row++) { // Empezar desde row 3 hacia abajo
+            for (int col = 0; col <= 3; col++) {
+                String piece = getColorPiece(boardState[row][col]);
+                if (piece != null &&
+                        piece.equals(getColorPiece(boardState[row - 1][col + 1])) &&
+                        piece.equals(getColorPiece(boardState[row - 2][col + 2])) &&
+                        piece.equals(getColorPiece(boardState[row - 3][col + 3]))) {
+
+                    winningLineCoords = new int[] { row, col, row - 3, col + 3 };
+                    winnerColor = piece;
+                    gameEnded = true;
+                    System.out.println("WINNER DIAGONAL /: " + piece + " from [" + row + "," + col + "] to ["
+                            + (row - 3) + "," + (col + 3) + "]");
+                    printBoardState();
+                    return;
+                }
+            }
+        }
+
+        boolean isBoardFull = true;
+        for (int r = 0; r < 6; r++) {
+            for (int c = 0; c < 7; c++) {
+                if (boardState[r][c] == null) {
+                    isBoardFull = false;
+                    break;
+                }
+            }
+        }
+        if (isBoardFull) {
+            gameEnded = true;
+            winnerColor = "DRAW";
+            System.out.println("GAME ENDED IN A DRAW");
+            printBoardState();
+            return;
+        }
+
+        System.out.println("Non winner");
+        printBoardState();
+    }
+
+    private String getColorPiece(String piece) {
+        if (piece != null) {
+            return piece.substring(0, 1);
+        }
+
+        return piece;
+    }
+
+    private void printBoardState() {
+        System.out.println("\n===== BOARD STATE =====");
+        for (int row = 0; row < 6; row++) {
+            System.out.print("Row " + row + ": ");
+            for (int col = 0; col < 7; col++) {
+                String cell = boardState[row][col];
+                if (cell == null) {
+                    System.out.print("[ ] ");
+                } else if (cell.startsWith("R_")) {
+                    System.out.print("[R] ");
+                } else if (cell.startsWith("Y_")) {
+                    System.out.print("[Y] ");
+                }
+            }
+            System.out.println();
+        }
+        System.out.println("=======================\n");
     }
 
     public static void main(String[] args) {
