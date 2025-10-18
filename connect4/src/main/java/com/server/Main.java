@@ -48,6 +48,7 @@ public class Main extends WebSocketServer {
     private static final String T_CLIENT_REQUEST_PLAY = "clientRequestPlay";
     private static final String T_SERVER_DATA = "serverData";
     private static final String T_COUNTDOWN = "countdown";
+    private static final String T_SET_PLAYER_NAME = "setPlayerName";
     private static final String T_PLAY_ACCEPTED = "playAccepted";
     private static final String T_PLAY_REJECTED = "playRejected";
     private static final String T_GAME_STATE = "gameState";
@@ -251,6 +252,32 @@ public class Main extends WebSocketServer {
         broadcastExcept(null, rst.toString());
     }
 
+    private void sendServerDataToAll() {
+        JSONObject serverData = msg(T_SERVER_DATA);
+
+        // Añadir lista de clientes
+        JSONArray clientsList = new JSONArray();
+        for (ClientData client : clientsData.values()) {
+            clientsList.put(client.toJSON());
+        }
+        serverData.put(K_CLIENTS_LIST, clientsList);
+
+        // Añadir lista de objetos
+        JSONArray objectsList = new JSONArray();
+        for (GameObject obj : gameObjects.values()) {
+            objectsList.put(obj.toJSON());
+        }
+        serverData.put(K_OBJECTS_LIST, objectsList);
+
+        // Añadir estado actual
+        if (gameStarted) {
+            serverData.put(K_CURRENT_TURN, currentTurn);
+        }
+
+        // Enviar a todos los clientes
+        broadcast(serverData.toString());
+    }
+
     @Override
     public void onOpen(WebSocket conn, ClientHandshake handshake) {
         // CRÍTICO: El índice debe calcularse ANTES de añadir el cliente
@@ -314,6 +341,16 @@ public class Main extends WebSocketServer {
 
         String type = obj.optString(K_TYPE, "");
         switch (type) {
+            case T_SET_PLAYER_NAME -> {
+                String clientName = clients.nameBySocket(conn);
+                if (clientName != null && clientsData.containsKey(clientName)) {
+                    String newName = obj.getString("name");
+                    ClientData clientData = clientsData.get(clientName);
+                    clientData.name = newName;
+                    // Actualizar la información del servidor para todos
+                    sendServerDataToAll();
+                }
+            }
             case T_CLIENT_MOUSE_MOVING -> {
                 String clientName = clients.nameBySocket(conn);
                 ClientData updatedData = ClientData.fromJSON(obj.getJSONObject(K_VALUE));

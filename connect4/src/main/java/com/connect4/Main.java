@@ -115,6 +115,14 @@ public class Main extends Application {
             String port = ctrlConfig.txtPort.getText();
             wsClient = UtilsWS.getSharedInstance(protocol + "://" + host + ":" + port);
 
+            wsClient.onOpen((response) -> {
+                // Enviar el nombre del jugador al servidor
+                JSONObject msgObj = new JSONObject();
+                msgObj.put("type", "setPlayerName");
+                msgObj.put("name", playerName);
+                wsClient.safeSend(msgObj.toString());
+            });
+
             wsClient.onMessage((response) -> {
                 Platform.runLater(() -> {
                     wsMessage(response);
