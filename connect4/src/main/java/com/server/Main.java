@@ -50,6 +50,8 @@ public class Main extends WebSocketServer {
     private static final String T_CLIENT_REQUEST_PLAY = "clientRequestPlay";
 
     private static final String T_SERVER_DATA = "serverData";
+    // server -> clients
+    private static final String T_SERVER_CLIENTS_LIST = "clientsList";
     private static final String T_COUNTDOWN = "countdown";
 
     private static final String T_SET_PLAYER_NAME = "setPlayerName"; // aconsegueix el nom del jugador
