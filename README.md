@@ -166,3 +166,15 @@ Proposta de serverData (caldrà adaptar-la):
   - Com **arrencar el servidor**  
   - Com **executar el client**  
   - **Ports** i dependències
+
+## Execució del connect 4
+
+1. Dirigir-se a la carpeta de connect4/proxmox: cd connect4/proxmox
+  
+  - Activa el servidor, amb la següent comanda: ./proxmoxRun.sh
+
+2. Afegir dos clients en la terminal de vscode:
+  
+  - Introduir comanda per iniciar cada client: ./run.sh com.connect4.Main
+
+
