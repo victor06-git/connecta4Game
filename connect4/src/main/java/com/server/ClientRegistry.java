@@ -16,11 +16,15 @@ import java.util.concurrent.ConcurrentLinkedQueue;
  * - WebSocket a nom de client
  * - Nom de client a WebSocket
  *
- * També integra la lògica d'un pool de noms disponibles. Quan un client es connecta,
- * se li assigna un nom lliure. Quan es desconnecta, el nom torna al pool per ser reutilitzat.
+ * També integra la lògica d'un pool de noms disponibles. Quan un client es
+ * connecta,
+ * se li assigna un nom lliure. Quan es desconnecta, el nom torna al pool per
+ * ser reutilitzat.
  *
- * Aquesta classe és segura per a ús concurrent gràcies a l'ús de ConcurrentHashMap
- * i ConcurrentLinkedQueue. Els mètodes que modifiquen el pool utilitzen sincronització
+ * Aquesta classe és segura per a ús concurrent gràcies a l'ús de
+ * ConcurrentHashMap
+ * i ConcurrentLinkedQueue. Els mètodes que modifiquen el pool utilitzen
+ * sincronització
  * per garantir la coherència durant reinicialitzacions.
  */
 final class ClientRegistry {
@@ -49,7 +53,8 @@ final class ClientRegistry {
 
     /**
      * Reinicia el pool de noms amb la llista inicial.
-     * Aquest mètode és sincronitzat per evitar condicions de cursa durant el buidat i reompliment.
+     * Aquest mètode és sincronitzat per evitar condicions de cursa durant el buidat
+     * i reompliment.
      */
     private synchronized void resetPool() {
         pool.clear();
@@ -57,7 +62,8 @@ final class ClientRegistry {
     }
 
     /**
-     * Extreu un nom disponible del pool. Si el pool està buit, es reinicia i es torna a intentar.
+     * Extreu un nom disponible del pool. Si el pool està buit, es reinicia i es
+     * torna a intentar.
      *
      * @return un nom lliure extret del pool
      */
@@ -130,6 +136,22 @@ final class ClientRegistry {
     }
 
     /**
+     * Establece el nombre definitivo para un socket, eliminando el nombre temporal
+     * @param socket socket del cliente
+     * @param newName nuevo nombre a establecer
+     */
+    void setName(WebSocket socket, String newName) {
+        String oldName = bySocket.get(socket);
+        if (oldName != null) {
+            bySocket.remove(socket);
+            byName.remove(oldName);
+            giveBack(oldName);
+        }
+        bySocket.put(socket, newName);
+        byName.put(newName, socket);
+    }
+
+    /**
      * Retorna la llista actual de noms de clients connectats en format JSONArray.
      *
      * @return JSONArray amb els noms dels clients actius
@@ -155,7 +177,8 @@ final class ClientRegistry {
 
     /**
      * Retorna una còpia immutable de l'estat actual del mapa socket a nom.
-     * Útil per iteracions fora del lock intern sense risc de ConcurrentModification.
+     * Útil per iteracions fora del lock intern sense risc de
+     * ConcurrentModification.
      *
      * @return mapa immutable de WebSocket a nom
      */

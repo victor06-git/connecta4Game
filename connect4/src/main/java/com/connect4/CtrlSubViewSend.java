@@ -21,10 +21,6 @@ public class CtrlSubViewSend {
     @FXML
     private Button sendButton;
 
-    public String getUserName() {
-        return userName.getText();
-    }
-
     public void setUser(String user) {
         this.userName.setText(user);
     }
@@ -39,24 +35,20 @@ public class CtrlSubViewSend {
         }
     }
 
-    @FXML
     public void sendInvitation() {
         // Crear invitación y enviarla
-        // Enviar json  al servidor
+        // Enviar json al servidor
 
         if (Main.wsClient != null && Main.wsClient.isOpen()) {
-            String user  = userName.getText();
+            String user = userName.getText();
             if (!user.isEmpty()) {
                 JSONObject json = new JSONObject();
                 json.put("type", "clientSendInvitation");
-                json.put("sendFrom", Main.clientName);
-                json.put("sendTo", user);
+                json.put("value", user);
 
                 Main.wsClient.safeSend(json.toString());
-                ((CtrlOpponentSelection)UtilsViews.getController("ViewOpponentSelection")).removeFromSendList(user);
-                ((CtrlOpponentSelection)UtilsViews.getController("ViewOpponentSelection")).addToSendInvitation(user);
             }
-            
+
         } else {
             System.out.println("No hay conexión");
         }

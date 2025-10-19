@@ -22,8 +22,6 @@ public class CtrlSubViewReceive {
     @FXML
     private Text userName;
 
-    private String name;
-
     private Node rootNode;
 
     public String getUser() {
@@ -32,7 +30,6 @@ public class CtrlSubViewReceive {
 
     public void setUser(String user) {
         this.userName.setText(user);
-        name = user;
     }
 
     public void setImage(String imagePath) {
@@ -50,7 +47,6 @@ public class CtrlSubViewReceive {
         this.rootNode = node;
     }
 
-    @FXML
     public void rejectInvitation() {
 
         // Conectar al servidor y envio acción denegar
@@ -58,8 +54,6 @@ public class CtrlSubViewReceive {
 
             JSONObject json = new JSONObject();
             json.put("type", "clientAnswerInvitation");
-            json.put("sendFrom", name);
-            json.put("sendTo", Main.clientName);
             json.put("value", false);
             // json.put("clientName", userName.getText()); //Conseguir user
 
@@ -70,7 +64,6 @@ public class CtrlSubViewReceive {
         }
     }
 
-    @FXML
     public void acceptInvitation() {
         
         // Hacer cambio al counter y comenzar partida
@@ -79,8 +72,6 @@ public class CtrlSubViewReceive {
 
             JSONObject json = new JSONObject();
             json.put("type", "clientAnswerInvitation");
-            json.put("sendFrom", userName.getText());
-            json.put("sendTo", Main.clientName);
             json.put("value", true);
 
             Main.wsClient.safeSend(json.toString());
@@ -92,11 +83,9 @@ public class CtrlSubViewReceive {
 
     private void removeInvitation() {
         if (rootNode != null) {
-            CtrlOpponentSelection ctrl = ((CtrlOpponentSelection)UtilsViews.getController("ViewOpponentSelection"));
+            CtrlOpponentSelection ctrl = (CtrlOpponentSelection) UtilsViews.getController("opponent_selection");
             if (ctrl != null) {
                 ctrl.removeFromReceiveList(rootNode);
-                ctrl.removeFromSendInvitation(name);
-                ctrl.reactivateFromSendList(name);
             }
         }
     }

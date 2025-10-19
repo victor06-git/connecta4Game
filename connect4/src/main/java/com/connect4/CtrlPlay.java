@@ -1,6 +1,8 @@
 package com.connect4;
 
 import java.net.URL;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.ResourceBundle;
 
 import org.json.JSONArray;
@@ -38,7 +40,6 @@ public class CtrlPlay implements Initializable {
     private double mouseOffsetX, mouseOffsetY;
 
     private GameObject selectedObject = null; // Ficha seleccionada
-    private double originalX, originalY; // Posición original de la ficha seleccionada
 
     private boolean isAnimating = false; // Si se está animando una ficha
     private double animationTargetY = 0; // Animación en columna
@@ -57,11 +58,17 @@ public class CtrlPlay implements Initializable {
     // Winner variables
     private int[] winningLineCoords = null;
     private String winningColor = null;
+    private boolean gameEnded = false;
+    private String winnerColor = null;
 
     // Matriz de las posiciones de las fichas, se inicializa null
-    private String[][] boardState = new String[6][7];
+    public String[][] boardState = new String[6][7];
     private String currentTurn = ""; // Actual turn
     private String myColor = "";
+
+    private Map<String, GameObject> gameObjectsMap = new HashMap<>();
+    private Map<String, GameObject> originalPoolPositions = new HashMap<>(); // To have the original position of every
+                                                                             // piece and return to it if needed
 
     @Override
     public void initialize(URL url, ResourceBundle rb) {
@@ -99,6 +106,12 @@ public class CtrlPlay implements Initializable {
         // Start run/draw timer bucle
         animationTimer = new PlayTimer(this::run, this::draw, 0);
         start();
+
+        for (GameObject obj : Main.objects) {
+            originalPoolPositions.put(obj.id,
+                    new GameObject(obj.id, obj.center_x, obj.center_y, obj.radius, obj.col, obj.row));
+            gameObjectsMap.put(obj.id, obj);
+        }
     }
 
     /**
@@ -127,18 +140,25 @@ public class CtrlPlay implements Initializable {
      * @param pieceId
      * @param col
      * @param row
+     * @param winner
+     * @param winningLineCoords
      */
-    public void handlePlayAccepted(String pieceId, int col, int row) {
+    public void handlePlayAccepted(String pieceId, int col, int row, String winner, int[] winningLineCoords) {
         boardState[row][col] = pieceId;
 
-        for (GameObject go : Main.objects) {
-            if (go.id.equals(pieceId)) {
-                go.row = row;
-                go.col = col;
-                selectedObject = go;
-                startDropAnimation(col, row);
-                break;
-            }
+        GameObject piece = gameObjectsMap.get(pieceId);
+        if (piece != null) {
+            piece.row = row;
+            piece.col = col;
+            selectedObject = piece;
+            startDropAnimation(col, row);
+        }
+
+        // Actualizar información del ganador si existe
+        if (winner != null) {
+            this.winnerColor = winner;
+            this.winningLineCoords = winningLineCoords;
+            this.gameEnded = !winner.equals("DRAW");
         }
     }
 
@@ -149,17 +169,27 @@ public class CtrlPlay implements Initializable {
      */
     public void handlePlayRejected(String pieceId) {
         if (selectedObject != null && selectedObject.id.equals(pieceId)) {
-            for (GameObject go : Main.objects) {
-                if (go.id.equals(selectedObject.id)) {
-                    go.center_x = originalX;
-                    go.center_y = originalY;
-                    break;
-                }
-            }
+            // Devolver a posición original
+            returnPieceToOriginalPosition(selectedObject);
             selectedObject = null;
         }
         mouseDragging = false;
         hoveredColumn = -1;
+    }
+
+    /**
+     * Function to return the piece to its original position in the pool
+     * 
+     * @param piece
+     */
+    private void returnPieceToOriginalPosition(GameObject piece) {
+        if (originalPoolPositions.containsKey(piece.id)) {
+            GameObject original = originalPoolPositions.get(piece.id);
+            piece.center_x = original.center_x;
+            piece.center_y = original.center_y;
+            piece.col = -1;
+            piece.row = -1;
+        }
     }
 
     /**
@@ -230,22 +260,6 @@ public class CtrlPlay implements Initializable {
         int col = (int) ((x - grid.getStartX()) / grid.getCellSize());
         return Math.max(0, Math.min(col, grid.getCols() - 1));
     }
-
-    /**
-     * Function to get the lowest available row in a column
-     * 
-     * @param col
-     * @return
-     * 
-     *         private int getLowestAvailableRow(int col) {
-     *         for (int row = grid.getRows() - 1; row >= 0; row--) {
-     *         if (boardState[row][col] == null) {
-     *         return row;
-     *         }
-     *         }
-     *         return -1; // Full column
-     *         }
-     */
 
     /**
      * Function that verify if the player can move a piece (ficha)
@@ -348,8 +362,8 @@ public class CtrlPlay implements Initializable {
                     }
 
                     selectedObject = go; // Seleccionar la ficha
-                    originalX = go.center_x;
-                    originalY = go.center_y;
+                    // originalX = go.center_x;
+                    // originalY = go.center_y;
                     mouseDragging = true;
                     mouseOffsetX = mouseX - go.center_x;
                     mouseOffsetY = mouseY - go.center_y;
@@ -433,7 +447,6 @@ public class CtrlPlay implements Initializable {
                 int col = getDropZoneColumn(centerX);
 
                 if (col != -1) {
-
                     // Enviar jugada al servidor
                     JSONObject msg = new JSONObject();
                     msg.put("type", "clientRequestPlay");
@@ -452,15 +465,8 @@ public class CtrlPlay implements Initializable {
                 }
             }
 
-            for (GameObject go : Main.objects) {
-                if (go.id.equals(selectedObject.id)) {
-                    go.center_x = originalX;
-                    go.center_y = originalY;
-                    break;
-                }
-            }
-
             // If not valid drop, return to pool position
+            returnPieceToOriginalPosition(selectedObject);
             selectedObject = null;
             mouseDragging = false;
             hoveredColumn = -1;
@@ -514,127 +520,11 @@ public class CtrlPlay implements Initializable {
                 if (selectedObject.center_y >= animationTargetY) {
                     selectedObject.center_y = animationTargetY;
 
-                    // Winning
-                    checkWinner();
-
                     isAnimating = false;
                     selectedObject = null;
                 }
             }
         }
-    }
-
-    /**
-     * Function that checks the winner
-     * 
-     */
-    private void checkWinner() {
-        // Horizontal
-        for (int row = 0; row < 6; row++) {
-            for (int col = 0; col < 4; col++) {
-                String piece = getColorPiece(boardState[row][col]);
-                System.out.println(piece);
-                if (piece != null && piece.equals(getColorPiece(boardState[row][col + 1]))
-                        && piece.equals(getColorPiece(boardState[row][col + 2]))
-                        && piece.equals(getColorPiece(boardState[row][col + 3]))) {
-                    winningLineCoords = new int[] { row, col, row, col + 3 };
-                    winningColor = piece;
-                    System.out.println(
-                            "WINNER HORIZONTAL: " + piece + " at row " + row + ", cols " + col + "-" + (col + 3));
-                    printBoardState();
-                    return;
-                }
-            }
-        }
-
-        // Vertical
-        for (int col = 0; col < 7; col++) {
-            for (int row = 0; row < 3; row++) { // Solo hasta row 2 (0,1,2 -> verifica hasta row 5)
-                String piece = getColorPiece(boardState[row][col]);
-                System.out.println(piece);
-                if (piece != null &&
-                        piece.equals(getColorPiece(boardState[row + 1][col])) &&
-                        piece.equals(getColorPiece(boardState[row + 2][col])) &&
-                        piece.equals(getColorPiece(boardState[row + 3][col]))) {
-
-                    winningLineCoords = new int[] { row, col, row + 3, col };
-                    winningColor = piece;
-                    System.out.println(
-                            "WINNER VERTICAL: " + piece + " at col " + col + ", rows " + row + "-" + (row + 3));
-                    printBoardState();
-                    return;
-                }
-            }
-        }
-
-        // Diagonal a la izquierda (\)
-        for (int row = 0; row <= 2; row++) {
-            for (int col = 0; col <= 3; col++) {
-                String piece = getColorPiece(boardState[row][col]);
-                System.out.println(piece);
-                if (piece != null &&
-                        piece.equals(getColorPiece(boardState[row + 1][col + 1])) &&
-                        piece.equals(getColorPiece(boardState[row + 2][col + 2])) &&
-                        piece.equals(getColorPiece(boardState[row + 3][col + 3]))) {
-
-                    winningLineCoords = new int[] { row, col, row + 3, col + 3 };
-                    winningColor = piece;
-                    System.out.println("WINNER DIAGONAL \\: " + piece + " from [" + row + "," + col + "] to ["
-                            + (row + 3) + "," + (col + 3) + "]");
-                    printBoardState();
-                    return;
-                }
-            }
-        }
-
-        // Diagonal a la derecha (/)
-        for (int row = 3; row <= 5; row++) { // Empezar desde row 3 hacia abajo
-            for (int col = 0; col <= 3; col++) {
-                String piece = getColorPiece(boardState[row][col]);
-                System.out.println(piece);
-                if (piece != null &&
-                        piece.equals(getColorPiece(boardState[row - 1][col + 1])) &&
-                        piece.startsWith(getColorPiece(boardState[row - 2][col + 2])) &&
-                        piece.startsWith(getColorPiece(boardState[row - 3][col + 3]))) {
-
-                    winningLineCoords = new int[] { row, col, row - 3, col + 3 };
-                    winningColor = piece;
-                    System.out.println("WINNER DIAGONAL /: " + piece + " from [" + row + "," + col + "] to ["
-                            + (row - 3) + "," + (col + 3) + "]");
-                    printBoardState();
-                    return;
-                }
-            }
-        }
-
-        System.out.println("Non winner");
-        printBoardState();
-    }
-
-    private String getColorPiece(String piece) {
-        if (piece != null) {
-            return piece.substring(0, 1);
-        }
-        return piece;
-    }
-
-    private void printBoardState() {
-        System.out.println("\n===== BOARD STATE =====");
-        for (int row = 0; row < 6; row++) {
-            System.out.print("Row " + row + ": ");
-            for (int col = 0; col < 7; col++) {
-                String cell = boardState[row][col];
-                if (cell == null) {
-                    System.out.print("[ ] ");
-                } else if (cell.startsWith("R_")) {
-                    System.out.print("[R] ");
-                } else if (cell.startsWith("Y_")) {
-                    System.out.print("[Y] ");
-                }
-            }
-            System.out.println();
-        }
-        System.out.println("=======================\n");
     }
 
     // Draw game to canvas

@@ -1,17 +1,11 @@
 package com.connect4;
 
 import java.net.URL;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.ResourceBundle;
 
 import com.shared.ClientData;
 
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
-import javafx.fxml.Initializable;
 import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.layout.VBox;
@@ -25,19 +19,9 @@ public class CtrlOpponentSelection implements Initializable {
     @FXML
     private VBox list_send, list_receive;
 
-    @Override
-    public void initialize(URL location, ResourceBundle resources) {
-        updateLists();
-    }
-
-    public List<String> getSendInvitations() {
-        return sendInvitations;
-    }
-
     // Cargar la lista de usuarios disponibles para enviar invitación
     public void loadSendList() {
         try {
-            
             list_send.getChildren().clear();
 
             // Iterar sobre todos los clientes conectados
