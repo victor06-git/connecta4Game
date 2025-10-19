@@ -52,13 +52,13 @@ public class Main extends Application {
         UtilsViews.addView(getClass(), "ViewWait", "/assets/viewWait.fxml");
         UtilsViews.addView(getClass(), "ViewPlay", "/assets/viewPlay.fxml");
         UtilsViews.addView(getClass(), "ViewOpponentSelection", "/assets/opponent_selection.fxml");
-        UtilsViews.addView(getClass(), "ViewResult", "/assets/viewResult.fxml");
+        // UtilsViews.addView(getClass(), "ViewResult", "/assets/viewResult.fxml");
 
         ctrlConfig = (CtrlConfig) UtilsViews.getController("ViewConfig");
         ctrlWait = (CtrlWait) UtilsViews.getController("ViewWait");
         ctrlPlay = (CtrlPlay) UtilsViews.getController("ViewPlay");
         ctrlOpponentSelection = (CtrlOpponentSelection) UtilsViews.getController("ViewOpponentSelection");
-        ctrlResult = (CtrlResult) UtilsViews.getController("ViewResult");
+        // ctrlResult = (CtrlResult) UtilsViews.getController("ViewResult");
 
         Scene scene = new Scene(UtilsViews.parentContainer);
 
