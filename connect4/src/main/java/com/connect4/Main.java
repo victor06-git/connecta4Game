@@ -120,12 +120,13 @@ public class Main extends Application {
             wsClient = UtilsWS.getSharedInstance(protocol + "://" + host + ":" + port);
 
             wsClient.onOpen((response) -> {
+                System.out.println("WebSocket conectado, enviando nombre del jugador: " + playerName);
                 // Enviar el nombre del jugador al servidor
                 JSONObject msgObj = new JSONObject();
                 msgObj.put("type", "setPlayerName");
                 msgObj.put("name", playerName);
                 wsClient.safeSend(msgObj.toString());
-                System.out.println(msgObj.toString()); // DEBUG
+                System.out.println("Mensaje enviado al servidor: " + msgObj.toString());
             });
 
             wsClient.onMessage((response) -> {

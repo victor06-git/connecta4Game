@@ -340,14 +340,41 @@ public class Main extends WebSocketServer {
 
     @Override
     public void onMessage(WebSocket conn, String message) {
+        System.out.println("Mensaje recibido del cliente: " + message);
+
         JSONObject obj;
         try {
             obj = new JSONObject(message);
         } catch (Exception ex) {
+            System.err.println("Error al parsear mensaje JSON: " + ex.getMessage());
             return;
         }
 
         String type = obj.optString(K_TYPE, "");
+        System.out.println("Tipo de mensaje recibido: " + type);
+
+        if ("setPlayerName".equals(type)) {
+            String playerName = obj.getString("name");
+            System.out.println("Recibido nombre de jugador: " + playerName);
+
+            // Obtener el nombre actual del cliente
+            String clientName = clients.nameBySocket(conn);
+            if (clientName != null) {
+                // Actualizar el nombre en clientsData
+                if (clientsData.containsKey(clientName)) {
+                    ClientData clientData = clientsData.get(clientName);
+                    clientData.name = playerName;
+                    System.out.println("Nombre de jugador actualizado: " + playerName);
+                    // Enviar actualización a todos los clientes
+                    broadcastStatus();
+                } else {
+                    System.err.println("Error: ClientData no encontrado para " + clientName);
+                }
+            } else {
+                System.err.println("Error: Cliente no encontrado en el registro");
+            }
+            return;
+        }
         switch (type) {
             case T_CLIENT_MOUSE_MOVING -> {
                 String clientName = clients.nameBySocket(conn);
