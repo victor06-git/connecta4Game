@@ -21,6 +21,10 @@ public class CtrlSubViewSend {
     @FXML
     private Button sendButton;
 
+    public String getUserName() {
+        return userName.getText();
+    }
+
     public void setUser(String user) {
         this.userName.setText(user);
     }
