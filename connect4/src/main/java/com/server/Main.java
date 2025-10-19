@@ -1,6 +1,7 @@
 package com.server;
 
 import java.net.InetSocketAddress;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -26,7 +27,7 @@ public class Main extends WebSocketServer {
 
     public static final int DEFAULT_PORT = 3000;
 
-    private static final List<String> PLAYER_NAMES = Arrays.asList();
+    private static final List<String> PLAYER_NAMES = new ArrayList<>();
     private static final List<String> PLAYER_COLORS = Arrays.asList("RED", "YELLOW");
     private static final int REQUIRED_CLIENTS = 2;
 
@@ -261,32 +262,22 @@ public class Main extends WebSocketServer {
         System.out.println("==============================================");
         System.out.println("Nueva conexión WebSocket recibida");
 
-        // CRÍTICO: El índice debe calcularse ANTES de añadir el cliente
-        int clientIndex = clientsData.size();
-        System.out.println("Índice del cliente: " + clientIndex);
-
-        // Añadir cliente al registro con nombre temporal
-        String nameClient = clients.add(conn);
-        System.out.println("Cliente añadido con nombre temporal: " + nameClient);
+        // Asignar un nombre temporal
+        String tempName = "Player" + (clientsData.size() + 1);
+        PLAYER_NAMES.add(tempName);
+        System.out.println("Nombre temporal asignado: " + tempName);
 
         // Asignar color según el índice
-        String color;
-        if (clientIndex == 0) {
-            color = "RED";
-        } else if (clientIndex == 1) {
-            color = "YELLOW";
-        } else {
-            color = "GRAY";
-        }
+        String color = clientsData.size() == 0 ? "RED" : clientsData.size() == 1 ? "YELLOW" : "GRAY";
         System.out.println("Color asignado: " + color);
 
-        // IMPORTANTE: Crear ClientData con el color correcto
-        ClientData clientData = new ClientData(nameClient, color);
-        clientsData.put(nameClient, clientData);
+        // Registrar cliente
+        clients.add(conn);
+        clientsData.put(tempName, new ClientData(tempName, color));
 
         // Enviar datos iniciales al cliente
         JSONObject initialData = msg(T_SERVER_DATA)
-                .put(K_CLIENT_NAME, nameClient);
+                .put(K_CLIENT_NAME, tempName);
 
         // Crear lista de clientes
         JSONArray clientsList = new JSONArray();
@@ -294,9 +285,6 @@ public class Main extends WebSocketServer {
             clientsList.put(client.toJSON());
         }
         initialData.put(K_CLIENTS_LIST, clientsList);
-
-        // Enviar datos iniciales
-        System.out.println("Enviando datos iniciales al cliente");
         System.out.println(initialData.toString());
         sendSafe(conn, initialData.toString());
 
@@ -341,33 +329,38 @@ public class Main extends WebSocketServer {
         System.out.println("Mensaje recibido del cliente tipo: " + type);
 
         switch (type) {
-            case T_SET_PLAYER_NAME -> {
+            case T_SET_PLAYER_NAME: {
+                System.out.println("Procesando setPlayerName");
                 String playerName = obj.getString("name");
                 String currentName = clients.nameBySocket(conn);
 
-                if (currentName != null && clientsData.containsKey(currentName)) {
-                    System.out.println("Actualizando nombre de jugador: " + currentName + " -> " + playerName);
+                System.out.println("Nombre actual: " + currentName);
+                System.out.println("Nuevo nombre: " + playerName);
 
-                    // Actualizar el nombre en ClientData manteniendo el color original
+                if (currentName != null && clientsData.containsKey(currentName)) {
+                    // Actualizar el nombre en ClientData
                     ClientData clientData = clientsData.get(currentName);
                     String originalColor = clientData.color;
-                    clientData.name = playerName;
-                    clientData.SetColor(originalColor); // Mantener el color original
 
-                    // Actualizar en el mapa
+                    // Remover datos antiguos
                     clientsData.remove(currentName);
+
+                    // Actualizar datos
+                    clientData.name = playerName;
+                    clientData.color = originalColor;
                     clientsData.put(playerName, clientData);
 
-                    System.out.println("Nombre actualizado. Color: " + clientData.color);
+                    System.out.println("Datos actualizados:");
+                    System.out.println("  Nombre: " + clientData.name);
+                    System.out.println("  Color: " + clientData.color);
 
                     // Enviar actualización inmediata
                     broadcastStatus();
-                } else {
-                    System.out.println("Error: No se encontró el cliente en clientsData");
                 }
+                break;
             }
 
-            case T_CLIENT_MOUSE_MOVING -> {
+            case T_CLIENT_MOUSE_MOVING: {
                 String clientName = clients.nameBySocket(conn);
                 ClientData updatedData = ClientData.fromJSON(obj.getJSONObject(K_VALUE));
                 // MANTENER EL COLOR ORIGINAL
@@ -378,16 +371,16 @@ public class Main extends WebSocketServer {
                 clientsData.put(clientName, updatedData);
             }
 
-            case T_CLIENT_PIECE_MOVING -> {
+            case T_CLIENT_PIECE_MOVING: {
                 GameObject objData = GameObject.fromJSON(obj.getJSONObject(K_VALUE));
                 gameObjects.put(objData.id, objData);
             }
 
-            case T_CLIENT_PLAY -> {
+            case T_CLIENT_PLAY: {
                 sendCountdown();
             }
 
-            case T_CLIENT_REQUEST_PLAY -> {
+            case T_CLIENT_REQUEST_PLAY: {
                 if (!gameStarted) {
                     JSONObject response = msg(T_PLAY_REJECTED)
                             .put("pieceId", obj.optString("pieceId", ""))
