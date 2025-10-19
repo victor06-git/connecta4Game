@@ -80,7 +80,7 @@ public class Main extends WebSocketServer {
 
     public Main(InetSocketAddress address) {
         super(address);
-        // PLAYER_NAMES.add(playerName);
+        PLAYER_NAMES.add(playerName);
         this.clients = new ClientRegistry(PLAYER_NAMES); // Inicializa con nombres de jugadores
         initializeBoard();
         initializegameObjects();
@@ -263,7 +263,7 @@ public class Main extends WebSocketServer {
 
     @Override
     public void onOpen(WebSocket conn, ClientHandshake handshake) {
-        PLAYER_NAMES.add(playerName);
+        // PLAYER_NAMES.add(playerName);
         int clientIndex = clientsData.size();
 
         // Añadir cliente al registro (obtiene nombre)
