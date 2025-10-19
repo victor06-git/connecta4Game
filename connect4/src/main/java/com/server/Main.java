@@ -1,7 +1,6 @@
 package com.server;
 
 import java.net.InetSocketAddress;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -27,6 +26,7 @@ public class Main extends WebSocketServer {
 
     public static final int DEFAULT_PORT = 3000;
 
+    private static final List<String> PLAYER_NAMES = Arrays.asList();
     private static final List<String> PLAYER_COLORS = Arrays.asList("RED", "YELLOW");
     private static final int REQUIRED_CLIENTS = 2;
 
@@ -76,7 +76,7 @@ public class Main extends WebSocketServer {
 
     public Main(InetSocketAddress address) {
         super(address);
-        this.clients = new ClientRegistry(new ArrayList<>());
+        this.clients = new ClientRegistry(PLAYER_NAMES);
         initializeBoard();
         initializegameObjects();
 
@@ -256,43 +256,18 @@ public class Main extends WebSocketServer {
         broadcastExcept(null, rst.toString());
     }
 
-    private void sendServerDataToAll() {
-        JSONObject serverData = msg(T_SERVER_DATA);
-
-        // Añadir lista de clientes
-        JSONArray clientsList = new JSONArray();
-        for (ClientData client : clientsData.values()) {
-            clientsList.put(client.toJSON());
-        }
-        serverData.put(K_CLIENTS_LIST, clientsList);
-
-        // Añadir lista de objetos
-        JSONArray objectsList = new JSONArray();
-        for (GameObject obj : gameObjects.values()) {
-            objectsList.put(obj.toJSON());
-        }
-        serverData.put(K_OBJECTS_LIST, objectsList);
-
-        // Añadir estado actual
-        if (gameStarted) {
-            serverData.put(K_CURRENT_TURN, currentTurn);
-        }
-
-        // Enviar a todos los clientes
-        broadcast(serverData.toString());
-    }
-
     @Override
     public void onOpen(WebSocket conn, ClientHandshake handshake) {
+        System.out.println("==============================================");
+        System.out.println("Nueva conexión WebSocket recibida");
+
         // CRÍTICO: El índice debe calcularse ANTES de añadir el cliente
         int clientIndex = clientsData.size();
+        System.out.println("Índice del cliente: " + clientIndex);
 
-        // Añadir cliente al registro
-        String name = clients.add(conn);
-
-        // Enviar mensaje al cliente para que configure su nombre
-        JSONObject msg = msg(T_SET_PLAYER_NAME);
-        sendSafe(conn, msg.toString());
+        // Añadir cliente al registro con nombre temporal
+        String nameClient = clients.add(conn);
+        System.out.println("Cliente añadido con nombre temporal: " + nameClient);
 
         // Asignar color según el índice
         String color;
@@ -303,18 +278,33 @@ public class Main extends WebSocketServer {
         } else {
             color = "GRAY";
         }
+        System.out.println("Color asignado: " + color);
 
         // IMPORTANTE: Crear ClientData con el color correcto
-        ClientData clientData = new ClientData(name, color);
-        clientsData.put(name, clientData);
+        ClientData clientData = new ClientData(nameClient, color);
+        clientsData.put(nameClient, clientData);
 
+        // Enviar datos iniciales al cliente
+        JSONObject initialData = msg(T_SERVER_DATA)
+                .put(K_CLIENT_NAME, nameClient);
+
+        // Crear lista de clientes
+        JSONArray clientsList = new JSONArray();
+        for (ClientData client : clientsData.values()) {
+            clientsList.put(client.toJSON());
+        }
+        initialData.put(K_CLIENTS_LIST, clientsList);
+
+        // Enviar datos iniciales
+        System.out.println("Enviando datos iniciales al cliente");
+        System.out.println(initialData.toString());
+        sendSafe(conn, initialData.toString());
+
+        System.out.println("Total clientes conectados: " + clientsData.size());
         System.out.println("==============================================");
-        System.out.println("WebSocket client connected!");
-        System.out.println("  Name: " + name);
-        System.out.println("  Index: " + clientIndex);
-        System.out.println("  Assigned Color: " + color);
-        System.out.println("  Total clients: " + clientsData.size());
-        System.out.println("==============================================");
+
+        // Notificar a todos los clientes del nuevo estado
+        broadcastStatus();
 
         if (clientsData.size() == REQUIRED_CLIENTS) {
             sendCountdown();
@@ -340,42 +330,43 @@ public class Main extends WebSocketServer {
 
     @Override
     public void onMessage(WebSocket conn, String message) {
-        System.out.println("Mensaje recibido del cliente: " + message);
-
         JSONObject obj;
         try {
             obj = new JSONObject(message);
         } catch (Exception ex) {
-            System.err.println("Error al parsear mensaje JSON: " + ex.getMessage());
             return;
         }
 
         String type = obj.optString(K_TYPE, "");
-        System.out.println("Tipo de mensaje recibido: " + type);
+        System.out.println("Mensaje recibido del cliente tipo: " + type);
 
-        if ("setPlayerName".equals(type)) {
-            String playerName = obj.getString("name");
-            System.out.println("Recibido nombre de jugador: " + playerName);
+        switch (type) {
+            case T_SET_PLAYER_NAME -> {
+                String playerName = obj.getString("name");
+                String currentName = clients.nameBySocket(conn);
 
-            // Obtener el nombre actual del cliente
-            String clientName = clients.nameBySocket(conn);
-            if (clientName != null) {
-                // Actualizar el nombre en clientsData
-                if (clientsData.containsKey(clientName)) {
-                    ClientData clientData = clientsData.get(clientName);
+                if (currentName != null && clientsData.containsKey(currentName)) {
+                    System.out.println("Actualizando nombre de jugador: " + currentName + " -> " + playerName);
+
+                    // Actualizar el nombre en ClientData manteniendo el color original
+                    ClientData clientData = clientsData.get(currentName);
+                    String originalColor = clientData.color;
                     clientData.name = playerName;
-                    System.out.println("Nombre de jugador actualizado: " + playerName);
-                    // Enviar actualización a todos los clientes
+                    clientData.SetColor(originalColor); // Mantener el color original
+
+                    // Actualizar en el mapa
+                    clientsData.remove(currentName);
+                    clientsData.put(playerName, clientData);
+
+                    System.out.println("Nombre actualizado. Color: " + clientData.color);
+
+                    // Enviar actualización inmediata
                     broadcastStatus();
                 } else {
-                    System.err.println("Error: ClientData no encontrado para " + clientName);
+                    System.out.println("Error: No se encontró el cliente en clientsData");
                 }
-            } else {
-                System.err.println("Error: Cliente no encontrado en el registro");
             }
-            return;
-        }
-        switch (type) {
+
             case T_CLIENT_MOUSE_MOVING -> {
                 String clientName = clients.nameBySocket(conn);
                 ClientData updatedData = ClientData.fromJSON(obj.getJSONObject(K_VALUE));
