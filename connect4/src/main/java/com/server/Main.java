@@ -1,6 +1,7 @@
 package com.server;
 
 import java.net.InetSocketAddress;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -342,48 +343,7 @@ public class Main extends WebSocketServer {
 
         switch (type) {
             case T_SET_PLAYER_NAME: {
-                System.out.println("==============================================");
-                System.out.println("Procesando setPlayerName");
-                String playerName = obj.getString("name");
-                System.out.println("Nombre recibido: " + playerName);
-                System.out.println("Estado actual del servidor:");
-                System.out.println("  Total clientes conectados: " + clients.snapshot().size());
-                System.out.println("  Total jugadores registrados: " + clientsData.size());
-                System.out.println("  Nombres actuales: " + String.join(", ", clientsData.keySet()));
-                System.out.println("  Nombre temporal del socket actual: " + clients.nameBySocket(conn));
 
-                // Registrar el nuevo nombre definitivo del jugador
-                clients.setName(conn, playerName);
-
-                // Asignar color y registrar datos del cliente
-                String color = clientsData.isEmpty() ? "RED" : "YELLOW";
-                ClientData clientData = new ClientData(playerName, color);
-                clientsData.put(playerName, clientData);
-
-                // Enviar confirmación simple al cliente
-                JSONObject response = msg(T_SERVER_DATA)
-                        .put(K_CLIENT_NAME, playerName)
-                        .put("color", color)
-                        .put("totalPlayers", clientsData.size());
-                sendSafe(conn, response.toString());
-
-                System.out.println("Estado después de registro:");
-                System.out.println("  Total clientes: " + clientsData.size());
-                System.out.println("  Clientes registrados: " + String.join(", ", clientsData.keySet()));
-                System.out.println("  Socket actual: " + conn.toString());
-
-                // Notificar a todos del nuevo estado
-                broadcastStatus();
-
-                System.out.println("Estado después del registro:");
-                System.out.println("  Nombre registrado: " + playerName);
-                System.out.println("  Color asignado: " + color);
-                System.out.println("  Total clientes conectados: " + clients.snapshot().size());
-                System.out.println("  Total jugadores registrados: " + clientsData.size());
-                System.out.println("  Nombres actuales: " + String.join(", ", clientsData.keySet()));
-                System.out.println("  Nombre final del socket: " + clients.nameBySocket(conn));
-                System.out.println("==============================================");
-                break;
             }
 
             case T_CLIENT_MOUSE_MOVING: {
