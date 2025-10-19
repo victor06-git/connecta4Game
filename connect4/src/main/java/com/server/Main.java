@@ -262,31 +262,20 @@ public class Main extends WebSocketServer {
         System.out.println("==============================================");
         System.out.println("Nueva conexión WebSocket recibida");
 
-        // Asignar un nombre temporal
-        String tempName = "Player" + (clientsData.size() + 1);
-        PLAYER_NAMES.add(tempName);
-        System.out.println("Nombre temporal asignado: " + tempName);
-
         // Asignar color según el índice
         String color = clientsData.size() == 0 ? "RED" : clientsData.size() == 1 ? "YELLOW" : "GRAY";
         System.out.println("Color asignado: " + color);
 
-        // Registrar cliente
+        // Registrar la conexión en clients temporalmente
         clients.add(conn);
-        clientsData.put(tempName, new ClientData(tempName, color));
 
-        // Enviar datos iniciales al cliente
+        // Enviar mensaje al cliente solicitando el nombre
         JSONObject initialData = msg(T_SERVER_DATA)
-                .put(K_CLIENT_NAME, tempName);
+                .put("needsPlayerName", true)
+                .put("assignedColor", color);
 
-        // Crear lista de clientes
-        JSONArray clientsList = new JSONArray();
-        for (ClientData client : clientsData.values()) {
-            clientsList.put(client.toJSON());
-        }
-        initialData.put(K_CLIENTS_LIST, clientsList);
-        System.out.println(initialData.toString());
         sendSafe(conn, initialData.toString());
+        System.out.println("Esperando nombre del jugador...");
 
         System.out.println("Total clientes conectados: " + clientsData.size());
         System.out.println("==============================================");
@@ -332,30 +321,42 @@ public class Main extends WebSocketServer {
             case T_SET_PLAYER_NAME: {
                 System.out.println("Procesando setPlayerName");
                 String playerName = obj.getString("name");
-                String currentName = clients.nameBySocket(conn);
+                String color = clientsData.size() == 0 ? "RED" : clientsData.size() == 1 ? "YELLOW" : "GRAY";
 
-                System.out.println("Nombre actual: " + currentName);
-                System.out.println("Nuevo nombre: " + playerName);
+                System.out.println("Nombre recibido: " + playerName);
+                System.out.println("Color asignado: " + color);
 
-                if (currentName != null && clientsData.containsKey(currentName)) {
-                    // Actualizar el nombre en ClientData
-                    ClientData clientData = clientsData.get(currentName);
-                    String originalColor = clientData.color;
+                // Verificar si el nombre ya existe
+                if (clientsData.containsKey(playerName)) {
+                    JSONObject response = msg(T_SERVER_DATA)
+                            .put("error", "El nombre ya está en uso");
+                    sendSafe(conn, response.toString());
+                    return;
+                }
 
-                    // Remover datos antiguos
-                    clientsData.remove(currentName);
+                // Registrar el nombre en PLAYER_NAMES
+                PLAYER_NAMES.add(playerName);
 
-                    // Actualizar datos
-                    clientData.name = playerName;
-                    clientData.color = originalColor;
-                    clientsData.put(playerName, clientData);
+                // Crear y registrar los datos del cliente
+                ClientData clientData = new ClientData(playerName, color);
+                clientsData.put(playerName, clientData);
 
-                    System.out.println("Datos actualizados:");
-                    System.out.println("  Nombre: " + clientData.name);
-                    System.out.println("  Color: " + clientData.color);
+                System.out.println("Jugador registrado:");
+                System.out.println("  Nombre: " + clientData.name);
+                System.out.println("  Color: " + clientData.color);
 
-                    // Enviar actualización inmediata
-                    broadcastStatus();
+                // Enviar confirmación al cliente
+                JSONObject response = msg(T_SERVER_DATA)
+                        .put(K_CLIENT_NAME, playerName)
+                        .put("color", color);
+                sendSafe(conn, response.toString());
+
+                // Notificar a todos los clientes del nuevo estado
+                broadcastStatus();
+
+                // Si hay suficientes jugadores, iniciar la cuenta atrás
+                if (clientsData.size() == REQUIRED_CLIENTS) {
+                    sendCountdown();
                 }
                 break;
             }
