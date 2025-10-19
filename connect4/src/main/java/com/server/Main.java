@@ -1,7 +1,6 @@
 package com.server;
 
 import java.net.InetSocketAddress;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -27,7 +26,7 @@ public class Main extends WebSocketServer {
 
     public static final int DEFAULT_PORT = 3000;
 
-    private static final List<String> PLAYER_NAMES = new ArrayList<>();
+    private static final List<String> PLAYER_NAMES = Arrays.asList();
     private static final List<String> PLAYER_COLORS = Arrays.asList("RED", "YELLOW");
     private static final int REQUIRED_CLIENTS = 2;
 
@@ -261,21 +260,7 @@ public class Main extends WebSocketServer {
     public void onOpen(WebSocket conn, ClientHandshake handshake) {
         System.out.println("==============================================");
         System.out.println("Nueva conexión WebSocket recibida");
-
-        // Registrar la conexión en clients temporalmente con un ID temporal
-        String tempId = "temp_" + System.currentTimeMillis();
         clients.add(conn);
-
-        // No asignamos color aún, esperamos el nombre del jugador
-
-        // Enviar mensaje al cliente solicitando el nombre
-        JSONObject initialData = msg(T_SERVER_DATA)
-                .put("needsPlayerName", true)
-                .put("availableColors", PLAYER_COLORS)
-                .put("connectedPlayers", clientsData.size());
-
-        sendSafe(conn, initialData.toString());
-        System.out.println("Esperando nombre del jugador...");
         System.out.println("==============================================");
     }
 
@@ -313,61 +298,23 @@ public class Main extends WebSocketServer {
                 System.out.println("==============================================");
                 System.out.println("Procesando setPlayerName");
                 String playerName = obj.getString("name");
-
                 System.out.println("Nombre recibido: " + playerName);
 
-                // Verificar si el nombre ya existe
-                if (clientsData.containsKey(playerName) || PLAYER_NAMES.contains(playerName)) {
-                    JSONObject response = msg(T_SERVER_DATA)
-                            .put("error", "El nombre ya está en uso");
-                    sendSafe(conn, response.toString());
-                    return;
-                }
-
-                // Asignar color basado en el orden de conexión
-                String color = clientsData.isEmpty() ? "RED" : clientsData.size() == 1 ? "YELLOW" : "GRAY";
-
-                System.out.println("Color asignado: " + color);
-
-                // Actualizar el registro de clientes con el nombre real
-                String oldName = clients.nameBySocket(conn);
-                if (oldName != null) {
-                    clients.remove(conn); // Eliminar la asociación temporal
-                }
-                clients.add(conn); // Añadir con el nuevo nombre
-
-                // Registrar el nombre en PLAYER_NAMES y crear ClientData
-                PLAYER_NAMES.add(playerName);
+                // Registrar el jugador
+                String color = clientsData.isEmpty() ? "RED" : "YELLOW";
                 ClientData clientData = new ClientData(playerName, color);
                 clientsData.put(playerName, clientData);
 
-                System.out.println("Jugador registrado correctamente:");
-                System.out.println("  Nombre: " + playerName);
-                System.out.println("  Color: " + color);
-                System.out.println("  Total jugadores: " + clientsData.size());
-
-                // Enviar confirmación al cliente con todos los datos necesarios
+                // Enviar confirmación simple al cliente
                 JSONObject response = msg(T_SERVER_DATA)
                         .put(K_CLIENT_NAME, playerName)
-                        .put("color", color)
-                        .put("playerIndex", clientsData.size() - 1)
-                        .put("totalPlayers", clientsData.size())
-                        .put("requiredPlayers", REQUIRED_CLIENTS);
-
+                        .put("color", color);
                 sendSafe(conn, response.toString());
 
-                // Actualizar a todos los clientes
+                // Notificar a todos del nuevo estado
                 broadcastStatus();
 
-                // Verificar si podemos iniciar el juego
-                if (clientsData.size() == REQUIRED_CLIENTS) {
-                    System.out.println("Iniciando cuenta regresiva...");
-                    sendCountdown();
-                } else {
-                    System.out.println("Esperando más jugadores... (" +
-                            clientsData.size() + "/" + REQUIRED_CLIENTS + ")");
-                }
-
+                System.out.println("Nombre registrado: " + playerName);
                 System.out.println("==============================================");
                 break;
             }
@@ -381,15 +328,18 @@ public class Main extends WebSocketServer {
                     updatedData.color = existingData.color;
                 }
                 clientsData.put(clientName, updatedData);
+                break;
             }
 
             case T_CLIENT_PIECE_MOVING: {
                 GameObject objData = GameObject.fromJSON(obj.getJSONObject(K_VALUE));
                 gameObjects.put(objData.id, objData);
+                break;
             }
 
             case T_CLIENT_PLAY: {
                 sendCountdown();
+                break;
             }
 
             case T_CLIENT_REQUEST_PLAY: {
@@ -475,6 +425,7 @@ public class Main extends WebSocketServer {
                 }
             }
         }
+
     }
 
     @Override
