@@ -143,78 +143,59 @@ public class Main extends Application {
     }
 
     private static void wsMessage(String response) {
-        System.out.println("Mensaje recibido del servidor: " + response);
+
         JSONObject msgObj = new JSONObject(response);
 
-        String type = msgObj.getString("type");
-        System.out.println("Tipo de mensaje: " + type);
+        switch (msgObj.getString("type")) {
 
-        switch (type) {
+            case "clientName":
+                clientName = msgObj.getString("value");
+                break;
+
             case "serverData":
-                // Procesar nombre del cliente y lista de clientes
-                if (msgObj.has("clientName")) {
-                    clientName = msgObj.getString("clientName");
-                    System.out.println("Nombre del cliente establecido: " + clientName);
+                clientName = msgObj.getString("clientName");
+
+                JSONArray arrClients = msgObj.getJSONArray("clientsList");
+                List<ClientData> newClients = new ArrayList<>();
+                for (int i = 0; i < arrClients.length(); i++) {
+                    JSONObject obj = arrClients.getJSONObject(i);
+                    newClients.add(ClientData.fromJSON(obj));
                 }
+                clients = newClients;
 
-                // Procesar lista de clientes
-                if (msgObj.has("clientsList")) {
-                    JSONArray arrClients = msgObj.getJSONArray("clientsList");
-                    List<ClientData> newClients = new ArrayList<>();
-                    for (int i = 0; i < arrClients.length(); i++) {
-                        JSONObject obj = arrClients.getJSONObject(i);
-                        newClients.add(ClientData.fromJSON(obj));
-                    }
-                    clients = newClients;
-
-                    // Actualizar mi color
-                    for (ClientData client : clients) {
-                        if (client.name.equals(clientName)) {
-                            myColor = client.color;
-                            break;
-                        }
+                // Actualizar mi color basado en el cliente actual
+                for (ClientData client : clients) {
+                    if (client.name.equals(clientName)) {
+                        myColor = client.color;
+                        break;
                     }
                 }
 
-                // Procesar lista de objetos del juego
-                if (msgObj.has("objectsList")) {
-                    JSONArray arrObjects = msgObj.getJSONArray("objectsList");
-                    List<GameObject> newObjects = new ArrayList<>();
-                    for (int i = 0; i < arrObjects.length(); i++) {
-                        JSONObject obj = arrObjects.getJSONObject(i);
-                        newObjects.add(GameObject.fromJSON(obj));
-                    }
-                    objects = newObjects;
+                JSONArray arrObjects = msgObj.getJSONArray("objectsList");
+                List<GameObject> newObjects = new ArrayList<>();
+                for (int i = 0; i < arrObjects.length(); i++) {
+                    JSONObject obj = arrObjects.getJSONObject(i);
+                    newObjects.add(GameObject.fromJSON(obj));
                 }
+                objects = newObjects;
 
-                // Actualizar UI
-                if (clients.size() >= 1) {
-                    ctrlWait.txtPlayer0.setText(clients.get(0).name);
-                    if (clients.size() >= 2) {
-                        ctrlWait.txtPlayer1.setText(clients.get(1).name);
-                        if (ctrlPlay != null) {
-                            ctrlPlay.title.setText(clients.get(0).name + " vs " + clients.get(1).name);
-                        }
-                    }
-                }
-
-                // Actualizar estado del juego si es necesario
+                // AÑADIDO DE PRUEBA
                 if (ctrlPlay != null) {
                     ctrlPlay.updateGameState(msgObj);
                 }
 
-                // Cambiar a la vista de espera si estamos en configuración
-                if (UtilsViews.getActiveView().equals("ViewConfig")) {
-                    System.out.println("Vista actual: " + UtilsViews.getActiveView());
-                    System.out.println("Clientes conectados: " + clients.size());
-                    System.out.println("Mi color asignado: " + myColor);
-                    System.out.println("Mi nombre: " + clientName);
-
-                    UtilsViews.setViewAnimating("ViewWait");
-                    System.out.println("Cambiando a vista de espera...");
-                } else {
-                    System.out.println("No se cambia la vista. Vista actual: " + UtilsViews.getActiveView());
+                if (clients.size() == 1) {
+                    ctrlWait.txtPlayer0.setText(clients.get(0).name);
+                } else if (clients.size() > 1) {
+                    ctrlWait.txtPlayer0.setText(clients.get(0).name);
+                    ctrlWait.txtPlayer1.setText(clients.get(1).name);
+                    ctrlPlay.title.setText(clients.get(0).name + " vs " + clients.get(1).name);
                 }
+
+                if (UtilsViews.getActiveView().equals("ViewConfig")) {
+                    UtilsViews.setViewAnimating("ViewWait");
+                }
+
                 break;
 
             case "countdown":

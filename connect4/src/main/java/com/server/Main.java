@@ -266,6 +266,28 @@ public class Main extends WebSocketServer {
         System.out.println("==============================================");
     }
 
+    private String sendAllClients() {
+        JSONObject response = msg(T_SERVER_CLIENTS_LIST);
+        JSONArray clientsDataArray = new JSONArray();
+
+        for (ClientData cd : clientsData.values()) {
+            JSONObject clientData = new JSONObject();
+            clientData.put("name", cd.name);
+            clientData.put("play", cd.isPlaying);
+            clientsDataArray.put(clientData);
+        }
+
+        response.put(K_CLIENTS_LIST, clientsDataArray);
+
+        return response.toString();
+    }
+
+    private void sendClientName(WebSocket conn, String name) {
+        JSONObject response = msg(K_CLIENT_NAME);
+        response.put(K_VALUE, name);
+        sendSafe(conn, response.toString());
+    }
+
     @Override
     public void onClose(WebSocket conn, int code, String reason, boolean remote) {
         String name = clients.remove(conn);
