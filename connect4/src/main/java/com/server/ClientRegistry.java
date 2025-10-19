@@ -136,6 +136,22 @@ final class ClientRegistry {
     }
 
     /**
+     * Establece el nombre definitivo para un socket, eliminando el nombre temporal
+     * @param socket socket del cliente
+     * @param newName nuevo nombre a establecer
+     */
+    void setName(WebSocket socket, String newName) {
+        String oldName = bySocket.get(socket);
+        if (oldName != null) {
+            bySocket.remove(socket);
+            byName.remove(oldName);
+            giveBack(oldName);
+        }
+        bySocket.put(socket, newName);
+        byName.put(newName, socket);
+    }
+
+    /**
      * Retorna la llista actual de noms de clients connectats en format JSONArray.
      *
      * @return JSONArray amb els noms dels clients actius
