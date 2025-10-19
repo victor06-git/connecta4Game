@@ -156,11 +156,16 @@ public class Main extends WebSocketServer {
 
     private void sendCountdown() {
         synchronized (this) {
-            if (countdownRunning)
+            if (countdownRunning) {
+                System.out.println("Countdown already running, skipping...");
                 return;
-            if (clientsData.size() != REQUIRED_CLIENTS)
+            }
+            if (clientsData.size() != REQUIRED_CLIENTS) {
+                System.out.println("Not enough players for countdown: " + clientsData.size() + "/" + REQUIRED_CLIENTS);
                 return;
+            }
             countdownRunning = true;
+            System.out.println("Starting countdown sequence...");
         }
 
         new Thread(() -> {
@@ -169,10 +174,13 @@ public class Main extends WebSocketServer {
                     if (clientsData.size() < REQUIRED_CLIENTS) {
                         synchronized (this) {
                             gameStarted = false;
+                            countdownRunning = false;
                         }
+                        System.out.println("Countdown cancelled: player disconnected");
                         break;
                     }
 
+                    System.out.println("Countdown: " + i);
                     sendCountdownToAll(i);
 
                     if (i == 0) {
@@ -181,10 +189,11 @@ public class Main extends WebSocketServer {
                             currentTurn = "RED";
                         }
                         System.out.println("Game started! Turn: " + currentTurn);
+                        broadcastStatus(); // Enviamos el estado inicial del juego
                     }
 
                     if (i > 0)
-                        Thread.sleep(750);
+                        Thread.sleep(1000); // Aumentado a 1 segundo para mejor visibilidad
                 }
             } catch (InterruptedException ie) {
                 Thread.currentThread().interrupt();
@@ -263,24 +272,9 @@ public class Main extends WebSocketServer {
 
     @Override
     public void onOpen(WebSocket conn, ClientHandshake handshake) {
-        // PLAYER_NAMES.add(playerName);
-        // int clientIndex = clientsData.size();
-
-        // Añadir cliente al registro (obtiene nombre)
-
-        // String name = playerName;
-        System.out.println("Client connected, assigning name...");
-        // Asignar color según el índice
-        String color;
-        // if (clientIndex == 0) {
-        // color = "RED";
-        // } else if (clientIndex == 1) {
-        // color = "YELLOW";
-        // } else {
-        // color = "GRAY";
-        // }
-
-        // IMPORTANTE: Crear ClientData con el color correcto
+        System.out.println("==============================================");
+        System.out.println("New client connected! Waiting for player name...");
+        System.out.println("==============================================");
         // ClientData clientData = new ClientData(name, color);
         // clientsData.put(name, clientData);
         // clients.bySocket.put(conn, name);
@@ -352,19 +346,12 @@ public class Main extends WebSocketServer {
         switch (type) {
             case T_SET_PLAYER_NAME: {
                 String playerName = obj.getString("name");
-                int clientIndex = clientsData.size();
-
-                // Asignar color según el índice
-                String color;
-                if (clientIndex == 0) {
-                    color = "RED";
-                } else if (clientIndex == 1) {
-                    color = "YELLOW";
-                } else {
-                    color = "GRAY";
-                }
-
-                // Crear ClientData con el color correcto
+                
+                // Asignar color según el orden de conexión
+                String color = (clientsData.isEmpty()) ? "RED" : 
+                             (clientsData.size() == 1) ? "YELLOW" : "GRAY";
+                
+                // Registrar el jugador con su color
                 ClientData clientData = new ClientData(playerName, color);
                 clientsData.put(playerName, clientData);
 
@@ -372,15 +359,20 @@ public class Main extends WebSocketServer {
                 clients.setName(conn, playerName);
 
                 System.out.println("==============================================");
-                System.out.println("Player name received!");
+                System.out.println("Player registered successfully!");
                 System.out.println("  Name: " + playerName);
-                System.out.println("  Index: " + clientIndex);
-                System.out.println("  Assigned Color: " + color);
+                System.out.println("  Color: " + color);
                 System.out.println("  Total clients: " + clientsData.size());
                 System.out.println("==============================================");
 
                 sendClientName(conn, playerName);
                 broadcastExcept(null, sendAllClients());
+
+                // Si tenemos los dos jugadores necesarios, iniciamos la cuenta atrás
+                if (clientsData.size() == REQUIRED_CLIENTS) {
+                    System.out.println("Two players connected, starting countdown...");
+                    sendCountdown();
+                }
                 break;
             }
 
@@ -402,10 +394,10 @@ public class Main extends WebSocketServer {
                 break;
             }
 
-            case T_CLIENT_PLAY: {
-                sendCountdown();
-                break;
-            }
+            // case T_CLIENT_PLAY: {
+            // sendCountdown();
+            // break;
+            // }
 
             case T_CLIENT_REQUEST_PLAY: {
                 if (!gameStarted) {
