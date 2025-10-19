@@ -27,8 +27,6 @@ public class Main extends WebSocketServer {
 
     public static final int DEFAULT_PORT = 3000;
 
-    // No necesitamos PLAYER_NAMES predefinidos ya que usaremos los nombres que
-    // eligen los jugadores
     private static final List<String> PLAYER_COLORS = Arrays.asList("RED", "YELLOW");
     private static final int REQUIRED_CLIENTS = 2;
 
@@ -348,11 +346,10 @@ public class Main extends WebSocketServer {
         switch (type) {
             case T_SET_PLAYER_NAME: {
                 String playerName = obj.getString("name");
-                
+
                 // Asignar color según el orden de conexión
-                String color = (clientsData.isEmpty()) ? "RED" : 
-                             (clientsData.size() == 1) ? "YELLOW" : "GRAY";
-                
+                String color = (clientsData.isEmpty()) ? "RED" : (clientsData.size() == 1) ? "YELLOW" : "GRAY";
+
                 // Registrar el jugador con su color
                 ClientData clientData = new ClientData(playerName, color);
                 clientsData.put(playerName, clientData);
@@ -434,8 +431,9 @@ public class Main extends WebSocketServer {
                     sendSafe(conn, response.toString());
                     return;
                 }
-              
-              case T_CLIENT_SEND_INVITATION : {
+            }
+
+            case T_CLIENT_SEND_INVITATION: {
                 // Rebem una petició amb el nom de l'usuari i destinatari a enviar la petició
                 // Rebem l'usuari a qui hem d'enviar la petició
                 String receiver = obj.getString("sendTo");
@@ -444,8 +442,9 @@ public class Main extends WebSocketServer {
                 sendSafe(clients.socketByName(receiver), obj.toString());
             }
 
-              case T_CLIENT_ANSWER_INVITATION : {
-                // Rebem una petició amb el nom de l'usuari i destinatari a enviar la petició i un boolà amb la resposta
+            case T_CLIENT_ANSWER_INVITATION: {
+                // Rebem una petició amb el nom de l'usuari i destinatari a enviar la petició i
+                // un boolà amb la resposta
                 System.out.println(obj);
                 if (obj.getBoolean(K_VALUE)) {
                     // SI ACCEPTA
@@ -461,7 +460,7 @@ public class Main extends WebSocketServer {
                     broadcastExcept(null, sendAllClients());
                     sendCountdown();
                 }
-              
+
                 else {
                     // SI NO ACCEPTA
                     // Enviem a l'usuari que ha fet la peticiól a resposta de l'invitació
@@ -517,8 +516,8 @@ public class Main extends WebSocketServer {
                             .put("reason", "Invalid piece for current turn");
                     sendSafe(conn, response.toString());
                 }
-            }
         }
+    }
 
     }
 
