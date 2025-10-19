@@ -27,8 +27,6 @@ public class Main extends WebSocketServer {
 
     public static final int DEFAULT_PORT = 3000;
 
-    // No necesitamos PLAYER_NAMES predefinidos ya que usaremos los nombres que
-    // eligen los jugadores
     private static final List<String> PLAYER_COLORS = Arrays.asList("RED", "YELLOW");
     private static final int REQUIRED_CLIENTS = 2;
 
@@ -62,6 +60,7 @@ public class Main extends WebSocketServer {
     private static final String T_GAME_STATE = "gameState";
 
     private final ClientRegistry clients;
+    private final List<String> playersNames = new ArrayList<>();
     private final Map<String, ClientData> clientsData = new HashMap<>();
     private final Map<String, GameObject> gameObjects = new HashMap<>();
 
@@ -348,11 +347,10 @@ public class Main extends WebSocketServer {
         switch (type) {
             case T_SET_PLAYER_NAME: {
                 String playerName = obj.getString("name");
-                
+
                 // Asignar color según el orden de conexión
-                String color = (clientsData.isEmpty()) ? "RED" : 
-                             (clientsData.size() == 1) ? "YELLOW" : "GRAY";
-                
+                String color = (clientsData.isEmpty()) ? "RED" : (clientsData.size() == 1) ? "YELLOW" : "GRAY";
+
                 // Registrar el jugador con su color
                 ClientData clientData = new ClientData(playerName, color);
                 clientsData.put(playerName, clientData);
@@ -400,6 +398,41 @@ public class Main extends WebSocketServer {
             // sendCountdown();
             // break;
             // }
+            case T_CLIENT_SEND_INVITATION: {
+                // Rebem una petició amb el nom de l'usuari i destinatari a enviar la petició
+                // Rebem l'usuari a qui hem d'enviar la petició
+                String receiver = obj.getString("sendTo");
+
+                // Enviem a l'usuari rebut, la petició d'invitació
+                sendSafe(clients.socketByName(receiver), obj.toString());
+            }
+
+            case T_CLIENT_ANSWER_INVITATION: {
+                // Rebem una petició amb el nom de l'usuari i destinatari a enviar la petició i
+                // un boolà amb la resposta
+                System.out.println(obj);
+                if (obj.getBoolean(K_VALUE)) {
+                    // SI ACCEPTA
+                    // Comencen countdown per a la partida
+                    String pRed = obj.getString("sendFrom");
+                    String pYellow = obj.getString("sendTo");
+
+                    playersNames.add(pRed);
+                    playersNames.add(pYellow);
+                    clientsData.get(pRed).SetIsPlaying(true);
+                    clientsData.get(pYellow).SetIsPlaying(true);
+
+                    broadcastExcept(null, sendAllClients());
+                    sendCountdown();
+                }
+
+                else {
+                    // SI NO ACCEPTA
+                    // Enviem a l'usuari que ha fet la peticiól a resposta de l'invitació
+                    String sender = obj.getString("sendFrom");
+                    sendSafe(clients.socketByName(sender), obj.toString());
+                }
+            }
 
             case T_CLIENT_REQUEST_PLAY: {
                 if (!gameStarted) {
@@ -434,41 +467,6 @@ public class Main extends WebSocketServer {
                     sendSafe(conn, response.toString());
                     return;
                 }
-              
-              case T_CLIENT_SEND_INVITATION : {
-                // Rebem una petició amb el nom de l'usuari i destinatari a enviar la petició
-                // Rebem l'usuari a qui hem d'enviar la petició
-                String receiver = obj.getString("sendTo");
-
-                // Enviem a l'usuari rebut, la petició d'invitació
-                sendSafe(clients.socketByName(receiver), obj.toString());
-            }
-
-              case T_CLIENT_ANSWER_INVITATION : {
-                // Rebem una petició amb el nom de l'usuari i destinatari a enviar la petició i un boolà amb la resposta
-                System.out.println(obj);
-                if (obj.getBoolean(K_VALUE)) {
-                    // SI ACCEPTA
-                    // Comencen countdown per a la partida
-                    String pRed = obj.getString("sendFrom");
-                    String pYellow = obj.getString("sendTo");
-
-                    playersNames.add(pRed);
-                    playersNames.add(pYellow);
-                    clientsData.get(pRed).SetIsPlaying(true);
-                    clientsData.get(pYellow).SetIsPlaying(true);
-
-                    broadcastExcept(null, sendAllClients());
-                    sendCountdown();
-                }
-              
-                else {
-                    // SI NO ACCEPTA
-                    // Enviem a l'usuari que ha fet la peticiól a resposta de l'invitació
-                    String sender = obj.getString("sendFrom");
-                    sendSafe(clients.socketByName(sender), obj.toString());
-                }
-            }
 
                 if (isValidPlay(pieceId, col)) {
                     int row = getLowestAvailableRow(col);

@@ -1,11 +1,16 @@
 package com.connect4;
 
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import com.shared.ClientData;
 
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
+import javafx.fxml.Initializable;
 import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.layout.VBox;
@@ -14,10 +19,16 @@ public class CtrlOpponentSelection implements Initializable {
 
     private Map<Node, CtrlSubViewSend> controllersSend = new HashMap<>();
     private Map<Node, CtrlSubViewReceive> controllersReceive = new HashMap<>();
-    private List<String>sendInvitations = new ArrayList<>();
+    private List<String> sendInvitations = new ArrayList<>();
 
     @FXML
     private VBox list_send, list_receive;
+
+    @Override
+    public void initialize(URL location, java.util.ResourceBundle resources) {
+        loadSendList();
+        loadReceiveList();
+    }
 
     // Cargar la lista de usuarios disponibles para enviar invitación
     public void loadSendList() {
@@ -155,7 +166,8 @@ public class CtrlOpponentSelection implements Initializable {
 
     public void rejectAllPetions() {
 
-        if (list_receive.getChildren().isEmpty()) return;
+        if (list_receive.getChildren().isEmpty())
+            return;
 
         for (Node n : list_receive.getChildren()) {
             controllersReceive.get(n).rejectInvitation();
