@@ -258,12 +258,35 @@ public class Main extends WebSocketServer {
 
     @Override
     public void onOpen(WebSocket conn, ClientHandshake handshake) {
+        int clientIndex = clientsData.size();
+
+        // Añadir cliente al registro (obtiene nombre)
+        String name = clients.add(conn);
+
+        // Asignar color según el índice
+        String color;
+        if (clientIndex == 0) {
+            color = "RED";
+        } else if (clientIndex == 1) {
+            color = "YELLOW";
+        } else {
+            color = "GRAY";
+        }
+
+        // IMPORTANTE: Crear ClientData con el color correcto
+        ClientData clientData = new ClientData(name, color);
+        clientsData.put(name, clientData);
+
         System.out.println("==============================================");
-        System.out.println("Nueva conexión WebSocket recibida");
-        String tempName = clients.add(conn); // nombre temporal
-        System.out.println("Nombre temporal asignado: " + tempName);
-        System.out.println("Total conexiones: " + clients.snapshot().size());
+        System.out.println("WebSocket client connected!");
+        System.out.println("  Name: " + name);
+        System.out.println("  Index: " + clientIndex);
+        System.out.println("  Assigned Color: " + color);
+        System.out.println("  Total clients: " + clientsData.size());
         System.out.println("==============================================");
+
+        sendClientName(conn, name);
+        broadcastExcept(null, sendAllClients());
     }
 
     private String sendAllClients() {
