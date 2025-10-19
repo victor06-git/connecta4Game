@@ -27,7 +27,8 @@ public class Main extends WebSocketServer {
 
     public static final int DEFAULT_PORT = 3000;
 
-    private static final List<String> PLAYER_NAMES = new ArrayList<>();
+    // No necesitamos PLAYER_NAMES predefinidos ya que usaremos los nombres que
+    // eligen los jugadores
     private static final List<String> PLAYER_COLORS = Arrays.asList("RED", "YELLOW");
     private static final int REQUIRED_CLIENTS = 2;
 
@@ -67,7 +68,7 @@ public class Main extends WebSocketServer {
     private String[][] boardState = new String[6][7];
     private String currentTurn = "";
     private boolean gameStarted = false;
-    private String playerName = "";
+    // private String playerName = "";
     private volatile boolean countdownRunning = false;
 
     // Variables para controlar el estado del ganador
@@ -80,8 +81,7 @@ public class Main extends WebSocketServer {
 
     public Main(InetSocketAddress address) {
         super(address);
-        PLAYER_NAMES.add(playerName);
-        this.clients = new ClientRegistry(PLAYER_NAMES); // Inicializa con nombres de jugadores
+        this.clients = new ClientRegistry(new ArrayList<>()); // Inicializa sin nombres predefinidos
         initializeBoard();
         initializegameObjects();
 
@@ -264,38 +264,38 @@ public class Main extends WebSocketServer {
     @Override
     public void onOpen(WebSocket conn, ClientHandshake handshake) {
         // PLAYER_NAMES.add(playerName);
-        int clientIndex = clientsData.size();
+        // int clientIndex = clientsData.size();
 
         // Añadir cliente al registro (obtiene nombre)
 
-        String name = playerName;
-
+        // String name = playerName;
+        System.out.println("Client connected, assigning name...");
         // Asignar color según el índice
         String color;
-        if (clientIndex == 0) {
-            color = "RED";
-        } else if (clientIndex == 1) {
-            color = "YELLOW";
-        } else {
-            color = "GRAY";
-        }
+        // if (clientIndex == 0) {
+        // color = "RED";
+        // } else if (clientIndex == 1) {
+        // color = "YELLOW";
+        // } else {
+        // color = "GRAY";
+        // }
 
         // IMPORTANTE: Crear ClientData con el color correcto
-        ClientData clientData = new ClientData(name, color);
-        clientsData.put(name, clientData);
+        // ClientData clientData = new ClientData(name, color);
+        // clientsData.put(name, clientData);
         // clients.bySocket.put(conn, name);
         // clients.byName.put(name, conn);
 
-        System.out.println("==============================================");
-        System.out.println("WebSocket client connected!");
-        System.out.println("  Name: " + name);
-        System.out.println("  Index: " + clientIndex);
-        System.out.println("  Assigned Color: " + color);
-        System.out.println("  Total clients: " + clientsData.size());
-        System.out.println("==============================================");
+        // System.out.println("==============================================");
+        // System.out.println("WebSocket client connected!");
+        // System.out.println(" Name: " + name);
+        // System.out.println(" Index: " + clientIndex);
+        // System.out.println(" Assigned Color: " + color);
+        // System.out.println(" Total clients: " + clientsData.size());
+        // System.out.println("==============================================");
 
-        sendClientName(conn, name);
-        broadcastExcept(null, sendAllClients());
+        // sendClientName(conn, name);
+        // broadcastExcept(null, sendAllClients());
     }
 
     private String sendAllClients() {
@@ -351,7 +351,37 @@ public class Main extends WebSocketServer {
 
         switch (type) {
             case T_SET_PLAYER_NAME: {
-                playerName = obj.getString("name");
+                String playerName = obj.getString("name");
+                int clientIndex = clientsData.size();
+
+                // Asignar color según el índice
+                String color;
+                if (clientIndex == 0) {
+                    color = "RED";
+                } else if (clientIndex == 1) {
+                    color = "YELLOW";
+                } else {
+                    color = "GRAY";
+                }
+
+                // Crear ClientData con el color correcto
+                ClientData clientData = new ClientData(playerName, color);
+                clientsData.put(playerName, clientData);
+
+                // Registrar el nombre del cliente
+                clients.setName(conn, playerName);
+
+                System.out.println("==============================================");
+                System.out.println("Player name received!");
+                System.out.println("  Name: " + playerName);
+                System.out.println("  Index: " + clientIndex);
+                System.out.println("  Assigned Color: " + color);
+                System.out.println("  Total clients: " + clientsData.size());
+                System.out.println("==============================================");
+
+                sendClientName(conn, playerName);
+                broadcastExcept(null, sendAllClients());
+                break;
             }
 
             case T_CLIENT_MOUSE_MOVING: {
