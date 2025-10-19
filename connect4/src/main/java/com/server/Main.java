@@ -60,6 +60,7 @@ public class Main extends WebSocketServer {
     private static final String T_GAME_STATE = "gameState";
 
     private final ClientRegistry clients;
+    private final List<String> playersNames = new ArrayList<>();
     private final Map<String, ClientData> clientsData = new HashMap<>();
     private final Map<String, GameObject> gameObjects = new HashMap<>();
 
@@ -397,42 +398,6 @@ public class Main extends WebSocketServer {
             // sendCountdown();
             // break;
             // }
-
-            case T_CLIENT_REQUEST_PLAY: {
-                if (!gameStarted) {
-                    JSONObject response = msg(T_PLAY_REJECTED)
-                            .put("pieceId", obj.optString("pieceId", ""))
-                            .put("reason", "Game not started yet");
-                    sendSafe(conn, response.toString());
-                    return;
-                }
-
-                if (gameEnded) {
-                    JSONObject response = msg(T_PLAY_REJECTED)
-                            .put("pieceId", obj.optString("pieceId", ""))
-                            .put("reason", "Game has ended");
-                    sendSafe(conn, response.toString());
-                    return;
-                }
-
-                String pieceId = obj.getString("pieceId");
-                int col = obj.getInt("column");
-
-                String playerName = clients.nameBySocket(conn);
-                ClientData playerData = clientsData.get(playerName);
-
-                System.out.println("Play request: Player=" + playerName + ", Color=" + playerData.color +
-                        ", Piece=" + pieceId + ", CurrentTurn=" + currentTurn);
-
-                if (playerData == null || !playerData.color.equals(currentTurn)) {
-                    JSONObject response = msg(T_PLAY_REJECTED)
-                            .put("pieceId", pieceId)
-                            .put("reason", "Not your turn! Current turn: " + currentTurn);
-                    sendSafe(conn, response.toString());
-                    return;
-                }
-            }
-
             case T_CLIENT_SEND_INVITATION: {
                 // Rebem una petició amb el nom de l'usuari i destinatari a enviar la petició
                 // Rebem l'usuari a qui hem d'enviar la petició
@@ -468,6 +433,40 @@ public class Main extends WebSocketServer {
                     sendSafe(clients.socketByName(sender), obj.toString());
                 }
             }
+
+            case T_CLIENT_REQUEST_PLAY: {
+                if (!gameStarted) {
+                    JSONObject response = msg(T_PLAY_REJECTED)
+                            .put("pieceId", obj.optString("pieceId", ""))
+                            .put("reason", "Game not started yet");
+                    sendSafe(conn, response.toString());
+                    return;
+                }
+
+                if (gameEnded) {
+                    JSONObject response = msg(T_PLAY_REJECTED)
+                            .put("pieceId", obj.optString("pieceId", ""))
+                            .put("reason", "Game has ended");
+                    sendSafe(conn, response.toString());
+                    return;
+                }
+
+                String pieceId = obj.getString("pieceId");
+                int col = obj.getInt("column");
+
+                String playerName = clients.nameBySocket(conn);
+                ClientData playerData = clientsData.get(playerName);
+
+                System.out.println("Play request: Player=" + playerName + ", Color=" + playerData.color +
+                        ", Piece=" + pieceId + ", CurrentTurn=" + currentTurn);
+
+                if (playerData == null || !playerData.color.equals(currentTurn)) {
+                    JSONObject response = msg(T_PLAY_REJECTED)
+                            .put("pieceId", pieceId)
+                            .put("reason", "Not your turn! Current turn: " + currentTurn);
+                    sendSafe(conn, response.toString());
+                    return;
+                }
 
                 if (isValidPlay(pieceId, col)) {
                     int row = getLowestAvailableRow(col);
@@ -516,8 +515,8 @@ public class Main extends WebSocketServer {
                             .put("reason", "Invalid piece for current turn");
                     sendSafe(conn, response.toString());
                 }
+            }
         }
-    }
 
     }
 
