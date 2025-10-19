@@ -114,6 +114,9 @@ public class Main extends Application {
             String host = ctrlConfig.txtHost.getText();
             String port = ctrlConfig.txtPort.getText();
             playerName = ctrlConfig.txtPlayerName.getText(); // Nombre elegido por el jugador
+
+            System.out.println(playerName); // DEBUG
+
             wsClient = UtilsWS.getSharedInstance(protocol + "://" + host + ":" + port);
 
             wsClient.onOpen((response) -> {
@@ -122,6 +125,7 @@ public class Main extends Application {
                 msgObj.put("type", "setPlayerName");
                 msgObj.put("name", playerName);
                 wsClient.safeSend(msgObj.toString());
+                System.out.println(msgObj.toString()); // DEBUG
             });
 
             wsClient.onMessage((response) -> {
