@@ -27,7 +27,7 @@ public class Main extends WebSocketServer {
 
     public static final int DEFAULT_PORT = 3000;
 
-    private static final List<String> PLAYER_NAMES = Arrays.asList();
+    private static final List<String> PLAYER_NAMES = new ArrayList<>();
     private static final List<String> PLAYER_COLORS = Arrays.asList("RED", "YELLOW");
     private static final int REQUIRED_CLIENTS = 2;
 
@@ -67,6 +67,7 @@ public class Main extends WebSocketServer {
     private String[][] boardState = new String[6][7];
     private String currentTurn = "";
     private boolean gameStarted = false;
+    private String playerName = "";
     private volatile boolean countdownRunning = false;
 
     // Variables para controlar el estado del ganador
@@ -79,7 +80,8 @@ public class Main extends WebSocketServer {
 
     public Main(InetSocketAddress address) {
         super(address);
-        this.clients = new ClientRegistry(PLAYER_NAMES);
+        // PLAYER_NAMES.add(playerName);
+        this.clients = new ClientRegistry(PLAYER_NAMES); // Inicializa con nombres de jugadores
         initializeBoard();
         initializegameObjects();
 
@@ -261,10 +263,12 @@ public class Main extends WebSocketServer {
 
     @Override
     public void onOpen(WebSocket conn, ClientHandshake handshake) {
+        PLAYER_NAMES.add(playerName);
         int clientIndex = clientsData.size();
 
         // Añadir cliente al registro (obtiene nombre)
-        String name = clients.add(conn);
+
+        String name = playerName;
 
         // Asignar color según el índice
         String color;
@@ -279,6 +283,8 @@ public class Main extends WebSocketServer {
         // IMPORTANTE: Crear ClientData con el color correcto
         ClientData clientData = new ClientData(name, color);
         clientsData.put(name, clientData);
+        // clients.bySocket.put(conn, name);
+        // clients.byName.put(name, conn);
 
         System.out.println("==============================================");
         System.out.println("WebSocket client connected!");
@@ -345,7 +351,7 @@ public class Main extends WebSocketServer {
 
         switch (type) {
             case T_SET_PLAYER_NAME: {
-
+                playerName = obj.getString("name");
             }
 
             case T_CLIENT_MOUSE_MOVING: {
