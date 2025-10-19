@@ -1,6 +1,7 @@
 package com.server;
 
 import java.net.InetSocketAddress;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -26,7 +27,6 @@ public class Main extends WebSocketServer {
 
     public static final int DEFAULT_PORT = 3000;
 
-    private static final List<String> PLAYER_NAMES = Arrays.asList();
     private static final List<String> PLAYER_COLORS = Arrays.asList("RED", "YELLOW");
     private static final int REQUIRED_CLIENTS = 2;
 
@@ -43,12 +43,16 @@ public class Main extends WebSocketServer {
     private static final String T_CLIENT_MOUSE_MOVING = "clientMouseMoving";
     private static final String T_CLIENT_PIECE_MOVING = "clientPieceMoving";
     private static final String T_CLIENT_PLAY = "clientPlay";
+
     private static final String T_CLIENT_SEND_INVITATION = "clientSendInvitation";
     private static final String T_CLIENT_ANSWER_INVITATION = "clientAnswerInvitation";
     private static final String T_CLIENT_REQUEST_PLAY = "clientRequestPlay";
+
     private static final String T_SERVER_DATA = "serverData";
     private static final String T_COUNTDOWN = "countdown";
-    private static final String T_SET_PLAYER_NAME = "setPlayerName";
+
+    private static final String T_SET_PLAYER_NAME = "setPlayerName"; // aconsegueix el nom del jugador
+
     private static final String T_PLAY_ACCEPTED = "playAccepted";
     private static final String T_PLAY_REJECTED = "playRejected";
     private static final String T_GAME_STATE = "gameState";
@@ -72,7 +76,7 @@ public class Main extends WebSocketServer {
 
     public Main(InetSocketAddress address) {
         super(address);
-        this.clients = new ClientRegistry(PLAYER_NAMES);
+        this.clients = new ClientRegistry(new ArrayList<>());
         initializeBoard();
         initializegameObjects();
 
@@ -283,8 +287,12 @@ public class Main extends WebSocketServer {
         // CRÍTICO: El índice debe calcularse ANTES de añadir el cliente
         int clientIndex = clientsData.size();
 
-        // Añadir cliente al registro (obtiene nombre)
+        // Añadir cliente al registro
         String name = clients.add(conn);
+
+        // Enviar mensaje al cliente para que configure su nombre
+        JSONObject msg = msg(T_SET_PLAYER_NAME);
+        sendSafe(conn, msg.toString());
 
         // Asignar color según el índice
         String color;
@@ -341,16 +349,6 @@ public class Main extends WebSocketServer {
 
         String type = obj.optString(K_TYPE, "");
         switch (type) {
-            case T_SET_PLAYER_NAME -> {
-                String clientName = clients.nameBySocket(conn);
-                if (clientName != null && clientsData.containsKey(clientName)) {
-                    String newName = obj.getString("name");
-                    ClientData clientData = clientsData.get(clientName);
-                    clientData.name = newName;
-                    // Actualizar la información del servidor para todos
-                    sendServerDataToAll();
-                }
-            }
             case T_CLIENT_MOUSE_MOVING -> {
                 String clientName = clients.nameBySocket(conn);
                 ClientData updatedData = ClientData.fromJSON(obj.getJSONObject(K_VALUE));

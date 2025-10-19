@@ -32,12 +32,13 @@ public class CtrlConfig implements Initializable {
     @FXML
     private void connectToServer() {
         String playerName = txtPlayerName.getText().trim();
+        System.out.println("Player name: " + playerName);
+        // Mensaje de error si no se ha introducido un nombre de jugador
         if (playerName.isEmpty()) {
             txtMessage.setStyle("-fx-text-fill: red;");
             txtMessage.setText("Please enter a player name");
             return;
         }
-        Main.playerName = playerName;
         Main.connectToServer();
     }
 

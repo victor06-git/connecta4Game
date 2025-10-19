@@ -57,7 +57,7 @@ public class CtrlPlay implements Initializable {
 
     // Winner variables
     private int[] winningLineCoords = null;
-    private String winningColor = null;
+    // private String winningColor = null;
     private boolean gameEnded = false;
     private String winnerColor = null;
 

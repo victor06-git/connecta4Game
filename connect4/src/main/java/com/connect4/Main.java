@@ -23,7 +23,7 @@ public class Main extends Application {
     public static UtilsWS wsClient;
 
     public static String clientName = "";
-    public static String playerName = "";
+    public static String playerName = ""; // Nombre elegido por el jugador
     public static String myColor = ""; // Color asignado por el servidor
     public static List<ClientData> clients = new ArrayList<>(); // Usuarios conectados
     public static List<GameObject> objects = new ArrayList<>(); // Objetos del juego
@@ -113,6 +113,7 @@ public class Main extends Application {
             String protocol = ctrlConfig.txtProtocol.getText();
             String host = ctrlConfig.txtHost.getText();
             String port = ctrlConfig.txtPort.getText();
+            playerName = ctrlConfig.txtPlayerName.getText(); // Nombre elegido por el jugador
             wsClient = UtilsWS.getSharedInstance(protocol + "://" + host + ":" + port);
 
             wsClient.onOpen((response) -> {
