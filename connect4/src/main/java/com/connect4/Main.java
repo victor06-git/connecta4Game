@@ -199,6 +199,12 @@ public class Main extends Application {
                 break;
 
             case "countdown":
+                if (!UtilsViews.getActiveView().equals("ViewWait")) {
+                    // Rebutgem la resta de peticions
+                    ((CtrlOpponentSelection)UtilsViews.getController("ViewOpponentSelection")).rejectAllPetions();
+                    UtilsViews.setView("ViewWait");
+                }
+
                 int value = msgObj.getInt("value");
                 String txt = String.valueOf(value);
                 if (value == 0) {
@@ -257,6 +263,39 @@ public class Main extends Application {
                 if (ctrlPlay != null) {
                     ctrlPlay.handlePlayRejected(rejectedPieceId);
                 }
+                
+            case "clientsList":
+                JSONArray arr = msgObj.getJSONArray("clientsList");
+                clients.clear();
+
+                for (int i = 0; i < arr.length(); i++) {
+                    JSONObject object = arr.getJSONObject(i);
+                    System.out.println(object);
+                    String name = object.getString("name");
+                    String color = object.getString("color");
+                    boolean isPlaying = object.getBoolean("play");
+
+                    ClientData cd = new ClientData(name, color);
+                    cd.SetIsPlaying(isPlaying);
+                    
+                    clients.add(cd);
+                }
+
+                ((CtrlOpponentSelection)UtilsViews.getController("ViewOpponentSelection")).loadSendList();
+                
+                break;
+        
+            case "clientSendInvitation":
+                String username = msgObj.getString("sendFrom");
+                ((CtrlOpponentSelection)UtilsViews.getController("ViewOpponentSelection")).addFromReceiveList(username);
+                ((CtrlOpponentSelection)UtilsViews.getController("ViewOpponentSelection")).addToSendInvitation(username);
+                break;
+
+            case "clientAnswerInvitation":
+                System.out.println(msgObj);
+                String user = msgObj.getString("sendTo");
+                ((CtrlOpponentSelection)UtilsViews.getController("ViewOpponentSelection")).reactivateFromSendList(user);
+                ((CtrlOpponentSelection)UtilsViews.getController("ViewOpponentSelection")).removeFromSendInvitation(user);
                 break;
         }
     }

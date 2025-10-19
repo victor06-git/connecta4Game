@@ -65,6 +65,7 @@ public class CtrlSubViewReceive {
     }
 
     public void acceptInvitation() {
+        
         // Hacer cambio al counter y comenzar partida
         // Conectar al servidor
         if (Main.wsClient != null && Main.wsClient.isOpen()) {

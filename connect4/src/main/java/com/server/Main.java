@@ -318,6 +318,8 @@ public class Main extends WebSocketServer {
     public void onClose(WebSocket conn, int code, String reason, boolean remote) {
         String name = clients.remove(conn);
         clientsData.remove(name);
+        playersNames.remove(name);
+        broadcastExcept(null, sendAllClients());
 
         synchronized (this) {
             gameStarted = false;
@@ -432,6 +434,41 @@ public class Main extends WebSocketServer {
                     sendSafe(conn, response.toString());
                     return;
                 }
+              
+              case T_CLIENT_SEND_INVITATION : {
+                // Rebem una petició amb el nom de l'usuari i destinatari a enviar la petició
+                // Rebem l'usuari a qui hem d'enviar la petició
+                String receiver = obj.getString("sendTo");
+
+                // Enviem a l'usuari rebut, la petició d'invitació
+                sendSafe(clients.socketByName(receiver), obj.toString());
+            }
+
+              case T_CLIENT_ANSWER_INVITATION : {
+                // Rebem una petició amb el nom de l'usuari i destinatari a enviar la petició i un boolà amb la resposta
+                System.out.println(obj);
+                if (obj.getBoolean(K_VALUE)) {
+                    // SI ACCEPTA
+                    // Comencen countdown per a la partida
+                    String pRed = obj.getString("sendFrom");
+                    String pYellow = obj.getString("sendTo");
+
+                    playersNames.add(pRed);
+                    playersNames.add(pYellow);
+                    clientsData.get(pRed).SetIsPlaying(true);
+                    clientsData.get(pYellow).SetIsPlaying(true);
+
+                    broadcastExcept(null, sendAllClients());
+                    sendCountdown();
+                }
+              
+                else {
+                    // SI NO ACCEPTA
+                    // Enviem a l'usuari que ha fet la peticiól a resposta de l'invitació
+                    String sender = obj.getString("sendFrom");
+                    sendSafe(clients.socketByName(sender), obj.toString());
+                }
+            }
 
                 if (isValidPlay(pieceId, col)) {
                     int row = getLowestAvailableRow(col);

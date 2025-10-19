@@ -28,6 +28,7 @@ public class ClientData {
         this.mouseY = mouseY;
         this.row = row;
         this.col = col;
+        this.isPlaying = false;
     }
 
     public void SetColor(String color) {
@@ -67,6 +68,7 @@ public class ClientData {
         cd.mouseY = obj.optInt("mouseY", -1);
         cd.row = obj.optInt("row", -1);
         cd.col = obj.optInt("col", -1);
+        cd.isPlaying = obj.optBoolean("play", false);
         return cd;
     }
 }
