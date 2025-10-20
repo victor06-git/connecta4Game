@@ -193,7 +193,7 @@ public class Main extends Application {
                 }
 
                 if (UtilsViews.getActiveView().equals("ViewConfig")) {
-                    UtilsViews.setViewAnimating("ViewWait");
+                    UtilsViews.setViewAnimating("ViewOpponentSelection");
                 }
 
                 break;
