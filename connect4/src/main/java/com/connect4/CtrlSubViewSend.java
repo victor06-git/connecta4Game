@@ -48,7 +48,8 @@ public class CtrlSubViewSend {
             if (!user.isEmpty()) {
                 JSONObject json = new JSONObject();
                 json.put("type", "clientSendInvitation");
-                json.put("value", user);
+                json.put("sendFrom", Main.clientName);
+                json.put("sendTo", user);
 
                 Main.wsClient.safeSend(json.toString());
             }

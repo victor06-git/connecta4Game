@@ -488,7 +488,6 @@ public class CtrlPlay implements Initializable {
         selectedObject.center_x = grid.getCellX(col) + cellSize / 2;
         animationTargetY = grid.getCellY(row) + cellSize / 2;
         selectedObject.center_y = grid.getStartY() - 20;
-
     }
 
     /**
@@ -578,8 +577,6 @@ public class CtrlPlay implements Initializable {
         // Draw grid
         drawBoard();
 
-        // drawBoardPieces();
-
         // Draw pieces of pool (non-selected)
         for (GameObject go : Main.objects) {
             if (go.row == -1 && go.col == -1) {
@@ -590,10 +587,10 @@ public class CtrlPlay implements Initializable {
             }
         }
 
-        // Draw animating piece
-        if (selectedObject != null) {
-            drawObject(selectedObject);
-        }
+        // Draw piece on client (selected or animating)
+        //if (selectedObject != null) {
+        //    drawObject(selectedObject);
+        //}
 
         drawBoardPieces();
 
@@ -624,7 +621,7 @@ public class CtrlPlay implements Initializable {
         }
 
         // Posición del indicador (arriba a la izquierda)
-        double indicatorX = 10;
+        double indicatorX = 20;
         double indicatorY = 10;
 
         // Dibujar fondo
