@@ -35,8 +35,8 @@ public class ClientData {
         this.color = color;
     }
 
-    public void SetIsPlaying(boolean isPlaying) {
-        this.isPlaying = isPlaying;
+    public void SetIsPlaying(boolean playing) {
+        this.isPlaying = playing;
     }
 
     @Override
@@ -53,7 +53,7 @@ public class ClientData {
         obj.put("mouseY", mouseY);
         obj.put("row", row);
         obj.put("col", col);
-        obj.put("play", isPlaying);
+        obj.put("isPlaying", isPlaying);
         return obj;
     }
 

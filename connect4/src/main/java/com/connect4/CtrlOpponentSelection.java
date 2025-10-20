@@ -5,7 +5,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.ResourceBundle;
 
 import com.shared.ClientData;
 
@@ -20,24 +19,20 @@ public class CtrlOpponentSelection implements Initializable {
 
     private Map<Node, CtrlSubViewSend> controllersSend = new HashMap<>();
     private Map<Node, CtrlSubViewReceive> controllersReceive = new HashMap<>();
-    private List<String>sendInvitations = new ArrayList<>();
+    private List<String> sendInvitations = new ArrayList<>();
 
     @FXML
     private VBox list_send, list_receive;
 
     @Override
-    public void initialize(URL location, ResourceBundle resources) {
-        updateLists();
-    }
-
-    public List<String> getSendInvitations() {
-        return sendInvitations;
+    public void initialize(URL location, java.util.ResourceBundle resources) {
+        loadSendList();
+        loadReceiveList();
     }
 
     // Cargar la lista de usuarios disponibles para enviar invitación
     public void loadSendList() {
         try {
-            
             list_send.getChildren().clear();
 
             // Iterar sobre todos los clientes conectados
@@ -171,7 +166,8 @@ public class CtrlOpponentSelection implements Initializable {
 
     public void rejectAllPetions() {
 
-        if (list_receive.getChildren().isEmpty()) return;
+        if (list_receive.getChildren().isEmpty())
+            return;
 
         for (Node n : list_receive.getChildren()) {
             controllersReceive.get(n).rejectInvitation();

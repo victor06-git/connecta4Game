@@ -10,7 +10,7 @@ import javafx.scene.text.FontWeight;
 public class PlayTimer extends AnimationTimer {
 
     public double fps;
-    
+
     private long lastNanoTime;
     private int frameCount;
     private double elapsedTime;

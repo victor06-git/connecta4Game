@@ -23,13 +23,16 @@ public class Main extends Application {
     public static UtilsWS wsClient;
 
     public static String clientName = "";
-    public static List<ClientData> clients = new ArrayList<>(); //Usuarios conectados
-    public static List<GameObject> objects = new ArrayList<>();
+    public static String playerName = ""; // Nombre elegido por el jugador
+    public static String myColor = ""; // Color asignado por el servidor
+    public static List<ClientData> clients = new ArrayList<>(); // Usuarios conectados
+    public static List<GameObject> objects = new ArrayList<>(); // Objetos del juego
 
     public static CtrlConfig ctrlConfig;
     public static CtrlWait ctrlWait;
     public static CtrlPlay ctrlPlay;
     public static CtrlOpponentSelection ctrlOpponentSelection;
+    public static CtrlResult ctrlResult;
 
     public static void main(String[] args) {
 
@@ -45,16 +48,17 @@ public class Main extends Application {
 
         UtilsViews.parentContainer.setStyle("-fx-font: 14 arial;");
 
-       
-        UtilsViews.addView(getClass(), "ViewConfig", "/assets/viewConfig.fxml"); 
-        UtilsViews.addView(getClass(), "ViewOpponentSelection", "/assets/opponent_selection.fxml");
+        UtilsViews.addView(getClass(), "ViewConfig", "/assets/viewConfig.fxml");
         UtilsViews.addView(getClass(), "ViewWait", "/assets/viewWait.fxml");
         UtilsViews.addView(getClass(), "ViewPlay", "/assets/viewPlay.fxml");
+        UtilsViews.addView(getClass(), "ViewOpponentSelection", "/assets/opponent_selection.fxml");
+        // UtilsViews.addView(getClass(), "ViewResult", "/assets/viewResult.fxml");
 
         ctrlConfig = (CtrlConfig) UtilsViews.getController("ViewConfig");
         ctrlWait = (CtrlWait) UtilsViews.getController("ViewWait");
         ctrlPlay = (CtrlPlay) UtilsViews.getController("ViewPlay");
         ctrlOpponentSelection = (CtrlOpponentSelection) UtilsViews.getController("ViewOpponentSelection");
+        // ctrlResult = (CtrlResult) UtilsViews.getController("ViewResult");
 
         Scene scene = new Scene(UtilsViews.parentContainer);
 
@@ -95,6 +99,10 @@ public class Main extends Application {
         return list;
     }
 
+    /**
+     * Function to connect to the WebSocket server
+     * 
+     */
     public static void connectToServer() {
 
         ctrlConfig.txtMessage.setTextFill(Color.BLACK);
@@ -105,10 +113,21 @@ public class Main extends Application {
             String protocol = ctrlConfig.txtProtocol.getText();
             String host = ctrlConfig.txtHost.getText();
             String port = ctrlConfig.txtPort.getText();
+            playerName = ctrlConfig.txtPlayerName.getText(); // Nombre elegido por el jugador
+
+            System.out.println(playerName); // DEBUG
+
             wsClient = UtilsWS.getSharedInstance(protocol + "://" + host + ":" + port);
 
-            clients = new ArrayList<>();
-            objects = new ArrayList<>();
+            wsClient.onOpen((response) -> {
+                System.out.println("WebSocket conectado, enviando nombre del jugador: " + playerName);
+                // Enviar el nombre del jugador al servidor
+                JSONObject msgObj = new JSONObject();
+                msgObj.put("type", "setPlayerName");
+                msgObj.put("name", playerName);
+                wsClient.safeSend(msgObj.toString());
+                System.out.println("Mensaje enviado al servidor: " + msgObj.toString());
+            });
 
             wsClient.onMessage((response) -> {
                 Platform.runLater(() -> {
@@ -128,10 +147,11 @@ public class Main extends Application {
         JSONObject msgObj = new JSONObject(response);
 
         switch (msgObj.getString("type")) {
+
             case "clientName":
                 clientName = msgObj.getString("value");
                 break;
-                
+
             case "serverData":
                 clientName = msgObj.getString("clientName");
 
@@ -142,6 +162,14 @@ public class Main extends Application {
                     newClients.add(ClientData.fromJSON(obj));
                 }
                 clients = newClients;
+
+                // Actualizar mi color basado en el cliente actual
+                for (ClientData client : clients) {
+                    if (client.name.equals(clientName)) {
+                        myColor = client.color;
+                        break;
+                    }
+                }
 
                 JSONArray arrObjects = msgObj.getJSONArray("objectsList");
                 List<GameObject> newObjects = new ArrayList<>();
@@ -165,7 +193,7 @@ public class Main extends Application {
                 }
 
                 if (UtilsViews.getActiveView().equals("ViewConfig")) {
-                    UtilsViews.setViewAnimating("ViewOpponentSelection");
+                    UtilsViews.setViewAnimating("ViewWait");
                 }
 
                 break;
@@ -191,8 +219,39 @@ public class Main extends Application {
                 String pieceId = msgObj.getString("pieceId");
                 int col = msgObj.getInt("column");
                 int row = msgObj.getInt("row");
+                boolean gameEnded = msgObj.getBoolean("gameEnded");
+                String winner = msgObj.optString("winner", null);
+
+                // Procesar coordenadas de línea ganadora si existen
+                int[] winningLineCoords = null;
+                if (msgObj.has("winningLineCoords") && !msgObj.isNull("winningLineCoords")) {
+                    JSONArray coordsArray = msgObj.getJSONArray("winningLineCoords");
+                    winningLineCoords = new int[coordsArray.length()];
+                    for (int i = 0; i < coordsArray.length(); i++) {
+                        winningLineCoords[i] = coordsArray.getInt(i);
+                    }
+                }
+
                 if (ctrlPlay != null) {
-                    ctrlPlay.handlePlayAccepted(pieceId, col, row);
+                    ctrlPlay.handlePlayAccepted(pieceId, col, row, winner, winningLineCoords);
+                }
+
+                // Si el juego terminó
+                if (gameEnded && winner != null) {
+                    pauseDuring(1500, () -> {
+                        String result = "";
+                        if (winner.equals("DRAW")) {
+                            result = "DRAW";
+                        } else if (winner.equals(myColor)) {
+                            result = "WIN";
+                        } else {
+                            result = "LOSE";
+                        }
+
+                        CtrlResult ctrlResult = (CtrlResult) UtilsViews.getController("ViewResult");
+                        ctrlResult.setResultData(result, myColor, winner, ctrlPlay.boardState);
+                        UtilsViews.setViewAnimating("ViewResult");
+                    });
                 }
                 break;
 

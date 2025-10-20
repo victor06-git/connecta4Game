@@ -27,7 +27,6 @@ public class Main extends WebSocketServer {
 
     public static final int DEFAULT_PORT = 3000;
 
-    private static final List<String> PLAYER_NAMES = Arrays.asList("Alejandro", "Victor");
     private static final List<String> PLAYER_COLORS = Arrays.asList("RED", "YELLOW");
     private static final int REQUIRED_CLIENTS = 2;
 
@@ -40,42 +39,45 @@ public class Main extends WebSocketServer {
     private static final String K_CURRENT_TURN = "currentTurn";
     private static final String K_BOARD_STATE = "boardState";
 
+    // Tipos de mensaje
+    private static final String T_CLIENT_MOUSE_MOVING = "clientMouseMoving";
+    private static final String T_CLIENT_PIECE_MOVING = "clientPieceMoving";
+    private static final String T_CLIENT_PLAY = "clientPlay";
+
+    private static final String T_CLIENT_SEND_INVITATION = "clientSendInvitation";
+    private static final String T_CLIENT_ANSWER_INVITATION = "clientAnswerInvitation";
     private static final String T_CLIENT_REQUEST_PLAY = "clientRequestPlay";
+
+    private static final String T_SERVER_DATA = "serverData";
+    // server -> clients
+    private static final String T_SERVER_CLIENTS_LIST = "clientsList";
+    private static final String T_COUNTDOWN = "countdown";
+
+    private static final String T_SET_PLAYER_NAME = "setPlayerName"; // aconsegueix el nom del jugador
+
     private static final String T_PLAY_ACCEPTED = "playAccepted";
     private static final String T_PLAY_REJECTED = "playRejected";
     private static final String T_GAME_STATE = "gameState";
 
-    // Tipus de missatge nous i (alguns) heretats
-    private static final String T_CLIENT_MOUSE_MOVING = "clientMouseMoving"; // client -> server
-    private static final String T_CLIENT_PIECE_MOVING = "clientPieceMoving"; // client -> server
-    private static final String T_CLIENT_PLAY = "clientPlay"; // client -> server
-    private static final String T_CLIENT_SEND_INVITATION = "clientSendInvitation"; // client -> server
-    private static final String T_CLIENT_ANSWER_INVITATION = "clientAnswerInvitation"; // client -> server
-    private static final String T_SERVER_DATA = "serverData"; // server -> clients
-    private static final String T_SERVER_CLIENTS_LIST = "clientsList"; // server -> clients
-    private static final String T_COUNTDOWN = "countdown"; // server -> clients
-
-    /** Registre de clients i assignació de noms (pool integrat). */
-    private final ClientRegistry clients;
     private final Map<String, ClientData> clientsData = new HashMap<>();
 
-    /* + Llista amb els jugadors que estaran a la partida */
-    private final List<String> playersNames = new ArrayList<>();
-
-    /** Mapa d'objectes seleccionables compartits. */
-    private final Map<String, GameObject> gameObjects = new HashMap<>();
-
     private String[][] boardState = new String[6][7];
-    private String currentTurn = "RED";
+    private String currentTurn = "";
     private boolean gameStarted = false;
+    // private String playerName = "";
     private volatile boolean countdownRunning = false;
+
+    // Variables para controlar el estado del ganador
+    private boolean gameEnded = false;
+    private String winnerColor = null;
+    private int[] winningLineCoords = null;
 
     private static final int SEND_FPS = 30;
     private final ScheduledExecutorService ticker;
 
     public Main(InetSocketAddress address) {
         super(address);
-        this.clients = new ClientRegistry(PLAYER_NAMES);
+        this.clients = new ClientRegistry(new ArrayList<>()); // Inicializa sin nombres predefinidos
         initializeBoard();
         initializegameObjects();
 
@@ -100,46 +102,30 @@ public class Main extends WebSocketServer {
         double poolY = 130;
         double poolWidth = 250;
         double pieceRadius = 80.0 * 0.15;
-        double pieceDiameter = pieceRadius * 2;
+        // double pieceDiameter = pieceRadius * 2;
 
         int piecesPerRow = 7;
         int numRows = 6;
 
-        double spacingX = (poolWidth - (piecesPerRow * pieceDiameter - 10)) / (piecesPerRow + 1);
-        double spacingY = pieceDiameter + 10;
+        double marginX = 15;
+        double marginY = 15;
+        double availableWidth = poolWidth - (2 * marginX);
+        double spacingX = availableWidth / piecesPerRow;
+        double spacingY = 50; // Mayor espaciado vertical
 
         int yellowCount = 0;
         int redCount = 0;
-
         for (int fila = 0; fila < numRows; fila++) {
-            String colorPiece = (fila % 2 == 0) ? "YELLOW" : "RED";
-            String prefix = (fila % 2 == 0) ? "Y_" : "R_";
-            double startY = poolY + (fila * spacingY) + pieceRadius;
-
             for (int col = 0; col < piecesPerRow; col++) {
-                if (colorPiece.equals("YELLOW") && yellowCount >= 21) {
-                    continue;
-                }
-                if (colorPiece.equals("RED") && redCount >= 21) {
-                    continue;
-                }
+                double centerX = poolX + marginX + (col + 0.5) * spacingX;
+                double centerY = poolY + marginY + fila * spacingY;
 
-                int index = colorPiece.equals("YELLOW") ? yellowCount : redCount;
-                String id = prefix + index;
+                String color = (fila < 3) ? "RED" : "YELLOW";
+                String id = (color.equals("RED") ? "R_" : "Y_") + (color.equals("RED") ? redCount++ : yellowCount++);
 
-                double startX = poolX + spacingX + (col * (pieceDiameter + spacingX));
-                double centerX = startX + pieceRadius;
-                double centerY = startY;
-
-                GameObject obj = new GameObject(id, centerX, centerY, pieceRadius, -1, -1);
-                obj.color = colorPiece;
-                gameObjects.put(obj.id, obj);
-
-                if (colorPiece.equals("YELLOW")) {
-                    yellowCount++;
-                } else {
-                    redCount++;
-                }
+                GameObject piece = new GameObject(id, centerX, centerY, pieceRadius, -1, -1);
+                piece.color = color;
+                gameObjects.put(id, piece);
             }
         }
     }
@@ -166,11 +152,14 @@ public class Main extends WebSocketServer {
 
     private void sendCountdown() {
         synchronized (this) {
-            if (countdownRunning)
+            if (countdownRunning) {
+                System.out.println("Countdown already running, skipping...");
                 return;
+            }
             if (playersNames.size() != REQUIRED_CLIENTS)
                 return;
             countdownRunning = true;
+            System.out.println("Starting countdown sequence...");
         }
 
         new Thread(() -> {
@@ -178,10 +167,15 @@ public class Main extends WebSocketServer {
                 for (int i = 3; i >= 0; i--) {
                     // Si durant el compte enrere ja no hi ha els clients requerits, cancel·la
                     if (playersNames.size() < REQUIRED_CLIENTS) {
-                        gameStarted = false;
+                        synchronized (this) {
+                            gameStarted = false;
+                            countdownRunning = false;
+                        }
+                        System.out.println("Countdown cancelled: player disconnected");
                         break;
                     }
 
+                    System.out.println("Countdown: " + i);
                     sendCountdownToAll(i);
 
                     if (i == 0) {
@@ -190,10 +184,11 @@ public class Main extends WebSocketServer {
                             currentTurn = "RED";
                         }
                         System.out.println("Game started! Turn: " + currentTurn);
+                        broadcastStatus(); // Enviamos el estado inicial del juego
                     }
 
                     if (i > 0)
-                        Thread.sleep(750);
+                        Thread.sleep(1000); // Aumentado a 1 segundo para mejor visibilidad
                 }
             } catch (InterruptedException ie) {
                 Thread.currentThread().interrupt();
@@ -278,7 +273,29 @@ public class Main extends WebSocketServer {
 
     private void sendCountdownToAll(int n) {
         JSONObject rst = msg(T_COUNTDOWN).put(K_VALUE, n);
-        broadcastExcept(rst.toString());
+        broadcastExcept(null, rst.toString());
+    }
+
+    @Override
+    public void onOpen(WebSocket conn, ClientHandshake handshake) {
+        System.out.println("==============================================");
+        System.out.println("New client connected! Waiting for player name...");
+        System.out.println("==============================================");
+        // ClientData clientData = new ClientData(name, color);
+        // clientsData.put(name, clientData);
+        // clients.bySocket.put(conn, name);
+        // clients.byName.put(name, conn);
+
+        // System.out.println("==============================================");
+        // System.out.println("WebSocket client connected!");
+        // System.out.println(" Name: " + name);
+        // System.out.println(" Index: " + clientIndex);
+        // System.out.println(" Assigned Color: " + color);
+        // System.out.println(" Total clients: " + clientsData.size());
+        // System.out.println("==============================================");
+
+        // sendClientName(conn, name);
+        // broadcastExcept(null, sendAllClients());
     }
 
     private String sendAllClients() {
@@ -304,40 +321,6 @@ public class Main extends WebSocketServer {
     }
 
     @Override
-    public void onOpen(WebSocket conn, ClientHandshake handshake) {
-        // CRÍTICO: El índice debe calcularse ANTES de añadir el cliente
-        int clientIndex = clientsData.size();
-
-        // Añadir cliente al registro (obtiene nombre)
-        String name = clients.add(conn);
-
-        // Asignar color según el índice
-        String color;
-        if (clientIndex == 0) {
-            color = "RED";
-        } else if (clientIndex == 1) {
-            color = "YELLOW";
-        } else {
-            color = "GRAY";
-        }
-
-        // IMPORTANTE: Crear ClientData con el color correcto
-        ClientData clientData = new ClientData(name, color);
-        clientsData.put(name, clientData);
-
-        System.out.println("==============================================");
-        System.out.println("WebSocket client connected!");
-        System.out.println("  Name: " + name);
-        System.out.println("  Index: " + clientIndex);
-        System.out.println("  Assigned Color: " + color);
-        System.out.println("  Total clients: " + clientsData.size());
-        System.out.println("==============================================");
-
-        sendClientName(conn, name);
-        broadcastExcept(null, sendAllClients());
-    }
-
-    @Override
     public void onClose(WebSocket conn, int code, String reason, boolean remote) {
         String name = clients.remove(conn);
         clientsData.remove(name);
@@ -346,6 +329,8 @@ public class Main extends WebSocketServer {
 
         synchronized (this) {
             gameStarted = false;
+            gameEnded = false;
+            winnerColor = null;
             initializeBoard();
             currentTurn = "RED";
         }
@@ -364,7 +349,40 @@ public class Main extends WebSocketServer {
         }
 
         String type = obj.optString(K_TYPE, "");
+        System.out.println("Mensaje recibido del cliente tipo: " + type);
+
         switch (type) {
+            case T_SET_PLAYER_NAME: {
+                String playerName = obj.getString("name");
+
+                // Asignar color según el orden de conexión
+                String color = (clientsData.isEmpty()) ? "RED" : (clientsData.size() == 1) ? "YELLOW" : "GRAY";
+
+                // Registrar el jugador con su color
+                ClientData clientData = new ClientData(playerName, color);
+                clientsData.put(playerName, clientData);
+
+                // Registrar el nombre del cliente
+                clients.setName(conn, playerName);
+
+                System.out.println("==============================================");
+                System.out.println("Player registered successfully!");
+                System.out.println("  Name: " + playerName);
+                System.out.println("  Color: " + color);
+                System.out.println("  Total clients: " + clientsData.size());
+                System.out.println("==============================================");
+
+                sendClientName(conn, playerName);
+                broadcastExcept(null, sendAllClients());
+
+                // Si tenemos los dos jugadores necesarios, iniciamos la cuenta atrás
+                if (clientsData.size() == REQUIRED_CLIENTS) {
+                    System.out.println("Two players connected, starting countdown...");
+                    sendCountdown();
+                }
+                break;
+            }
+
             case T_CLIENT_MOUSE_MOVING: {
                 String clientName = clients.nameBySocket(conn);
                 ClientData updatedData = ClientData.fromJSON(obj.getJSONObject(K_VALUE));
@@ -374,17 +392,13 @@ public class Main extends WebSocketServer {
                     updatedData.color = existingData.color;
                 }
                 clientsData.put(clientName, updatedData);
+                break;
             }
 
             case T_CLIENT_PIECE_MOVING: {
                 GameObject objData = GameObject.fromJSON(obj.getJSONObject(K_VALUE));
                 gameObjects.put(objData.id, objData);
-            }
-
-            case T_CLIENT_PLAY: {
-                // Gestionar la jugada
-
-                sendCountdown();
+                break;
             }
 
             case T_CLIENT_SEND_INVITATION: {
@@ -396,7 +410,7 @@ public class Main extends WebSocketServer {
                 sendSafe(clients.socketByName(receiver), obj.toString());
             }
 
-            case T_CLIENT_ANSWER_INVITATION : {
+            case T_CLIENT_ANSWER_INVITATION: {
                 // Rebem una petició amb el nom de l'usuari i destinatari a enviar la petició i
                 // un boolà amb la resposta
                 System.out.println(obj);
@@ -432,6 +446,14 @@ public class Main extends WebSocketServer {
                     return;
                 }
 
+                if (gameEnded) {
+                    JSONObject response = msg(T_PLAY_REJECTED)
+                            .put("pieceId", obj.optString("pieceId", ""))
+                            .put("reason", "Game has ended");
+                    sendSafe(conn, response.toString());
+                    return;
+                }
+
                 String pieceId = obj.getString("pieceId");
                 int col = obj.getInt("column");
 
@@ -460,6 +482,8 @@ public class Main extends WebSocketServer {
                             piece.col = col;
                         }
 
+                        checkWinner();
+
                         switchTurn();
 
                         System.out.println("Play accepted: " + pieceId + " at [" + row + "," + col + "]. Next turn: "
@@ -468,7 +492,19 @@ public class Main extends WebSocketServer {
                         JSONObject response = msg(T_PLAY_ACCEPTED)
                                 .put("pieceId", pieceId)
                                 .put("column", col)
-                                .put("row", row);
+                                .put("row", row)
+                                .put("gameEnded", gameEnded)
+                                .put("winner", winnerColor != null ? winnerColor : JSONObject.NULL);
+
+                        // Si hay ganador, enviar las coordenadas de la línea ganadora
+                        if (winnerColor != null && !winnerColor.equals("DRAW") && winningLineCoords != null) {
+                            JSONArray winningCoords = new JSONArray();
+                            for (int coord : winningLineCoords) {
+                                winningCoords.put(coord);
+                            }
+                            response.put("winningLineCoords", winningCoords);
+                        }
+
                         sendSafe(conn, response.toString());
                     } else {
                         JSONObject response = msg(T_PLAY_REJECTED)
@@ -484,6 +520,7 @@ public class Main extends WebSocketServer {
                 }
             }
         }
+
     }
 
     @Override
@@ -541,6 +578,137 @@ public class Main extends WebSocketServer {
         } catch (InterruptedException ie) {
             Thread.currentThread().interrupt();
         }
+    }
+
+    /**
+     * Function that checks the winner
+     * 
+     */
+    private void checkWinner() {
+        // Horizontal
+        for (int row = 0; row < 6; row++) {
+            for (int col = 0; col < 4; col++) {
+                String piece = getColorPiece(boardState[row][col]);
+                if (piece != null && piece.equals(getColorPiece(boardState[row][col + 1]))
+                        && piece.equals(getColorPiece(boardState[row][col + 2]))
+                        && piece.equals(getColorPiece(boardState[row][col + 3]))) {
+                    winningLineCoords = new int[] { row, col, row, col + 3 };
+                    winnerColor = piece;
+                    gameEnded = true;
+                    System.out.println(
+                            "WINNER HORIZONTAL: " + piece + " at row " + row + ", cols " + col + "-" + (col + 3));
+                    printBoardState();
+                    return;
+                }
+            }
+        }
+
+        // Vertical
+        for (int col = 0; col < 7; col++) {
+            for (int row = 0; row < 3; row++) { // Solo hasta row 2 (0,1,2 -> verifica hasta row 5)
+                String piece = getColorPiece(boardState[row][col]);
+                if (piece != null &&
+                        piece.equals(getColorPiece(boardState[row + 1][col])) &&
+                        piece.equals(getColorPiece(boardState[row + 2][col])) &&
+                        piece.equals(getColorPiece(boardState[row + 3][col]))) {
+
+                    winningLineCoords = new int[] { row, col, row + 3, col };
+                    winnerColor = piece;
+                    gameEnded = true;
+                    System.out.println(
+                            "WINNER VERTICAL: " + piece + " at col " + col + ", rows " + row + "-" + (row + 3));
+                    printBoardState();
+                    return;
+                }
+            }
+        }
+
+        // Diagonal a la izquierda (\)
+        for (int row = 0; row <= 2; row++) {
+            for (int col = 0; col <= 3; col++) {
+                String piece = getColorPiece(boardState[row][col]);
+                if (piece != null &&
+                        piece.equals(getColorPiece(boardState[row + 1][col + 1])) &&
+                        piece.equals(getColorPiece(boardState[row + 2][col + 2])) &&
+                        piece.equals(getColorPiece(boardState[row + 3][col + 3]))) {
+
+                    winningLineCoords = new int[] { row, col, row + 3, col + 3 };
+                    winnerColor = piece;
+                    gameEnded = true;
+                    System.out.println("WINNER DIAGONAL \\: " + piece + " from [" + row + "," + col + "] to ["
+                            + (row + 3) + "," + (col + 3) + "]");
+                    printBoardState();
+                    return;
+                }
+            }
+        }
+
+        // Diagonal a la derecha (/)
+        for (int row = 3; row <= 5; row++) { // Empezar desde row 3 hacia abajo
+            for (int col = 0; col <= 3; col++) {
+                String piece = getColorPiece(boardState[row][col]);
+                if (piece != null &&
+                        piece.equals(getColorPiece(boardState[row - 1][col + 1])) &&
+                        piece.equals(getColorPiece(boardState[row - 2][col + 2])) &&
+                        piece.equals(getColorPiece(boardState[row - 3][col + 3]))) {
+
+                    winningLineCoords = new int[] { row, col, row - 3, col + 3 };
+                    winnerColor = piece;
+                    gameEnded = true;
+                    System.out.println("WINNER DIAGONAL /: " + piece + " from [" + row + "," + col + "] to ["
+                            + (row - 3) + "," + (col + 3) + "]");
+                    printBoardState();
+                    return;
+                }
+            }
+        }
+
+        boolean isBoardFull = true;
+        for (int r = 0; r < 6; r++) {
+            for (int c = 0; c < 7; c++) {
+                if (boardState[r][c] == null) {
+                    isBoardFull = false;
+                    break;
+                }
+            }
+        }
+        if (isBoardFull) {
+            gameEnded = true;
+            winnerColor = "DRAW";
+            System.out.println("GAME ENDED IN A DRAW");
+            printBoardState();
+            return;
+        }
+
+        System.out.println("Non winner");
+        printBoardState();
+    }
+
+    private String getColorPiece(String piece) {
+        if (piece != null) {
+            return piece.substring(0, 1);
+        }
+
+        return piece;
+    }
+
+    private void printBoardState() {
+        System.out.println("\n===== BOARD STATE =====");
+        for (int row = 0; row < 6; row++) {
+            System.out.print("Row " + row + ": ");
+            for (int col = 0; col < 7; col++) {
+                String cell = boardState[row][col];
+                if (cell == null) {
+                    System.out.print("[ ] ");
+                } else if (cell.startsWith("R_")) {
+                    System.out.print("[R] ");
+                } else if (cell.startsWith("Y_")) {
+                    System.out.print("[Y] ");
+                }
+            }
+            System.out.println();
+        }
+        System.out.println("=======================\n");
     }
 
     public static void main(String[] args) {
