@@ -38,33 +38,6 @@ public class CtrlOpponentSelection implements Initializable {
         new Pulse(list_receive).play();
     }
 
-    // Efecto hover: escala + rotación sutil
-    private void setupHoverEffect(Node node) {
-        ScaleTransition scaleUp = new ScaleTransition(Duration.millis(200), node);
-        scaleUp.setToX(1.05);
-        scaleUp.setToY(1.05);
-
-        ScaleTransition scaleDown = new ScaleTransition(Duration.millis(200), node);
-        scaleDown.setToX(1.0);
-        scaleDown.setToY(1.0);
-
-        RotateTransition rotateIn = new RotateTransition(Duration.millis(200), node);
-        rotateIn.setToAngle(2);
-
-        RotateTransition rotateOut = new RotateTransition(Duration.millis(200), node);
-        rotateOut.setToAngle(0);
-
-        node.setOnMouseEntered(e -> {
-            scaleUp.play();
-            rotateIn.play();
-        });
-
-        node.setOnMouseExited(e -> {
-            scaleDown.play();
-            rotateOut.play();
-        });
-    }
-
     // Cargar la lista de usuarios disponibles para enviar invitación
     public void loadSendList() {
         try {
@@ -118,8 +91,6 @@ public class CtrlOpponentSelection implements Initializable {
                 // Configurar los datos del cliente
                 itemController.setUser(client.name);
                 // itemController.setImage("/assets/images/"); //si existe
-
-                setupHoverEffect(itemPane); // Animación hover
 
                 list_receive.getChildren().add(itemPane);
             }
