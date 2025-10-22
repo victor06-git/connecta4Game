@@ -199,7 +199,6 @@ public class CtrlOpponentSelection implements Initializable {
 
     public void removeFromSendInvitation(String name) {
         sendInvitations.remove(name);
-        loadSendList();
     }
 
     public void rejectAllPetitions() {
