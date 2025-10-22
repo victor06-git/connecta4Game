@@ -105,8 +105,10 @@ public class Main extends Application {
      */
     public static void connectToServer() {
 
-        ctrlConfig.txtMessage.setTextFill(Color.BLACK);
+        ctrlConfig.txtMessage.setTextFill(Color.GREEN);
         ctrlConfig.txtMessage.setText("Connecting ...");
+        ctrlConfig.txtMessage.setStyle("-fx-text-fill: green;");
+        new animatefx.animation.BounceIn(ctrlConfig.txtMessage).play(); // Animación de entrada
 
         pauseDuring(1500, () -> { // Give time to show connecting message ...
 
@@ -201,7 +203,7 @@ public class Main extends Application {
             case "countdown":
                 if (!UtilsViews.getActiveView().equals("ViewWait")) {
                     // Rebutgem la resta de peticions
-                    ((CtrlOpponentSelection)UtilsViews.getController("ViewOpponentSelection")).rejectAllPetions();
+                    ((CtrlOpponentSelection) UtilsViews.getController("ViewOpponentSelection")).rejectAllPetions();
                     UtilsViews.setView("ViewWait");
                 }
 
@@ -263,7 +265,7 @@ public class Main extends Application {
                 if (ctrlPlay != null) {
                     ctrlPlay.handlePlayRejected(rejectedPieceId);
                 }
-                
+
             case "clientsList":
                 JSONArray arr = msgObj.getJSONArray("clientsList");
                 clients.clear();
@@ -277,25 +279,29 @@ public class Main extends Application {
 
                     ClientData cd = new ClientData(name, color);
                     cd.SetIsPlaying(isPlaying);
-                    
+
                     clients.add(cd);
                 }
 
-                ((CtrlOpponentSelection)UtilsViews.getController("ViewOpponentSelection")).loadSendList();
-                
+                ((CtrlOpponentSelection) UtilsViews.getController("ViewOpponentSelection")).loadSendList();
+
                 break;
-        
+
             case "clientSendInvitation":
                 String username = msgObj.getString("sendFrom");
-                ((CtrlOpponentSelection)UtilsViews.getController("ViewOpponentSelection")).addFromReceiveList(username);
-                ((CtrlOpponentSelection)UtilsViews.getController("ViewOpponentSelection")).addToSendInvitation(username);
+                ((CtrlOpponentSelection) UtilsViews.getController("ViewOpponentSelection"))
+                        .addFromReceiveList(username);
+                ((CtrlOpponentSelection) UtilsViews.getController("ViewOpponentSelection"))
+                        .addToSendInvitation(username);
                 break;
 
             case "clientAnswerInvitation":
                 System.out.println(msgObj);
                 String user = msgObj.getString("sendTo");
-                ((CtrlOpponentSelection)UtilsViews.getController("ViewOpponentSelection")).reactivateFromSendList(user);
-                ((CtrlOpponentSelection)UtilsViews.getController("ViewOpponentSelection")).removeFromSendInvitation(user);
+                ((CtrlOpponentSelection) UtilsViews.getController("ViewOpponentSelection"))
+                        .reactivateFromSendList(user);
+                ((CtrlOpponentSelection) UtilsViews.getController("ViewOpponentSelection"))
+                        .removeFromSendInvitation(user);
                 break;
         }
     }
