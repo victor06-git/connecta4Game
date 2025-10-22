@@ -10,15 +10,12 @@ import com.shared.ClientData;
 
 import animatefx.animation.Pulse;
 import animatefx.animation.Wobble;
-import javafx.animation.RotateTransition;
-import javafx.animation.ScaleTransition;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
 import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.layout.VBox;
-import javafx.util.Duration;
 
 public class CtrlOpponentSelection implements Initializable {
 
