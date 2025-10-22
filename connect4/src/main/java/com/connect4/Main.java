@@ -203,7 +203,7 @@ public class Main extends Application {
             case "countdown":
                 if (!UtilsViews.getActiveView().equals("ViewWait")) {
                     // Rebutgem la resta de peticions
-                    ((CtrlOpponentSelection) UtilsViews.getController("ViewOpponentSelection")).rejectAllPetions();
+                    ((CtrlOpponentSelection) UtilsViews.getController("ViewOpponentSelection")).rejectAllPetitions();
                     UtilsViews.setView("ViewWait");
                 }
 
@@ -299,9 +299,10 @@ public class Main extends Application {
                 System.out.println(msgObj);
                 String user = msgObj.getString("sendTo");
                 ((CtrlOpponentSelection) UtilsViews.getController("ViewOpponentSelection"))
-                        .reactivateFromSendList(user);
-                ((CtrlOpponentSelection) UtilsViews.getController("ViewOpponentSelection"))
                         .removeFromSendInvitation(user);
+                ((CtrlOpponentSelection) UtilsViews.getController("ViewOpponentSelection"))
+                        .reactivateFromSendList(user);
+
                 break;
         }
     }

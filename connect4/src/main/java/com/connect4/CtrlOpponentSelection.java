@@ -8,12 +8,17 @@ import java.util.Map;
 
 import com.shared.ClientData;
 
+import animatefx.animation.Pulse;
+import animatefx.animation.Wobble;
+import javafx.animation.RotateTransition;
+import javafx.animation.ScaleTransition;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
 import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.layout.VBox;
+import javafx.util.Duration;
 
 public class CtrlOpponentSelection implements Initializable {
 
@@ -28,6 +33,36 @@ public class CtrlOpponentSelection implements Initializable {
     public void initialize(URL location, java.util.ResourceBundle resources) {
         loadSendList();
         loadReceiveList();
+
+        new Wobble(list_send).play();
+        new Pulse(list_receive).play();
+    }
+
+    // Efecto hover: escala + rotación sutil
+    private void setupHoverEffect(Node node) {
+        ScaleTransition scaleUp = new ScaleTransition(Duration.millis(200), node);
+        scaleUp.setToX(1.05);
+        scaleUp.setToY(1.05);
+
+        ScaleTransition scaleDown = new ScaleTransition(Duration.millis(200), node);
+        scaleDown.setToX(1.0);
+        scaleDown.setToY(1.0);
+
+        RotateTransition rotateIn = new RotateTransition(Duration.millis(200), node);
+        rotateIn.setToAngle(2);
+
+        RotateTransition rotateOut = new RotateTransition(Duration.millis(200), node);
+        rotateOut.setToAngle(0);
+
+        node.setOnMouseEntered(e -> {
+            scaleUp.play();
+            rotateIn.play();
+        });
+
+        node.setOnMouseExited(e -> {
+            scaleDown.play();
+            rotateOut.play();
+        });
     }
 
     // Cargar la lista de usuarios disponibles para enviar invitación
@@ -84,6 +119,8 @@ public class CtrlOpponentSelection implements Initializable {
                 itemController.setUser(client.name);
                 // itemController.setImage("/assets/images/"); //si existe
 
+                setupHoverEffect(itemPane); // Animación hover
+
                 list_receive.getChildren().add(itemPane);
             }
         } catch (Exception e) {
@@ -120,6 +157,7 @@ public class CtrlOpponentSelection implements Initializable {
 
             removeFromSendList(name);
             list_receive.getChildren().add(itemPane);
+
         } catch (Exception e) {
             System.err.println("Error al cargar las invitaciones recibidas");
             e.printStackTrace();
@@ -164,7 +202,7 @@ public class CtrlOpponentSelection implements Initializable {
         loadSendList();
     }
 
-    public void rejectAllPetions() {
+    public void rejectAllPetitions() {
 
         if (list_receive.getChildren().isEmpty())
             return;
