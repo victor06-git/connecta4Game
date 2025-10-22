@@ -85,7 +85,7 @@ public class CtrlSubViewReceive {
             Main.wsClient.safeSend(json.toString());
 
             // Eliminar subView del ControllerOpponentSelection
-            removeInvitation();
+            removeInvitation(); // Remove
         }
     }
 
