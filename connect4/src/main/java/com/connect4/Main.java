@@ -297,11 +297,15 @@ public class Main extends Application {
 
             case "clientAnswerInvitation":
                 System.out.println(msgObj);
-                String user = msgObj.getString("sendTo");
+                // Cuando alguien responde a mi invitación:
+                // - sendFrom: la persona que respondió (ej: María)
+                // - sendTo: yo (Juan)
+                // Necesito el nombre de quien respondió para reactivar su botón
+                String resp = msgObj.getString("sendFrom");
                 ((CtrlOpponentSelection) UtilsViews.getController("ViewOpponentSelection"))
-                        .removeFromSendInvitation(user);
+                        .removeFromSendInvitation(resp);
                 ((CtrlOpponentSelection) UtilsViews.getController("ViewOpponentSelection"))
-                        .reactivateFromSendList(user);
+                        .reactivateFromSendList(resp);
 
                 break;
         }
