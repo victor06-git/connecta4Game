@@ -251,7 +251,7 @@ public class Main extends Application {
                         }
 
                         CtrlResult ctrlResult = (CtrlResult) UtilsViews.getController("ViewResult");
-                        ctrlResult.setResultData(result, myColor, winner, ctrlPlay.boardState);
+                        ctrlResult.setResultData(result, myColor, winner, ctrlPlay.getBoardState());
                         UtilsViews.setViewAnimating("ViewResult");
                     });
                 }
