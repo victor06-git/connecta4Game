@@ -97,7 +97,9 @@ public class CtrlResult implements Initializable {
     @FXML
     private void backToMenu() {
         Main.ctrlPlay.stop();
-        UtilsViews.setViewAnimating("ViewOpponentSelection");
+        UtilsViews.setViewAnimating("ViewConfig");
+        // Reset game state
+        Main.ctrlConfig.txtPlayerName.clear();
     }
 
     @FXML
