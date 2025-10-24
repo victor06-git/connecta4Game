@@ -8,6 +8,8 @@ import java.util.ResourceBundle;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import com.connect4.ctrlPlay.ColorUtils;
+import com.connect4.ctrlPlay.DrawUtils;
 import com.shared.ClientData;
 import com.shared.GameObject;
 
@@ -21,7 +23,6 @@ import javafx.scene.paint.Color;
 import javafx.scene.paint.CycleMethod;
 import javafx.scene.paint.LinearGradient;
 import javafx.scene.paint.Stop;
-import javafx.scene.text.Font;
 
 public class CtrlPlay implements Initializable {
 
@@ -69,6 +70,8 @@ public class CtrlPlay implements Initializable {
     private Map<String, GameObject> gameObjectsMap = new HashMap<>();
     private Map<String, GameObject> originalPoolPositions = new HashMap<>(); // To have the original position of every
                                                                              // piece and return to it if needed
+    private ColorUtils utils = new ColorUtils(); // utils.getColor function
+    private DrawUtils drawUtils = new DrawUtils();
 
     @Override
     public void initialize(URL url, ResourceBundle rb) {
@@ -541,15 +544,15 @@ public class CtrlPlay implements Initializable {
         // Clean drawing area
         gc.clearRect(0, 0, canvas.getWidth(), canvas.getHeight());
 
-        drawTurnIndicator();
+        drawUtils.drawTurnIndicator(gc, currentTurn, myColor, Main.clientName);
 
-        drawDropZone();
+        drawUtils.drawDropZone(gc, grid, dropZoneHeight, hoveredColumn, utils);
 
         // Draw colored 'over' cells
         for (ClientData clientData : Main.clients) {
             // Comprovar si està dins dels límits de la graella
             if (clientData.row >= 0 && clientData.col >= 0) {
-                Color base = getColor(clientData.color);
+                Color base = utils.getColor(clientData.color);
                 Color alpha = new Color(base.getRed(), base.getGreen(), base.getBlue(), 0.5);
                 gc.setFill(alpha);
                 gc.fillRect(grid.getCellX(clientData.col), grid.getCellY(clientData.row), grid.getCellSize(),
@@ -575,7 +578,7 @@ public class CtrlPlay implements Initializable {
         gc.strokeRect(poolX, poolY, poolWidth, poolHeight);
 
         // Draw grid
-        drawBoard();
+        drawUtils.drawBoard(gc, grid, utils);
 
         // Draw pieces of pool (non-selected)
         for (GameObject go : Main.objects) {
@@ -583,24 +586,24 @@ public class CtrlPlay implements Initializable {
                 // Saltar la ficha que está siendo arrastrada o animándose
                 if (selectedObject != null && go.id.equals(selectedObject.id))
                     continue;
-                drawObject(go);
+                drawUtils.drawObject(go, gc, grid, utils);
             }
         }
 
         // Draw piece on client (selected or animating)
-        //if (selectedObject != null) {
-        //    drawObject(selectedObject);
-        //}
+        // if (selectedObject != null) {
+        // drawObject(selectedObject);
+        // }
 
-        drawBoardPieces();
+        drawUtils.drawBoardPieces(gc, boardState, grid, utils);
 
         if (winningLineCoords != null) {
-            drawWinningCircles();
+            drawUtils.drawWinningCircles(gc, winningLineCoords, grid);
         }
 
         // Draw mouse circles (Consigue el color de clients)
         for (ClientData clientData : Main.clients) {
-            gc.setFill(getColor(clientData.color));
+            gc.setFill(utils.getColor(clientData.color));
             gc.fillOval(clientData.mouseX - 5, clientData.mouseY - 5, 20, 20);
         }
 
@@ -610,300 +613,4 @@ public class CtrlPlay implements Initializable {
         }
     }
 
-    private void drawTurnIndicator() {
-        // Obtener mi color
-        if (myColor.isEmpty()) {
-            myColor = Main.clients.stream()
-                    .filter(c -> c.name.equals(Main.clientName))
-                    .map(c -> c.color)
-                    .findFirst()
-                    .orElse("");
-        }
-
-        // Posición del indicador (arriba a la izquierda)
-        double indicatorX = 20;
-        double indicatorY = 10;
-
-        // Dibujar fondo
-        gc.setFill(Color.rgb(255, 255, 255, 0.8));
-        gc.fillRoundRect(indicatorX, indicatorY, 200, 50, 10, 10);
-
-        // Dibujar borde
-        gc.setStroke(Color.BLACK);
-        gc.setLineWidth(2);
-        gc.strokeRoundRect(indicatorX, indicatorY, 200, 50, 10, 10);
-
-        // Texto del turno
-        gc.setFill(Color.BLACK);
-        gc.setFont(new Font("Arial Bold", 16));
-
-        boolean isMyTurn = currentTurn.equals(myColor);
-        String turnText = isMyTurn ? "YOUR TURN" : currentTurn + "'S TURN";
-
-        gc.fillText("Turn: " + currentTurn, indicatorX + 10, indicatorY + 25);
-
-        // Indicador de color del turno actual
-        Color turnColor = getColor(currentTurn.toLowerCase());
-        gc.setFill(turnColor);
-        gc.fillOval(indicatorX + 150, indicatorY + 15, 20, 20);
-
-        // Si es tu turno, añadir indicador extra
-        if (isMyTurn) {
-            gc.setFill(Color.GREEN);
-            gc.fillText("▶", indicatorX + 180, indicatorY + 30);
-        }
-    }
-
-    private void drawBoardPieces() {
-        // selectedObject = null;
-
-        double cellSize = grid.getCellSize();
-        double radius = cellSize * 0.40;
-
-        for (int row = 0; row < grid.getRows(); row++) {
-            for (int col = 0; col < grid.getCols(); col++) {
-                String pieceId = boardState[row][col];
-
-                if (pieceId != null) {
-
-                    double centerX = grid.getCellX(col) + cellSize / 2;
-                    double centerY = grid.getCellY(row) + cellSize / 2;
-
-                    Color color;
-                    Color borderColor;
-                    if (pieceId.startsWith("R_")) {
-                        color = getColor("red");
-                        borderColor = getColor("dark_red");
-                    } else if (pieceId.startsWith("Y_")) {
-                        color = getColor("yellow");
-                        borderColor = getColor("dark_yellow");
-                    } else {
-                        color = getColor("gray");
-                        borderColor = getColor("black");
-                    }
-
-                    gc.setFill(color);
-                    gc.fillOval(centerX - radius, centerY - radius, radius * 2, radius * 2);
-
-                    gc.setStroke(borderColor);
-                    gc.setLineWidth(5);
-                    gc.strokeOval(centerX - radius, centerY - radius, radius * 2, radius * 2);
-                }
-            }
-        }
-    }
-
-    /**
-     * Function that draws the circles of the winner
-     * 
-     */
-    private void drawWinningCircles() {
-        if (winningLineCoords == null)
-            return;
-
-        double cellSize = grid.getCellSize();
-        double radius = cellSize * 0.40;
-
-        int startRow = winningLineCoords[0];
-        int startCol = winningLineCoords[1];
-        int endRow = winningLineCoords[2];
-        int endCol = winningLineCoords[3];
-
-        // Calcular dirección
-        int rowStep = (endRow > startRow) ? 1 : (endRow < startRow) ? -1 : 0;
-        int colStep = (endCol > startCol) ? 1 : (endCol < startCol) ? -1 : 0;
-
-        // Dibujar círculo en cada una de las 4 fichas ganadoras
-        int currentRow = startRow;
-        int currentCol = startCol;
-
-        for (int i = 0; i < 4; i++) {
-            double centerX = grid.getCellX(currentCol) + cellSize / 2;
-            double centerY = grid.getCellY(currentRow) + cellSize / 2;
-
-            // Sombra del círculo
-            gc.setFill(Color.rgb(0, 0, 0, 0.3));
-            gc.fillOval(centerX - radius + 3, centerY - radius + 3, radius * 2, radius * 2);
-
-            // Círculo verde fosforito (brillante)
-            gc.setFill(Color.rgb(0, 255, 0, 0.7)); // Verde neón con transparencia
-            gc.fillOval(centerX - radius, centerY - radius, radius * 2, radius * 2);
-
-            // Borde del círculo verde más brillante
-            gc.setStroke(Color.rgb(50, 255, 50)); // Verde fosforito
-            gc.setLineWidth(4);
-            gc.strokeOval(centerX - radius, centerY - radius, radius * 2, radius * 2);
-
-            // Avanzar a la siguiente ficha
-            currentRow += rowStep;
-            currentCol += colStep;
-        }
-
-    }
-
-    /**
-     * Function that draw the drop zone
-     * 
-     */
-    private void drawDropZone() {
-        double startX = grid.getStartX();
-        double startY = grid.getStartY() - dropZoneHeight;
-        double cellSize = grid.getCellSize();
-
-        for (int col = 0; col < grid.getCols(); col++) {
-            double x = startX + col * cellSize;
-
-            // Fondo de la columna
-            if (col == hoveredColumn) {
-                // Columna iluminada
-                gc.setFill(Color.rgb(100, 200, 255, 0.5));
-            } else {
-                gc.setFill(Color.rgb(200, 200, 200, 0.3));
-            }
-            gc.fillRect(x, startY, cellSize, dropZoneHeight);
-
-            // Borde
-            gc.setStroke(getColor("gray"));
-            gc.setLineWidth(1);
-            gc.strokeRect(x, startY, cellSize, dropZoneHeight);
-
-            // Letra de la columna (A-G)
-            gc.setFill(getColor("black"));
-            gc.setFont(new Font("Arial Bold", 24));
-            String letter = String.valueOf((char) ('A' + col));
-            gc.fillText(letter, x + cellSize / 2 - 8, startY + dropZoneHeight / 2 + 8);
-        }
-    }
-
-    /**
-     * Function that draw the board
-     * 
-     */
-    public void drawBoard() {
-        double cellSize = grid.getCellSize();
-        double gridWidth = grid.getCols() * cellSize;
-        double gridHeight = grid.getRows() * cellSize;
-        double startX = grid.getStartX();
-        double startY = grid.getStartY();
-
-        // Dibujar el fondo azul del tablero
-        gc.setFill(getColor("dodger_blue"));
-        gc.fillRect(startX, startY, gridWidth, gridHeight);
-
-        // Dibujar los círculos grises (sombra) en cada celda
-        for (int row = 0; row < grid.getRows(); row++) {
-            for (int col = 0; col < grid.getCols(); col++) {
-                double cellX = startX + col * cellSize;
-                double cellY = startY + row * cellSize;
-
-                double centerX = cellX + cellSize / 2;
-                double centerY = cellY + cellSize / 2;
-
-                double holeRadius = cellSize * 0.45;
-
-                gc.setFill(getColor("gray"));
-                gc.fillOval(centerX - holeRadius, centerY - holeRadius, holeRadius * 2, holeRadius * 2);
-            }
-        }
-
-        // Dibujar los círculos blancos (agujeros) en cada celda
-        for (int row = 0; row < grid.getRows(); row++) {
-            for (int col = 0; col < grid.getCols(); col++) {
-                double cellX = startX + col * cellSize;
-                double cellY = startY + row * cellSize;
-
-                double centerX = cellX + cellSize / 2;
-                double centerY = cellY + cellSize / 2;
-
-                double holeRadius = cellSize * 0.4;
-
-                gc.setFill(getColor("white"));
-                gc.fillOval(centerX - holeRadius, centerY - holeRadius, holeRadius * 2, holeRadius * 2);
-            }
-        }
-
-        // Dibujar borde del tablero
-        gc.setStroke(getColor("dark_blue"));
-        gc.setLineWidth(3);
-        gc.strokeRect(startX, startY, gridWidth, gridHeight);
-    }
-
-    /**
-     * Function that created the object (fichas)
-     * 
-     * @param obj
-     */
-    public void drawObject(GameObject obj) {
-        double centerX = obj.center_x;
-        double centerY = obj.center_y;
-        double radius = grid.getCellSize() * 0.40;
-
-        // Seleccionar un color basat en l'objectId
-        Color color;
-        if (obj.color != null && !obj.color.isEmpty()) {
-            color = getColor(obj.color);
-        } else {
-            // Color por ID
-            if (obj.id.startsWith("R_")) {
-                color = getColor("red");
-            } else if (obj.id.startsWith("Y_")) {
-                color = getColor("yellow");
-            } else {
-                color = getColor("gray");
-            }
-        }
-
-        // Dibuixar el cercle
-        gc.setFill(color);
-        gc.fillOval(centerX - radius, centerY - radius, radius * 2, radius * 2);
-
-        // Dibuixar el contorn
-        gc.setStroke(obj.id.startsWith("R_") ? getColor("dark_red") : getColor("dark_yellow"));
-        gc.setLineWidth(5);
-        gc.strokeOval(centerX - radius, centerY - radius, radius * 2, radius * 2);
-
-    }
-
-    /**
-     * Function to get color by name
-     * 
-     * @param colorName
-     * @return
-     */
-    public Color getColor(String colorName) {
-        switch (colorName.toLowerCase()) {
-            case "red":
-                return Color.RED;
-            case "dark_red":
-                return Color.rgb(117, 4, 4, 1);
-            case "blue":
-                return Color.BLUE;
-            case "green":
-                return Color.GREEN;
-            case "yellow":
-                return Color.YELLOW;
-            case "dark_yellow":
-                return Color.rgb(124, 129, 3, 1);
-            case "orange":
-                return Color.ORANGE;
-            case "purple":
-                return Color.PURPLE;
-            case "pink":
-                return Color.PINK;
-            case "brown":
-                return Color.BROWN;
-            case "gray":
-                return Color.GRAY;
-            case "black":
-                return Color.BLACK;
-            case "dark_blue":
-                return Color.DARKBLUE;
-            case "white":
-                return Color.WHITE;
-            case "dodger_blue":
-                return Color.DODGERBLUE;
-            default:
-                return Color.LIGHTGRAY; // Default color
-        }
-    }
 }
