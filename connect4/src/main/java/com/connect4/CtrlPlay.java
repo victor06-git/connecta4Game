@@ -5,11 +5,11 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.ResourceBundle;
 
-import org.json.JSONArray;
 import org.json.JSONObject;
 
 import com.connect4.ctrlPlay.ColorUtils;
 import com.connect4.ctrlPlay.DrawUtils;
+import com.connect4.ctrlPlay.GameLogicUtils;
 import com.shared.ClientData;
 import com.shared.GameObject;
 
@@ -58,7 +58,6 @@ public class CtrlPlay implements Initializable {
 
     // Winner variables
     private int[] winningLineCoords = null;
-    private String winningColor = null;
     private boolean gameEnded = false;
     private String winnerColor = null;
 
@@ -72,6 +71,7 @@ public class CtrlPlay implements Initializable {
                                                                              // piece and return to it if needed
     private ColorUtils utils = new ColorUtils(); // utils.getColor function
     private DrawUtils drawUtils = new DrawUtils();
+    private GameLogicUtils logic = new GameLogicUtils();
 
     @Override
     public void initialize(URL url, ResourceBundle rb) {
@@ -123,18 +123,10 @@ public class CtrlPlay implements Initializable {
      * @param state
      */
     public void updateGameState(JSONObject state) {
-        currentTurn = state.optString("currentTurn", "RED");
-
-        if (state.has("boardState")) {
-            JSONArray boardArray = state.getJSONArray("boardState");
-            for (int i = 0; i < 6; i++) {
-                JSONArray row = boardArray.getJSONArray(i);
-                for (int j = 0; j < 7; j++) {
-                    Object cell = row.get(j);
-                    boardState[i][j] = cell == JSONObject.NULL ? null : (String) cell;
-                }
-            }
-        }
+        // Delegate to GameLogicUtils to update boardState and obtain current turn
+        currentTurn = logic.updateGameState(state, boardState);
+        // Ensure local myColor is in sync for UI (DrawUtils uses myColor)
+        myColor = logic.getMyColor(Main.clientName);
     }
 
     /**
@@ -147,14 +139,15 @@ public class CtrlPlay implements Initializable {
      * @param winningLineCoords
      */
     public void handlePlayAccepted(String pieceId, int col, int row, String winner, int[] winningLineCoords) {
-        boardState[row][col] = pieceId;
+        // Delegate logic to GameLogicUtils
+        GameObject piece = logic.handlePlayAccepted(pieceId, col, row, winner, winningLineCoords, boardState,
+                gameObjectsMap);
 
-        GameObject piece = gameObjectsMap.get(pieceId);
         if (piece != null) {
-            piece.row = row;
-            piece.col = col;
             selectedObject = piece;
-            startDropAnimation(col, row);
+            // Initialize drop animation via logic helper (it returns target Y)
+            animationTargetY = logic.startDropAnimation(piece, col, row, grid);
+            isAnimating = true;
         }
 
         // Actualizar información del ganador si existe
@@ -171,11 +164,9 @@ public class CtrlPlay implements Initializable {
      * @param pieceId
      */
     public void handlePlayRejected(String pieceId) {
-        if (selectedObject != null && selectedObject.id.equals(pieceId)) {
-            // Devolver a posición original
-            returnPieceToOriginalPosition(selectedObject);
-            selectedObject = null;
-        }
+        // Delegate rejection handling to GameLogicUtils which can return updated
+        // selection
+        selectedObject = logic.handlePlayRejected(pieceId, selectedObject, originalPoolPositions);
         mouseDragging = false;
         hoveredColumn = -1;
     }
@@ -186,13 +177,7 @@ public class CtrlPlay implements Initializable {
      * @param piece
      */
     private void returnPieceToOriginalPosition(GameObject piece) {
-        if (originalPoolPositions.containsKey(piece.id)) {
-            GameObject original = originalPoolPositions.get(piece.id);
-            piece.center_x = original.center_x;
-            piece.center_y = original.center_y;
-            piece.col = -1;
-            piece.row = -1;
-        }
+        logic.returnPieceToOriginalPosition(piece, originalPoolPositions);
     }
 
     /**
@@ -241,13 +226,7 @@ public class CtrlPlay implements Initializable {
      * @return
      */
     private boolean isPositionInDropZone(double x, double y) {
-        double gridStartX = grid.getStartX();
-        double gridEndX = gridStartX + (grid.getCols() * grid.getCellSize());
-        double dropZoneStartY = grid.getStartY() - dropZoneHeight;
-        double dropZoneEndY = grid.getStartY();
-
-        return x >= gridStartX && x <= gridEndX &&
-                y >= dropZoneStartY && y <= dropZoneEndY;
+        return logic.isPositionInDropZone(x, y, grid, dropZoneHeight);
     }
 
     /**
@@ -257,11 +236,7 @@ public class CtrlPlay implements Initializable {
      * @return
      */
     private int getDropZoneColumn(double x) {
-        if (x < grid.getStartX() || x > grid.getStartX() + grid.getCols() * grid.getCellSize()) {
-            return -1;
-        }
-        int col = (int) ((x - grid.getStartX()) / grid.getCellSize());
-        return Math.max(0, Math.min(col, grid.getCols() - 1));
+        return logic.getDropZoneColumn(x, grid);
     }
 
     /**
@@ -271,22 +246,7 @@ public class CtrlPlay implements Initializable {
      * @return
      */
     private boolean canMoveThisPiece(GameObject piece) {
-        if (myColor.isEmpty()) {
-            myColor = Main.clients.stream()
-                    .filter(c -> c.name.equals(Main.clientName))
-                    .map(c -> c.color)
-                    .findFirst()
-                    .orElse("");
-        }
-
-        // Debug: mostrar información
-        System.out.println("My color: " + myColor + ", Current turn: " + currentTurn + ", Piece: " + piece.id);
-
-        // Verificar que sea mi turno y que la pieza sea de mi color
-        boolean isMyTurn = currentTurn.equals(myColor);
-        boolean isMyPiece = piece.id.startsWith(myColor.charAt(0) + "_");
-
-        return isMyTurn && isMyPiece;
+        return logic.canMoveThisPiece(piece, myColor, currentTurn, Main.clientName);
     }
 
     // Start animation timer
@@ -390,10 +350,7 @@ public class CtrlPlay implements Initializable {
      * @return
      */
     private boolean isMouseInsideCircle(double mouseX, double mouseY, double centerX, double centerY, double radius) {
-        double dx = mouseX - centerX;
-        double dy = mouseY - centerY;
-        double distanceSquared = dx * dx + dy * dy;
-        return distanceSquared <= radius * radius;
+        return logic.isMouseInsideCircle(mouseX, mouseY, centerX, centerY, radius);
     }
 
     /**
@@ -477,54 +434,20 @@ public class CtrlPlay implements Initializable {
     }
 
     /**
-     * Function to start the drop animation from the hover
-     * 
-     * @param piece
-     * @param col
-     * @param row
-     */
-    private void startDropAnimation(int col, int row) {
-
-        isAnimating = true;
-        double cellSize = grid.getCellSize();
-
-        selectedObject.center_x = grid.getCellX(col) + cellSize / 2;
-        animationTargetY = grid.getCellY(row) + cellSize / 2;
-        selectedObject.center_y = grid.getStartY() - 20;
-    }
-
-    /**
      * Main loop update function
      * 
      * @param fps
      */
     private void run(double fps) {
-
         if (animationTimer.fps < 1) {
             return;
         }
 
         if (isAnimating && selectedObject != null) {
-            double deltaTime = 1.0 / fps;
-            double movement = animationSpeed * deltaTime;
-
-            if (selectedObject.center_y < animationTargetY) {
-                selectedObject.center_y += movement;
-
-                for (GameObject go : Main.objects) {
-                    if (go.id.equals(selectedObject.id)) {
-                        go.center_x = selectedObject.center_x;
-                        go.center_y = selectedObject.center_y;
-                        break;
-                    }
-                }
-
-                if (selectedObject.center_y >= animationTargetY) {
-                    selectedObject.center_y = animationTargetY;
-
-                    isAnimating = false;
-                    selectedObject = null;
-                }
+            boolean continueAnim = logic.updateAnimation(selectedObject, animationTargetY, animationSpeed, fps);
+            if (!continueAnim) {
+                isAnimating = false;
+                selectedObject = null;
             }
         }
     }
