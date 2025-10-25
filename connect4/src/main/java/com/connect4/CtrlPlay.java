@@ -10,6 +10,7 @@ import org.json.JSONObject;
 import com.connect4.ctrlPlay.ColorUtils;
 import com.connect4.ctrlPlay.DrawUtils;
 import com.connect4.ctrlPlay.GameLogicUtils;
+import com.connect4.ctrlPlay.PieceAnimationManager;
 import com.shared.ClientData;
 import com.shared.GameObject;
 
@@ -44,7 +45,7 @@ public class CtrlPlay implements Initializable {
 
     private boolean isAnimating = false; // Si se está animando una ficha
     private double animationTargetY = 0; // Animación en columna
-    private double animationSpeed = 600; // Velocidad animación
+    private double animationSpeed = 300; // Velocidad animación (reducida para caída más lenta)
 
     // Zona del tablero para dejar caer la ficha
     private double dropZoneHeight = 40;
@@ -72,6 +73,7 @@ public class CtrlPlay implements Initializable {
     private ColorUtils utils = new ColorUtils(); // utils.getColor function
     private DrawUtils drawUtils = new DrawUtils();
     private GameLogicUtils logic = new GameLogicUtils();
+    private PieceAnimationManager animManager = new PieceAnimationManager();
 
     @Override
     public void initialize(URL url, ResourceBundle rb) {
@@ -146,7 +148,7 @@ public class CtrlPlay implements Initializable {
         if (piece != null) {
             selectedObject = piece;
             // Initialize drop animation via logic helper (it returns target Y)
-            animationTargetY = logic.startDropAnimation(piece, col, row, grid);
+            animationTargetY = animManager.startDropAnimation(piece, col, row, grid);
             isAnimating = true;
         }
 
@@ -155,6 +157,18 @@ public class CtrlPlay implements Initializable {
             this.winnerColor = winner;
             this.winningLineCoords = winningLineCoords;
             this.gameEnded = !winner.equals("DRAW");
+            // Notify server that game ended (so server can broadcast or take action)
+            try {
+                JSONObject endMsg = new JSONObject();
+                endMsg.put("type", "clientGameEnded");
+                endMsg.put("winner", winner);
+                endMsg.put("gameEnded", this.gameEnded);
+                if (Main.wsClient != null) {
+                    Main.wsClient.safeSend(endMsg.toString());
+                }
+            } catch (Exception ex) {
+                System.out.println("Error building clientGameEnded message: " + ex.getMessage());
+            }
         }
     }
 
@@ -444,12 +458,22 @@ public class CtrlPlay implements Initializable {
         }
 
         if (isAnimating && selectedObject != null) {
-            boolean continueAnim = logic.updateAnimation(selectedObject, animationTargetY, animationSpeed, fps);
+            boolean continueAnim = animManager.updateAnimation(selectedObject, animationTargetY, animationSpeed, fps);
             if (!continueAnim) {
                 isAnimating = false;
                 selectedObject = null;
             }
         }
+    }
+
+    // Expose fields so other controllers or Main can read them (avoid unused
+    // warnings)
+    public boolean isGameEnded() {
+        return this.gameEnded;
+    }
+
+    public String getWinnerColor() {
+        return this.winnerColor;
     }
 
     // Draw game to canvas
@@ -513,10 +537,12 @@ public class CtrlPlay implements Initializable {
             }
         }
 
-        // Draw piece on client (selected or animating)
-        // if (selectedObject != null) {
-        // drawObject(selectedObject);
-        // }
+        // Draw piece on client (selected or animating) on top so dragging/animating
+        // piece is visible
+        // Hacer que la ficha seleccionada se quede invisible
+        if (selectedObject != null) {
+            drawUtils.drawObject(selectedObject, gc, grid, utils);
+        }
 
         drawUtils.drawBoardPieces(gc, boardState, grid, utils);
 
