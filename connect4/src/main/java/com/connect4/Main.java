@@ -315,6 +315,8 @@ public class Main extends Application {
                 // porque le acabo de enviar una invitación
                 String userToDisable = msgObj.getString("userName");
                 System.out.println("🔒 disableButtonFor recibido para: " + userToDisable);
+                System.out.println("   Yo soy: " + Main.clientName);
+                System.out.println("   Debo desactivar botón de: " + userToDisable);
                 ((CtrlOpponentSelection) UtilsViews.getController("ViewOpponentSelection"))
                         .addToSendInvitation(userToDisable);
                 ((CtrlOpponentSelection) UtilsViews.getController("ViewOpponentSelection"))
@@ -324,10 +326,11 @@ public class Main extends Application {
             case "clientAnswerInvitation":
                 System.out.println("📨 clientAnswerInvitation recibido:");
                 System.out.println(msgObj);
+                System.out.println("   Yo soy: " + Main.clientName);
                 // Cuando alguien rechaza mi invitación:
-                // - sendFrom: la persona que rechazó (ej: j)
+                // - sendFrom: la persona que rechazó (ej: f)
                 // - sendTo: yo, quien envió la invitación (ej: v)
-                // Debo reactivar el botón de "sendFrom" (j) en MI lista (v)
+                // Debo reactivar el botón de "sendFrom" (f) en MI lista (v)
                 String whoRejected = msgObj.getString("sendFrom");
                 System.out.println("👤 Reactivando botón de quien rechazó: " + whoRejected);
                 ((CtrlOpponentSelection) UtilsViews.getController("ViewOpponentSelection"))
