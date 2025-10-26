@@ -310,15 +310,15 @@ public class Main extends Application {
                         .addToSendInvitation(username);
                 break;
 
-            case "invitationSentConfirmation":
-                // Confirmación de que mi invitación fue enviada
-                // Debo desactivar el botón del destinatario en mi lista
-                String recipient = msgObj.getString("sendTo");
-                System.out.println("✅ invitationSentConfirmation para: " + recipient);
+            case "disableButtonFor":
+                // El servidor me confirma que debo desactivar el botón de este usuario
+                // porque le acabo de enviar una invitación
+                String userToDisable = msgObj.getString("userName");
+                System.out.println("🔒 disableButtonFor recibido para: " + userToDisable);
                 ((CtrlOpponentSelection) UtilsViews.getController("ViewOpponentSelection"))
-                        .addToSendInvitation(recipient);
+                        .addToSendInvitation(userToDisable);
                 ((CtrlOpponentSelection) UtilsViews.getController("ViewOpponentSelection"))
-                        .removeFromSendList(recipient);
+                        .removeFromSendList(userToDisable);
                 break;
 
             case "clientAnswerInvitation":

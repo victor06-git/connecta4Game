@@ -87,9 +87,6 @@ public class CtrlSubViewReceive {
 
             // Eliminar subView del ControllerOpponentSelection (VBox)
             removeInvitation();
-            
-            // Ya no necesitamos reactivar manualmente aquí
-            // El servidor enviará un mensaje "invitationRejectedByMe" para reactivar ambos botones
         }
     }
 

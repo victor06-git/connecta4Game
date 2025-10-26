@@ -489,20 +489,17 @@ public class Main extends WebSocketServer {
 
             case T_CLIENT_SEND_INVITATION: {
                 // Rebem una petició amb el nom de l'usuari i destinatari a enviar la petició
-                // Rebem l'usuari a qui hem d'enviar la petició
                 String receiver = obj.getString("sendTo");
-                String sender = obj.getString("sendFrom");
 
-                // Enviem a l'usuari rebut, la petició d'invitació
+                // 1. Enviem la invitació al receptor
                 sendSafe(clients.socketByName(receiver), obj.toString());
 
-                // També notifiquem al remitent que ha enviat la invitació amb èxit
-                // per desactivar el botó del destinatari en la seva llista
-                JSONObject confirmacion = new JSONObject();
-                confirmacion.put("type", "invitationSentConfirmation");
-                confirmacion.put("sendFrom", sender);
-                confirmacion.put("sendTo", receiver);
-                sendSafe(conn, confirmacion.toString());
+                // 2. Notificar al remitent que debe desactivar el botón del receptor
+                JSONObject confirmToSender = new JSONObject();
+                confirmToSender.put("type", "disableButtonFor");
+                confirmToSender.put("userName", receiver);
+                sendSafe(conn, confirmToSender.toString());
+
                 break;
             }
 
