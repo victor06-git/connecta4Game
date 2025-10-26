@@ -87,11 +87,6 @@ public class CtrlSubViewReceive {
 
             // Eliminar subView del ControllerOpponentSelection (VBox)
             removeInvitation();
-            // Reactivate button in send list
-            CtrlOpponentSelection ctrl = (CtrlOpponentSelection) UtilsViews.getController("ViewOpponentSelection");
-            if (ctrl != null) {
-                ctrl.reactivateFromSendList(name);
-            }
         }
     }
 
