@@ -104,7 +104,7 @@ public class CtrlOpponentSelection implements Initializable {
     // Método para eliminar la parte
     public void removeFromReceiveList(Node node) {
         list_receive.getChildren().remove(node);
-        updateLists();
+        loadSendList();
     }
 
     // Añadimos una petición a partir de un nombre de usuario
@@ -165,7 +165,7 @@ public class CtrlOpponentSelection implements Initializable {
 
     public void removeFromSendInvitation(String name) {
         sendInvitations.remove(name);
-        updateLists();
+        loadSendList();
     }
 
     public void rejectAllPetitions() {
