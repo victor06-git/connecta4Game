@@ -303,6 +303,7 @@ public class Main extends Application {
 
             case "clientSendInvitation":
                 String username = msgObj.getString("sendFrom");
+                System.out.println("📧 clientSendInvitation recibido de: " + username);
                 ((CtrlOpponentSelection) UtilsViews.getController("ViewOpponentSelection"))
                         .addFromReceiveList(username);
                 ((CtrlOpponentSelection) UtilsViews.getController("ViewOpponentSelection"))
@@ -313,6 +314,7 @@ public class Main extends Application {
                 // Confirmación de que mi invitación fue enviada
                 // Debo desactivar el botón del destinatario en mi lista
                 String recipient = msgObj.getString("sendTo");
+                System.out.println("✅ invitationSentConfirmation para: " + recipient);
                 ((CtrlOpponentSelection) UtilsViews.getController("ViewOpponentSelection"))
                         .addToSendInvitation(recipient);
                 ((CtrlOpponentSelection) UtilsViews.getController("ViewOpponentSelection"))
@@ -322,16 +324,16 @@ public class Main extends Application {
             case "clientAnswerInvitation":
                 System.out.println("📨 clientAnswerInvitation recibido:");
                 System.out.println(msgObj);
-                // Cuando alguien responde a mi invitación:
-                // - sendFrom: la persona que respondió (ej: María)
-                // - sendTo: yo (Juan)
-                // Necesito el nombre de quien respondió para reactivar su botón
-                String resp = msgObj.getString("sendFrom");
-                System.out.println("👤 Reactivando botón de quien rechazó: " + resp);
+                // Cuando alguien rechaza mi invitación:
+                // - sendFrom: la persona que rechazó (ej: j)
+                // - sendTo: yo, quien envió la invitación (ej: v)
+                // Debo reactivar el botón de "sendFrom" (j) en MI lista (v)
+                String whoRejected = msgObj.getString("sendFrom");
+                System.out.println("👤 Reactivando botón de quien rechazó: " + whoRejected);
                 ((CtrlOpponentSelection) UtilsViews.getController("ViewOpponentSelection"))
-                        .removeFromSendInvitation(resp);
+                        .removeFromSendInvitation(whoRejected);
                 ((CtrlOpponentSelection) UtilsViews.getController("ViewOpponentSelection"))
-                        .reactivateFromSendList(resp);
+                        .reactivateFromSendList(whoRejected);
 
                 break;
 
