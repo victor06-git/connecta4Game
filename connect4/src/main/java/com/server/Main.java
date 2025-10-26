@@ -634,9 +634,12 @@ public class Main extends WebSocketServer {
                 String clientName = obj.optString("clientName", "");
 
                 if (!clientName.isEmpty() && clientsData.containsKey(clientName)) {
-                    // Buscar al otro jugador que estaba jugando
+                    System.out.println("Client " + clientName + " ended the game");
+
+                    // Poner isPlaying a false para TODOS los jugadores que estaban jugando
                     for (String playerName : playersNames) {
                         if (clientsData.containsKey(playerName)) {
+                            System.out.println("Setting isPlaying=false for: " + playerName);
                             clientsData.get(playerName).SetIsPlaying(false);
                         }
                     }
@@ -649,14 +652,16 @@ public class Main extends WebSocketServer {
                         gameStarted = false;
                         gameEnded = false;
                         winnerColor = null;
+                        winningLineCoords = null;
                         resetBoard();
                         currentTurn = null;
                     }
 
-                    // Notificar a todos los clientes con la lista actualizada
+                    // Notificar a TODOS los clientes con la lista actualizada
+                    System.out.println("Broadcasting updated client list");
                     broadcastExcept(null, sendAllClients());
 
-                    System.out.println("Game ended, players reset to not playing");
+                    System.out.println("Game ended, all players reset to not playing");
                 }
                 break;
             }

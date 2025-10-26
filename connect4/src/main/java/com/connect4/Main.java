@@ -284,9 +284,10 @@ public class Main extends Application {
                 JSONArray arr = msgObj.getJSONArray("clientsList");
                 clients.clear();
 
+                System.out.println("📋 Actualizando lista de clientes:");
                 for (int i = 0; i < arr.length(); i++) {
                     JSONObject object = arr.getJSONObject(i);
-                    System.out.println(object);
+                    System.out.println("  " + object);
                     String name = object.getString("name");
                     String color = object.getString("color");
                     boolean isPlaying = object.getBoolean("play");
@@ -295,8 +296,10 @@ public class Main extends Application {
                     cd.SetIsPlaying(isPlaying);
 
                     clients.add(cd);
+                    System.out.println("  Cliente: " + name + " - isPlaying: " + isPlaying);
                 }
 
+                System.out.println("🔄 Recargando lista de envío...");
                 ((CtrlOpponentSelection) UtilsViews.getController("ViewOpponentSelection")).loadSendList();
 
                 break;
