@@ -626,6 +626,39 @@ public class Main extends WebSocketServer {
                             .put("reason", "Invalid piece for current turn");
                     sendSafe(conn, response.toString());
                 }
+                break;
+            }
+
+            case "gameEnded": {
+                // Un cliente notifica que ha terminado el juego y vuelve a la selección
+                String clientName = obj.optString("clientName", "");
+
+                if (!clientName.isEmpty() && clientsData.containsKey(clientName)) {
+                    // Buscar al otro jugador que estaba jugando
+                    for (String playerName : playersNames) {
+                        if (clientsData.containsKey(playerName)) {
+                            clientsData.get(playerName).SetIsPlaying(false);
+                        }
+                    }
+
+                    // Limpiar la lista de jugadores activos
+                    playersNames.clear();
+
+                    // Resetear el estado del juego
+                    synchronized (this) {
+                        gameStarted = false;
+                        gameEnded = false;
+                        winnerColor = null;
+                        resetBoard();
+                        currentTurn = null;
+                    }
+
+                    // Notificar a todos los clientes con la lista actualizada
+                    broadcastExcept(null, sendAllClients());
+
+                    System.out.println("Game ended, players reset to not playing");
+                }
+                break;
             }
         }
 

@@ -83,6 +83,14 @@ public class CtrlResult implements Initializable {
         for (ClientData client : Main.clients) {
             client.SetIsPlaying(false);
         }
+        
+        // Notificar al servidor que el juego ha terminado
+        if (Main.wsClient != null && Main.wsClient.isOpen()) {
+            org.json.JSONObject json = new org.json.JSONObject();
+            json.put("type", "gameEnded");
+            json.put("clientName", Main.clientName);
+            Main.wsClient.safeSend(json.toString());
+        }
 
         // Navigate back to opponent selection view
         UtilsViews.setViewAnimating("ViewOpponentSelection");
