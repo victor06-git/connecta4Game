@@ -8,7 +8,6 @@ import org.json.JSONObject;
 import com.connect4.Main;
 import com.connect4.PlayGrid;
 import com.shared.GameObject;
-import com.connect4.ctrlPlay.PieceAnimationManager;
 
 public class GameLogicUtils {
 
@@ -91,6 +90,17 @@ public class GameLogicUtils {
             piece.center_y = original.center_y;
             piece.col = -1;
             piece.row = -1;
+
+            // CRITICAL: Also update Main.objects so the visual representation updates
+            for (GameObject go : Main.objects) {
+                if (go.id.equals(piece.id)) {
+                    go.center_x = original.center_x;
+                    go.center_y = original.center_y;
+                    go.col = -1;
+                    go.row = -1;
+                    break;
+                }
+            }
         }
     }
 
@@ -158,7 +168,7 @@ public class GameLogicUtils {
     }
 
     /**
-     * Verifies if mouse position is inside a circle
+     * Verifies if mouse position is inside a piece (circle)
      * 
      * @param mouseX
      * @param mouseY
@@ -167,41 +177,11 @@ public class GameLogicUtils {
      * @param radius
      * @return true if inside circle
      */
-    public boolean isMouseInsideCircle(double mouseX, double mouseY, double centerX, double centerY, double radius) {
-        double dx = mouseX - centerX;
-        double dy = mouseY - centerY;
-        double distanceSquared = dx * dx + dy * dy;
-        return distanceSquared <= radius * radius;
-    }
-
-    /**
-     * Initializes drop animation parameters
-     * 
-     * @param piece
-     * @param col
-     * @param row
-     * @param grid
-     * @return animation target Y position
-     */
-    public double startDropAnimation(GameObject piece, int col, int row, PlayGrid grid) {
-        // Delegate to PieceAnimationManager to keep a single animation implementation.
-        PieceAnimationManager pam = new PieceAnimationManager();
-        return pam.startDropAnimation(piece, col, row, grid);
-    }
-
-    /**
-     * Updates animation position
-     * 
-     * @param piece
-     * @param animationTargetY
-     * @param animationSpeed
-     * @param fps
-     * @return true if animation continues, false if finished
-     */
-    public boolean updateAnimation(GameObject piece, double animationTargetY, double animationSpeed, double fps) {
-        // Delegate to PieceAnimationManager implementation
-        PieceAnimationManager pam = new PieceAnimationManager();
-        return pam.updateAnimation(piece, animationTargetY, animationSpeed, fps);
+    public boolean isMouseInsidePiece(double mouseX, double mouseY, double centerX, double centerY, double radius) {
+        double dx = mouseX - centerX; // horizontal distance
+        double dy = mouseY - centerY; // vertical distance
+        double distanceSquared = dx * dx + dy * dy; // squared distance
+        return distanceSquared <= radius * radius; // compare with squared radius
     }
 
     /**

@@ -63,6 +63,7 @@ public class Main extends WebSocketServer {
     private final List<String> playersNames = new ArrayList<>();
     private final Map<String, ClientData> clientsData = new HashMap<>();
     private final Map<String, GameObject> gameObjects = new HashMap<>();
+    private final Map<String, GameObject> originalPoolPositions = new HashMap<>(); // Store original positions
 
     private String[][] boardState = new String[6][7];
     private String currentTurn = "";
@@ -81,7 +82,7 @@ public class Main extends WebSocketServer {
     public Main(InetSocketAddress address) {
         super(address);
         this.clients = new ClientRegistry(new ArrayList<>()); // Inicializa sin nombres predefinidos
-        initializeBoard();
+        resetBoard();
         initializegameObjects();
 
         ThreadFactory tf = r -> {
@@ -92,7 +93,10 @@ public class Main extends WebSocketServer {
         this.ticker = Executors.newSingleThreadScheduledExecutor(tf);
     }
 
-    private void initializeBoard() {
+    /**
+     * Initialize the board state
+     */
+    private void resetBoard() {
         for (int i = 0; i < 6; i++) {
             for (int j = 0; j < 7; j++) {
                 boardState[i][j] = null;
@@ -100,39 +104,51 @@ public class Main extends WebSocketServer {
         }
     }
 
+    /**
+     * Initialize game pieces in the pool
+     */
     private void initializegameObjects() {
-        double poolX = 610;
-        double poolY = 130;
-        double poolWidth = 250;
-        double pieceRadius = 80.0 * 0.15;
-        // double pieceDiameter = pieceRadius * 2;
+        double poolX = 620;
+        double poolY = 125;
+        double poolWidth = 200;
+        double pieceRadius = 80.0 * 0.15; // Radius of each piece
 
         int piecesPerRow = 7;
         int numRows = 6;
 
-        double marginX = 15;
-        double marginY = 15;
+        double marginX = 20;
+        double marginY = 20;
         double availableWidth = poolWidth - (2 * marginX);
         double spacingX = availableWidth / piecesPerRow;
-        double spacingY = 50; // Mayor espaciado vertical
+        double spacingY = 100; // vertical spacing between rows
 
-        int yellowCount = 0;
-        int redCount = 0;
+        int yellowCount = 0; // piece counter yellow
+        int redCount = 0; // piece counter red
         for (int fila = 0; fila < numRows; fila++) {
             for (int col = 0; col < piecesPerRow; col++) {
                 double centerX = poolX + marginX + (col + 0.5) * spacingX;
                 double centerY = poolY + marginY + fila * spacingY;
 
-                String color = (fila < 3) ? "RED" : "YELLOW";
+                String color = (fila % 2 == 0) ? "RED" : "YELLOW";
                 String id = (color.equals("RED") ? "R_" : "Y_") + (color.equals("RED") ? redCount++ : yellowCount++);
 
                 GameObject piece = new GameObject(id, centerX, centerY, pieceRadius, -1, -1);
                 piece.color = color;
                 gameObjects.put(id, piece);
+
+                // Store original position for reset purposes
+                originalPoolPositions.put(id,
+                        new GameObject(id, centerX, centerY, pieceRadius, -1, -1));
             }
         }
     }
 
+    /**
+     * Get the lowest available row in a column
+     * 
+     * @param col
+     * @return row index or -1 if full
+     */
     private int getLowestAvailableRow(int col) {
         for (int row = 5; row >= 0; row--) {
             if (boardState[row][col] == null) {
@@ -142,6 +158,13 @@ public class Main extends WebSocketServer {
         return -1;
     }
 
+    /**
+     * Check if the play is valid
+     * 
+     * @param pieceId
+     * @param col
+     * @return true if valid play
+     */
     private boolean isValidPlay(String pieceId, int col) {
         if (!pieceId.startsWith(currentTurn.charAt(0) + "_")) {
             return false;
@@ -149,10 +172,36 @@ public class Main extends WebSocketServer {
         return getLowestAvailableRow(col) != -1;
     }
 
+    /**
+     * Switch turn to the next player
+     */
     private void switchTurn() {
         currentTurn = currentTurn.equals("RED") ? "YELLOW" : "RED";
     }
 
+    /**
+     * Returns a piece to its original position in the pool
+     * 
+     * @param piece the piece to return
+     */
+    private void returnPieceToOriginalPosition(GameObject piece) {
+        if (piece == null || !originalPoolPositions.containsKey(piece.id)) {
+            return;
+        }
+
+        GameObject original = originalPoolPositions.get(piece.id); // Get original position
+        piece.center_x = original.center_x;
+        piece.center_y = original.center_y;
+        piece.col = -1;
+        piece.row = -1;
+
+        System.out.println("Returned piece " + piece.id + " to pool position: ("
+                + piece.center_x + ", " + piece.center_y + ")");
+    }
+
+    /**
+     * Send countdown to all clients and start the game
+     */
     private void sendCountdown() {
         synchronized (this) {
             if (countdownRunning) {
@@ -202,10 +251,22 @@ public class Main extends WebSocketServer {
         }, "CountdownThread").start();
     }
 
+    /**
+     * Create a basic message JSON object
+     * 
+     * @param type
+     * @return JSON object
+     */
     private static JSONObject msg(String type) {
         return new JSONObject().put(K_TYPE, type);
     }
 
+    /**
+     * Send a message safely to a client
+     * 
+     * @param to
+     * @param payload
+     */
     private void sendSafe(WebSocket to, String payload) {
         if (to == null)
             return;
@@ -270,22 +331,40 @@ public class Main extends WebSocketServer {
             WebSocket conn = e.getKey();
             String name = clients.nameBySocket(conn);
             rst.put(K_CLIENT_NAME, name);
-            sendSafe(conn, rst.toString());
+            sendSafe(conn, rst.toString()); // Send personalized message to each client
         }
     }
 
+    /**
+     * Send countdown number to all clients
+     * 
+     * @param n countdown number
+     */
     private void sendCountdownToAll(int n) {
         JSONObject rst = msg(T_COUNTDOWN).put(K_VALUE, n);
         broadcastExcept(null, rst.toString());
     }
 
+    /**
+     * Handles new client connection when opened.
+     */
     @Override
     public void onOpen(WebSocket conn, ClientHandshake handshake) {
         System.out.println("==============================================");
         System.out.println("New client connected! Waiting for player name...");
         System.out.println("==============================================");
+
+        JSONObject welcome = new JSONObject();
+        welcome.put("type", "welcome");
+        welcome.put("message", "Conectado al servidor. Por favor, envía tu nombre.");
+        sendSafe(conn, welcome.toString());
     }
 
+    /**
+     * Send a list of all connected clients to the requester.
+     * 
+     * @return JSON string with clients list
+     */
     private String sendAllClients() {
         JSONObject response = msg(T_SERVER_CLIENTS_LIST);
         JSONArray clientsDataArray = new JSONArray();
@@ -303,12 +382,21 @@ public class Main extends WebSocketServer {
         return response.toString();
     }
 
+    /**
+     * Send client name to the connected client.
+     * 
+     * @param conn
+     * @param name
+     */
     private void sendClientName(WebSocket conn, String name) {
         JSONObject response = msg(K_CLIENT_NAME);
         response.put(K_VALUE, name);
         sendSafe(conn, response.toString());
     }
 
+    /**
+     * Handles client disconnection and resets the game state.
+     */
     @Override
     public void onClose(WebSocket conn, int code, String reason, boolean remote) {
         String name = clients.remove(conn);
@@ -320,14 +408,20 @@ public class Main extends WebSocketServer {
             gameStarted = false;
             gameEnded = false;
             winnerColor = null;
-            initializeBoard();
-            currentTurn = "RED";
+            resetBoard(); // Reset board
+            currentTurn = null;
         }
 
         System.out.println("WebSocket client disconnected: " + name);
         System.out.println("Game reset due to player disconnection");
     }
 
+    /**
+     * Handles incoming messages from clients.
+     * 
+     * @param conn
+     * @param message
+     */
     @Override
     public void onMessage(WebSocket conn, String message) {
         JSONObject obj;
@@ -345,7 +439,7 @@ public class Main extends WebSocketServer {
                 String playerName = obj.getString("name");
 
                 // Asignar color según el orden de conexión
-                String color = (clientsData.isEmpty()) ? "RED" : (clientsData.size() == 1) ? "YELLOW" : "GRAY";
+                String color = (clientsData.isEmpty()) ? "YELLOW" : (clientsData.size() == 1) ? "RED" : "BLACK";
 
                 // Registrar el jugador con su color
                 ClientData clientData = new ClientData(playerName, color);
@@ -357,11 +451,6 @@ public class Main extends WebSocketServer {
                 sendClientName(conn, playerName);
                 broadcastExcept(null, sendAllClients());
 
-                // Si tenemos los dos jugadores necesarios, iniciamos la cuenta atrás
-                if (playersNames.size() == REQUIRED_CLIENTS) {
-                    System.out.println("Two players connected");
-                    //sendCountdown();
-                }
                 break;
             }
 
@@ -380,6 +469,28 @@ public class Main extends WebSocketServer {
             case T_CLIENT_PIECE_MOVING: {
                 GameObject objData = GameObject.fromJSON(obj.getJSONObject(K_VALUE));
                 gameObjects.put(objData.id, objData);
+
+                // Reenviar el mensaje a todos los clientes incluyendo hoveredColumn si existe
+                JSONObject broadcastMsg = new JSONObject();
+                broadcastMsg.put("type", T_CLIENT_PIECE_MOVING);
+                broadcastMsg.put("value", objData.toJSON());
+
+                // Añadir información del cliente que está moviendo la pieza
+                String clientName = clients.nameBySocket(conn);
+                broadcastMsg.put("clientName", clientName);
+
+                // Añadir columna hover si existe
+                if (obj.has("hoveredColumn")) {
+                    broadcastMsg.put("hoveredColumn", obj.getInt("hoveredColumn"));
+                }
+
+                // Obtener el color del cliente
+                ClientData clientData = clientsData.get(clientName);
+                if (clientData != null) {
+                    broadcastMsg.put("clientColor", clientData.color);
+                }
+
+                broadcastExcept(conn, broadcastMsg.toString());
                 break;
             }
 
@@ -399,13 +510,13 @@ public class Main extends WebSocketServer {
                 if (obj.getBoolean(K_VALUE)) {
                     // SI ACCEPTA
                     // Comencen countdown per a la partida
-                    String pRed = obj.getString("sendFrom");
-                    String pYellow = obj.getString("sendTo");
+                    String p1 = obj.getString("sendFrom");
+                    String p2 = obj.getString("sendTo");
 
-                    playersNames.add(pRed);
-                    playersNames.add(pYellow);
-                    clientsData.get(pRed).SetIsPlaying(true);
-                    clientsData.get(pYellow).SetIsPlaying(true);
+                    playersNames.add(p1);
+                    playersNames.add(p2);
+                    clientsData.get(p1).SetIsPlaying(true);
+                    clientsData.get(p2).SetIsPlaying(true);
 
                     broadcastExcept(null, sendAllClients());
                     sendCountdown();
@@ -413,7 +524,7 @@ public class Main extends WebSocketServer {
 
                 else {
                     // SI NO ACCEPTA
-                    // Enviem a l'usuari que ha fet la peticiól a resposta de l'invitació
+                    // Enviem a l'usuari que ha fet la petició la resposta de l'invitació
                     String sender = obj.getString("sendFrom");
                     sendSafe(clients.socketByName(sender), obj.toString());
                 }
@@ -487,14 +598,19 @@ public class Main extends WebSocketServer {
                             response.put("winningLineCoords", winningCoords);
                         }
 
-                        sendSafe(conn, response.toString());
+                        // Enviar a TODOS los clientes, no solo al que jugó
+                        broadcastExcept(null, response.toString());
                     } else {
+                        // Column is full: return piece to pool
+                        returnPieceToOriginalPosition(gameObjects.get(pieceId));
                         JSONObject response = msg(T_PLAY_REJECTED)
                                 .put("pieceId", pieceId)
                                 .put("reason", "Column is full");
                         sendSafe(conn, response.toString());
                     }
                 } else {
+                    // Invalid play: return piece to original position in pool
+                    returnPieceToOriginalPosition(gameObjects.get(pieceId));
                     JSONObject response = msg(T_PLAY_REJECTED)
                             .put("pieceId", pieceId)
                             .put("reason", "Invalid piece for current turn");
@@ -505,18 +621,32 @@ public class Main extends WebSocketServer {
 
     }
 
+    /**
+     * Handles errors that occur on the WebSocket connection.
+     * 
+     * @param conn
+     * @param ex   exception
+     */
     @Override
     public void onError(WebSocket conn, Exception ex) {
         ex.printStackTrace();
     }
 
+    /**
+     * Called when the server starts.
+     */
     @Override
     public void onStart() {
         System.out.println("WebSocket server started on port: " + getPort());
-        setConnectionLostTimeout(100);
-        startTicker();
+        setConnectionLostTimeout(100); // Set high timeout to avoid disconnections
+        startTicker(); // Start the ticker to broadcast game status
     }
 
+    /**
+     * Registers a shutdown hook for the server.
+     * 
+     * @param server
+     */
     private static void registerShutdownHook(Main server) {
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             System.out.println("Aturant servidor (shutdown hook)...");
@@ -531,6 +661,9 @@ public class Main extends WebSocketServer {
         }));
     }
 
+    /**
+     * Awaits indefinitely to keep the server running.
+     */
     private static void awaitForever() {
         CountDownLatch latch = new CountDownLatch(1);
         try {
@@ -540,6 +673,9 @@ public class Main extends WebSocketServer {
         }
     }
 
+    /**
+     * Starts the ticker to broadcast game status at fixed intervals.
+     */
     private void startTicker() {
         long periodMs = Math.max(1, 1000 / SEND_FPS);
         ticker.scheduleAtFixedRate(() -> {
@@ -553,6 +689,9 @@ public class Main extends WebSocketServer {
         }, 0, periodMs, TimeUnit.MILLISECONDS);
     }
 
+    /**
+     * Stops the ticker.
+     */
     private void stopTicker() {
         try {
             ticker.shutdownNow();
@@ -634,9 +773,9 @@ public class Main extends WebSocketServer {
         }
 
         boolean isBoardFull = true;
-        for (int r = 0; r < 6; r++) {
-            for (int c = 0; c < 7; c++) {
-                if (boardState[r][c] == null) {
+        for (int row = 0; row < 6; row++) {
+            for (int col = 0; col < 7; col++) {
+                if (boardState[row][col] == null) {
                     isBoardFull = false;
                     break;
                 }
@@ -644,19 +783,35 @@ public class Main extends WebSocketServer {
         }
         if (isBoardFull) {
             gameEnded = true;
-            winnerColor = "DRAW";
+            winnerColor = "DRAW"; // Indicate a draw
             return;
         }
     }
 
+    /**
+     * Get the color of the piece for checking winner
+     * 
+     * @param piece
+     * @return
+     */
     private String getColorPiece(String piece) {
         if (piece != null) {
-            return piece.substring(0, 1);
+            // Extraer el color completo de la pieza (R_0 -> RED, Y_0 -> YELLOW)
+            if (piece.startsWith("R")) {
+                return "RED";
+            } else if (piece.startsWith("Y")) {
+                return "YELLOW";
+            }
         }
 
-        return piece;
+        return null;
     }
 
+    /**
+     * Main entry point for the Connect 4 server.
+     *
+     * @param args
+     */
     public static void main(String[] args) {
         Main server = new Main(new InetSocketAddress(DEFAULT_PORT));
         server.start();

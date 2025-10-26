@@ -51,14 +51,14 @@ public class Main extends Application {
         UtilsViews.addView(getClass(), "ViewConfig", "/assets/viewConfig.fxml");
         UtilsViews.addView(getClass(), "ViewWait", "/assets/viewWait.fxml");
         UtilsViews.addView(getClass(), "ViewPlay", "/assets/viewPlay.fxml");
-    UtilsViews.addView(getClass(), "ViewOpponentSelection", "/assets/opponent_selection.fxml");
-    UtilsViews.addView(getClass(), "ViewResult", "/assets/viewResult.fxml");
+        UtilsViews.addView(getClass(), "ViewOpponentSelection", "/assets/opponent_selection.fxml");
+        UtilsViews.addView(getClass(), "ViewResult", "/assets/viewResult.fxml");
 
         ctrlConfig = (CtrlConfig) UtilsViews.getController("ViewConfig");
         ctrlWait = (CtrlWait) UtilsViews.getController("ViewWait");
         ctrlPlay = (CtrlPlay) UtilsViews.getController("ViewPlay");
-    ctrlOpponentSelection = (CtrlOpponentSelection) UtilsViews.getController("ViewOpponentSelection");
-    ctrlResult = (CtrlResult) UtilsViews.getController("ViewResult");
+        ctrlOpponentSelection = (CtrlOpponentSelection) UtilsViews.getController("ViewOpponentSelection");
+        ctrlResult = (CtrlResult) UtilsViews.getController("ViewResult");
 
         Scene scene = new Scene(UtilsViews.parentContainer);
 
@@ -90,15 +90,6 @@ public class Main extends Application {
         pause.play();
     }
 
-    public static <T> List<T> jsonArrayToList(JSONArray array, Class<T> clazz) {
-        List<T> list = new ArrayList<>();
-        for (int i = 0; i < array.length(); i++) {
-            T value = clazz.cast(array.get(i));
-            list.add(value);
-        }
-        return list;
-    }
-
     /**
      * Function to connect to the WebSocket server
      * 
@@ -119,8 +110,9 @@ public class Main extends Application {
 
             System.out.println(playerName); // DEBUG
 
-            wsClient = UtilsWS.getSharedInstance(protocol + "://" + host + ":" + port);
+            wsClient = UtilsWS.getSharedInstance(protocol + "://" + host + ":" + port); // Create WebSocket client
 
+            // Define playerName on open server connection
             wsClient.onOpen((response) -> {
                 System.out.println("WebSocket conectado, enviando nombre del jugador: " + playerName);
                 // Enviar el nombre del jugador al servidor
@@ -181,7 +173,6 @@ public class Main extends Application {
                 }
                 objects = newObjects;
 
-                // AÑADIDO DE PRUEBA
                 if (ctrlPlay != null) {
                     ctrlPlay.updateGameState(msgObj);
                 }
@@ -265,6 +256,27 @@ public class Main extends Application {
                 if (ctrlPlay != null) {
                     ctrlPlay.handlePlayRejected(rejectedPieceId);
                 }
+                break;
+
+            case "clientPieceMoving":
+                // Recibir información de otro cliente moviendo una pieza
+                if (ctrlPlay != null && msgObj.has("clientName")) {
+                    String movingClientName = msgObj.getString("clientName");
+
+                    // Solo procesar si no soy yo
+                    if (!movingClientName.equals(clientName)) {
+                        if (msgObj.has("hoveredColumn")) {
+                            int otherClientHoverCol = msgObj.getInt("hoveredColumn");
+                            if (otherClientHoverCol == -1) {
+                                // El otro cliente soltó la pieza, limpiar su hover
+                                ctrlPlay.clearOtherClientHover(movingClientName);
+                            } else {
+                                ctrlPlay.setOtherClientHover(movingClientName, otherClientHoverCol);
+                            }
+                        }
+                    }
+                }
+                break;
 
             case "clientsList":
                 JSONArray arr = msgObj.getJSONArray("clientsList");

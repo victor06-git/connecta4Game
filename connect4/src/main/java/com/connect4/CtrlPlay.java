@@ -51,6 +51,9 @@ public class CtrlPlay implements Initializable {
     private double dropZoneHeight = 40;
     private int hoveredColumn = -1;
 
+    // Mapa para trackear la columna hover de cada cliente
+    private Map<String, Integer> clientHoveredColumns = new HashMap<>();
+
     // pool (mesa donde estan las fichas)
     private double poolX, poolY, poolWidth, poolHeight;
     private static final double BOARD_POOL_GAP = 50;
@@ -73,7 +76,7 @@ public class CtrlPlay implements Initializable {
     private ColorUtils utils = new ColorUtils(); // utils.getColor function
     private DrawUtils drawUtils = new DrawUtils();
     private GameLogicUtils logic = new GameLogicUtils();
-    private PieceAnimationManager animManager = new PieceAnimationManager();
+    private PieceAnimationManager anim = new PieceAnimationManager();
 
     @Override
     public void initialize(URL url, ResourceBundle rb) {
@@ -148,7 +151,7 @@ public class CtrlPlay implements Initializable {
         if (piece != null) {
             selectedObject = piece;
             // Initialize drop animation via logic helper (it returns target Y)
-            animationTargetY = animManager.startDropAnimation(piece, col, row, grid);
+            animationTargetY = anim.startDropAnimation(piece, col, row, grid);
             isAnimating = true;
         }
 
@@ -183,6 +186,25 @@ public class CtrlPlay implements Initializable {
         selectedObject = logic.handlePlayRejected(pieceId, selectedObject, originalPoolPositions);
         mouseDragging = false;
         hoveredColumn = -1;
+    }
+
+    /**
+     * Update hover column for other clients
+     * 
+     * @param clientName
+     * @param column
+     */
+    public void setOtherClientHover(String clientName, int column) {
+        clientHoveredColumns.put(clientName, column);
+    }
+
+    /**
+     * Clear hover column for a specific client
+     * 
+     * @param clientName
+     */
+    public void clearOtherClientHover(String clientName) {
+        clientHoveredColumns.remove(clientName);
     }
 
     /**
@@ -320,32 +342,29 @@ public class CtrlPlay implements Initializable {
      * @param event
      */
     private void onMousePressed(MouseEvent event) {
-        double mouseX = event.getX();
-        double mouseY = event.getY();
+        double mouseX = event.getX(); // Get mouse X position
+        double mouseY = event.getY(); // Get mouse Y position
 
-        selectedObject = null;
-        mouseDragging = false;
+        selectedObject = null; // Reset selected object
+        mouseDragging = false; // Reset dragging state
 
-        // Radio correcto igual al del tablero
-        double correctRadius = grid.getCellSize() * 0.40;
+        double correctRadius = grid.getCellSize() * 0.40; // Smaller than half cell size
 
         for (GameObject go : Main.objects) {
             if (go.col == -1 && go.row == -1) {
-                // Verificar si el mouse está dentro del círculo de la ficha
-                if (isMouseInsideCircle(mouseX, mouseY, go.center_x, go.center_y, correctRadius)) {
+                // Check if mouse is inside piece circle
+                if (isMouseInsidePiece(mouseX, mouseY, go.center_x, go.center_y, correctRadius)) {
                     if (!canMoveThisPiece(go)) {
                         System.out.println("Cannot move piece " + go.id + " - not your turn or not your piece");
                         return;
                     }
 
-                    selectedObject = go; // Seleccionar la ficha
-                    // originalX = go.center_x;
-                    // originalY = go.center_y;
-                    mouseDragging = true;
-                    mouseOffsetX = mouseX - go.center_x;
-                    mouseOffsetY = mouseY - go.center_y;
+                    selectedObject = go; // Select the piece
+                    mouseDragging = true; // Start dragging
+                    mouseOffsetX = mouseX - go.center_x; // Calculate offset to center the piece under the mouse
+                    mouseOffsetY = mouseY - go.center_y; // Calculate offset to center the piece under the mouse
 
-                    System.out.println("Selected piece: " + go.id);
+                    System.out.println("Selected piece: " + go.id); // R_4 / Y_2 etc.
                     break;
                 }
             }
@@ -363,8 +382,8 @@ public class CtrlPlay implements Initializable {
      * @param radius
      * @return
      */
-    private boolean isMouseInsideCircle(double mouseX, double mouseY, double centerX, double centerY, double radius) {
-        return logic.isMouseInsideCircle(mouseX, mouseY, centerX, centerY, radius);
+    private boolean isMouseInsidePiece(double mouseX, double mouseY, double centerX, double centerY, double radius) {
+        return logic.isMouseInsidePiece(mouseX, mouseY, centerX, centerY, radius);
     }
 
     /**
@@ -398,6 +417,7 @@ public class CtrlPlay implements Initializable {
             JSONObject msg = new JSONObject();
             msg.put("type", "clientPieceMoving");
             msg.put("value", selectedObject.toJSON());
+            msg.put("hoveredColumn", hoveredColumn); // Enviar columna hover
 
             if (Main.wsClient != null) {
                 Main.wsClient.safeSend(msg.toString());
@@ -435,6 +455,15 @@ public class CtrlPlay implements Initializable {
                     mouseDragging = false;
                     hoveredColumn = -1;
 
+                    // Enviar que ya no hay hover
+                    JSONObject clearHoverMsg = new JSONObject();
+                    clearHoverMsg.put("type", "clientPieceMoving");
+                    clearHoverMsg.put("value", selectedObject.toJSON());
+                    clearHoverMsg.put("hoveredColumn", -1);
+                    if (Main.wsClient != null) {
+                        Main.wsClient.safeSend(clearHoverMsg.toString());
+                    }
+
                     return;
                 }
             }
@@ -458,7 +487,7 @@ public class CtrlPlay implements Initializable {
         }
 
         if (isAnimating && selectedObject != null) {
-            boolean continueAnim = animManager.updateAnimation(selectedObject, animationTargetY, animationSpeed, fps);
+            boolean continueAnim = anim.updateAnimation(selectedObject, animationTargetY, animationSpeed, fps);
             if (!continueAnim) {
                 isAnimating = false;
                 selectedObject = null;
@@ -493,7 +522,8 @@ public class CtrlPlay implements Initializable {
 
         drawUtils.drawTurnIndicator(gc, currentTurn, myColor, Main.clientName);
 
-        drawUtils.drawDropZone(gc, grid, dropZoneHeight, hoveredColumn, utils);
+        drawUtils.drawDropZone(gc, grid, dropZoneHeight, hoveredColumn, clientHoveredColumns,
+                Main.clients, Main.clientName, utils);
 
         // Draw colored 'over' cells
         for (ClientData clientData : Main.clients) {

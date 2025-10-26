@@ -31,7 +31,7 @@ public class DrawUtils {
                     .orElse("");
         }
 
-        double indicatorX = 40;
+        double indicatorX = 50;
         double indicatorY = 20;
 
         // Dibujar fondo
@@ -165,10 +165,14 @@ public class DrawUtils {
      * @param grid
      * @param dropZoneHeight
      * @param hoveredColumn
+     * @param otherClientsHover - Map of clientName -> column for other clients
+     * @param clients           - List of all clients to get colors
+     * @param myClientName      - Name of current client
      * @param utils
      */
     public void drawDropZone(GraphicsContext gc, com.connect4.PlayGrid grid, double dropZoneHeight,
-            int hoveredColumn, ColorUtils utils) {
+            int hoveredColumn, java.util.Map<String, Integer> otherClientsHover,
+            java.util.List<com.shared.ClientData> clients, String myClientName, ColorUtils utils) {
         double startX = grid.getStartX();
         double startY = grid.getStartY() - dropZoneHeight;
         double cellSize = grid.getCellSize();
@@ -176,10 +180,36 @@ public class DrawUtils {
         for (int col = 0; col < grid.getCols(); col++) {
             double x = startX + col * cellSize;
 
+            // Determinar si esta columna tiene hover y de qué cliente
+            boolean isMyHover = (col == hoveredColumn);
+            String otherClientHoveringThisCol = null;
+
+            // Buscar si otro cliente está haciendo hover en esta columna
+            for (java.util.Map.Entry<String, Integer> entry : otherClientsHover.entrySet()) {
+                if (entry.getValue() == col) {
+                    otherClientHoveringThisCol = entry.getKey();
+                    break;
+                }
+            }
+
             // Fondo de la columna
-            if (col == hoveredColumn) {
-                // Columna iluminada
+            if (isMyHover) {
+                // Mi hover - color verde/azul
                 gc.setFill(Color.rgb(100, 200, 255, 0.5));
+            } else if (otherClientHoveringThisCol != null) {
+                // Hover de otro cliente - usar su color
+                Color otherColor = Color.rgb(255, 100, 100, 0.5); // Default rojo
+
+                // Buscar el color del otro cliente
+                for (com.shared.ClientData client : clients) {
+                    if (client.name.equals(otherClientHoveringThisCol)) {
+                        Color baseColor = utils.getColor(client.color);
+                        otherColor = new Color(baseColor.getRed(), baseColor.getGreen(),
+                                baseColor.getBlue(), 0.5);
+                        break;
+                    }
+                }
+                gc.setFill(otherColor);
             } else {
                 gc.setFill(Color.rgb(200, 200, 200, 0.3));
             }

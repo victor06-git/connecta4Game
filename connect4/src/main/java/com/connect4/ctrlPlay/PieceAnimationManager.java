@@ -6,14 +6,11 @@ import com.shared.GameObject;
 
 /**
  * Small manager to handle piece drop animation.
- * Extracted from previous GameLogicUtils implementation so CtrlPlay delegates
- * here.
  */
 public class PieceAnimationManager {
 
     /**
-     * Initializes drop animation parameters and positions the piece at the top of
-     * the board.
+     * Initializes drop animation for a piece.
      * 
      * @return target Y position for the animation
      */
@@ -26,16 +23,15 @@ public class PieceAnimationManager {
     }
 
     /**
-     * Updates animation position for the piece. Returns true while animation
-     * continues.
+     * Updates animation position for the piece.
      */
     public boolean updateAnimation(GameObject piece, double animationTargetY, double animationSpeed, double fps) {
         if (fps < 1) {
             return true; // Continue animation
         }
 
-        double deltaTime = 1.0 / fps;
-        double movement = animationSpeed * deltaTime;
+        double deltaTime = 1.0 / fps; // used to calculate movement per frame
+        double movement = animationSpeed * deltaTime; // pixels to move this frame
 
         if (piece.center_y < animationTargetY) {
             piece.center_y += movement;
