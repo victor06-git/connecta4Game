@@ -19,6 +19,15 @@ public class PieceAnimationManager {
         piece.center_x = grid.getCellX(col) + cellSize / 2;
         piece.center_y = grid.getStartY() - 20;
 
+        // CRITICAL: Also update Main.objects immediately for animation start position
+        for (GameObject go : Main.objects) {
+            if (go.id.equals(piece.id)) {
+                go.center_x = piece.center_x;
+                go.center_y = piece.center_y;
+                break;
+            }
+        }
+
         return grid.getCellY(row) + cellSize / 2; // target Y
     }
 

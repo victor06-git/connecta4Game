@@ -1,7 +1,9 @@
 package com.connect4;
 
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.ResourceBundle;
 
@@ -183,9 +185,15 @@ public class CtrlPlay implements Initializable {
     public void handlePlayRejected(String pieceId) {
         // Delegate rejection handling to GameLogicUtils which can return updated
         // selection
+        GameObject rejectedPiece = selectedObject;
         selectedObject = logic.handlePlayRejected(pieceId, selectedObject, originalPoolPositions);
         mouseDragging = false;
         hoveredColumn = -1;
+
+        // Limpiar también selectedObject si fue rechazada
+        if (rejectedPiece != null && rejectedPiece.id.equals(pieceId)) {
+            selectedObject = null;
+        }
     }
 
     /**
@@ -464,11 +472,13 @@ public class CtrlPlay implements Initializable {
                         Main.wsClient.safeSend(clearHoverMsg.toString());
                     }
 
+                    // NO limpiar selectedObject aquí - esperamos la respuesta del servidor
                     return;
                 }
             }
 
             // If not valid drop, return to pool position
+            // IMPORTANTE: Devolver la pieza a su posición original del pool
             returnPieceToOriginalPosition(selectedObject);
             selectedObject = null;
             mouseDragging = false;
@@ -521,6 +531,11 @@ public class CtrlPlay implements Initializable {
         return this.gameEnded;
     }
 
+    /**
+     * Get the color of the winning player
+     * 
+     * @return winner color
+     */
     public String getWinnerColor() {
         return this.winnerColor;
     }
@@ -577,31 +592,27 @@ public class CtrlPlay implements Initializable {
         // Draw grid
         drawUtils.drawBoard(gc, grid, utils);
 
-        // Draw pieces of pool (non-selected)
-        for (GameObject go : Main.objects) {
-            if (go.row == -1 && go.col == -1) {
-                // Saltar la ficha que está siendo arrastrada o animándose
-                if (selectedObject != null && go.id.equals(selectedObject.id))
-                    continue;
-                drawUtils.drawObject(go, gc, grid, utils);
+        // Crear una copia snapshot para evitar ConcurrentModificationException
+        List<GameObject> objectsSnapshot = new ArrayList<>(Main.objects);
+        GameObject currentSelected = selectedObject; // Capturar referencia local
+        boolean currentAnimating = isAnimating; // Capturar estado local
+
+        // Draw all pieces (pool first, then board)
+        // But skip the selected object if animating or dragging to draw it last
+        for (GameObject go : objectsSnapshot) {
+            // Skip selected object during animation/dragging - will be drawn on top
+            if (currentSelected != null && go.id.equals(currentSelected.id)) {
+                if (currentAnimating || (go.row == -1 && go.col == -1)) {
+                    continue; // Skip: will be drawn on top for visibility
+                }
             }
+
+            drawUtils.drawObject(go, gc, grid, utils);
         }
 
-        // Draw pieces on the board (from Main.objects, not boardState)
-        // This ensures the actual pieces are drawn, not copies
-        for (GameObject go : Main.objects) {
-            if (go.row != -1 && go.col != -1) {
-                // Saltar la ficha que está siendo animada
-                if (selectedObject != null && go.id.equals(selectedObject.id) && isAnimating)
-                    continue;
-                drawUtils.drawObject(go, gc, grid, utils);
-            }
-        }
-
-        // Draw piece on client (selected or animating) on top so dragging/animating
-        // piece is visible
-        if (selectedObject != null) {
-            drawUtils.drawObject(selectedObject, gc, grid, utils);
+        // Draw selected/animating piece on top for visibility
+        if (currentSelected != null) {
+            drawUtils.drawObject(currentSelected, gc, grid, utils);
         }
 
         if (winningLineCoords != null) {

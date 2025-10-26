@@ -1,6 +1,7 @@
 package com.connect4.ctrlPlay;
 
 import java.util.List;
+import java.util.Map;
 
 import com.shared.GameObject;
 
@@ -72,46 +73,50 @@ public class DrawUtils {
      * @param grid
      * @param utils
      */
-    public void drawBoardPieces(GraphicsContext gc, String[][] boardState, com.connect4.PlayGrid grid,
-            ColorUtils utils) {
-        double cellSize = grid.getCellSize();
-        double radius = cellSize * 0.40;
 
-        for (int row = 0; row < grid.getRows(); row++) {
-            for (int col = 0; col < grid.getCols(); col++) {
-                String pieceId = boardState[row][col];
-
-                if (pieceId != null) {
-
-                    double centerX = grid.getCellX(col) + cellSize / 2;
-                    double centerY = grid.getCellY(row) + cellSize / 2;
-
-                    Color color;
-                    Color borderColor;
-                    if (pieceId.startsWith("R_")) {
-                        color = utils.getColor("red");
-                        borderColor = utils.getColor("dark_red");
-                    } else if (pieceId.startsWith("Y_")) {
-                        color = utils.getColor("yellow");
-                        borderColor = utils.getColor("dark_yellow");
-                    } else {
-                        color = utils.getColor("gray");
-                        borderColor = utils.getColor("black");
-                    }
-
-                    gc.setFill(color);
-                    gc.fillOval(centerX - radius, centerY - radius, radius * 2, radius * 2);
-
-                    gc.setStroke(borderColor);
-                    gc.setLineWidth(5);
-                    gc.strokeOval(centerX - radius, centerY - radius, radius * 2, radius * 2);
-                }
-            }
-        }
-    }
+    /*
+     * public void drawBoardPieces(GraphicsContext gc, String[][] boardState,
+     * com.connect4.PlayGrid grid,
+     * ColorUtils utils) {
+     * double cellSize = grid.getCellSize();
+     * double radius = cellSize * 0.40;
+     * 
+     * for (int row = 0; row < grid.getRows(); row++) {
+     * for (int col = 0; col < grid.getCols(); col++) {
+     * String pieceId = boardState[row][col];
+     * 
+     * if (pieceId != null) {
+     * 
+     * double centerX = grid.getCellX(col) + cellSize / 2;
+     * double centerY = grid.getCellY(row) + cellSize / 2;
+     * 
+     * Color color;
+     * Color borderColor;
+     * if (pieceId.startsWith("R_")) {
+     * color = utils.getColor("red");
+     * borderColor = utils.getColor("dark_red");
+     * } else if (pieceId.startsWith("Y_")) {
+     * color = utils.getColor("yellow");
+     * borderColor = utils.getColor("dark_yellow");
+     * } else {
+     * color = utils.getColor("gray");
+     * borderColor = utils.getColor("black");
+     * }
+     * 
+     * gc.setFill(color);
+     * gc.fillOval(centerX - radius, centerY - radius, radius * 2, radius * 2);
+     * 
+     * gc.setStroke(borderColor);
+     * gc.setLineWidth(5);
+     * gc.strokeOval(centerX - radius, centerY - radius, radius * 2, radius * 2);
+     * }
+     * }
+     * }
+     * }
+     */
 
     /**
-     * Function
+     * Function draw winning circles
      * 
      * @param gc
      * @param winningLineCoords
@@ -187,7 +192,7 @@ public class DrawUtils {
             String otherClientHoveringThisCol = null;
 
             // Buscar si otro cliente está haciendo hover en esta columna
-            for (java.util.Map.Entry<String, Integer> entry : otherClientsHover.entrySet()) {
+            for (Map.Entry<String, Integer> entry : otherClientsHover.entrySet()) {
                 if (entry.getValue() == col) {
                     otherClientHoveringThisCol = entry.getKey();
                     break;
@@ -299,29 +304,34 @@ public class DrawUtils {
         double centerY = obj.center_y;
         double radius = grid.getCellSize() * 0.40;
 
-        // Seleccionar un color basat en l'objectId
+        // Seleccionar color y color de borde basado en el ID de la pieza
         Color color;
-        if (obj.color != null && !obj.color.isEmpty()) {
-            color = utils.getColor(obj.color);
+        Color borderColor;
+
+        if (obj.id.startsWith("R_")) {
+            color = utils.getColor("red");
+            borderColor = utils.getColor("dark_red");
+        } else if (obj.id.startsWith("Y_")) {
+            color = utils.getColor("yellow");
+            borderColor = utils.getColor("dark_yellow");
         } else {
-            // Color por ID
-            if (obj.id.startsWith("R_")) {
-                color = utils.getColor("red");
-            } else if (obj.id.startsWith("Y_")) {
-                color = utils.getColor("yellow");
+            // Fallback por si hay color en el objeto
+            if (obj.color != null && !obj.color.isEmpty()) {
+                color = utils.getColor(obj.color);
+                borderColor = color.darker();
             } else {
                 color = utils.getColor("gray");
+                borderColor = utils.getColor("black");
             }
         }
 
-        // Dibuixar el cercle
+        // Dibujar la pieza (círculo relleno)
         gc.setFill(color);
         gc.fillOval(centerX - radius, centerY - radius, radius * 2, radius * 2);
 
-        // Dibuixar el contorn
-        gc.setStroke(obj.id.startsWith("R_") ? utils.getColor("dark_red") : utils.getColor("dark_yellow"));
+        // Dibujar el borde (contorno)
+        gc.setStroke(borderColor);
         gc.setLineWidth(5);
         gc.strokeOval(centerX - radius, centerY - radius, radius * 2, radius * 2);
-
     }
 }
