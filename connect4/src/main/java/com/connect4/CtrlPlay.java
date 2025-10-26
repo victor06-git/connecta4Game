@@ -529,16 +529,21 @@ public class CtrlPlay implements Initializable {
                 // Asegurar que la ficha está en la posición exacta del tablero
                 if (selectedObject.row != -1 && selectedObject.col != -1) {
                     double cellSize = grid.getCellSize();
-                    selectedObject.center_x = grid.getCellX(selectedObject.col) + cellSize / 2;
-                    selectedObject.center_y = grid.getCellY(selectedObject.row) + cellSize / 2;
+                    double finalX = grid.getCellX(selectedObject.col) + cellSize / 2;
+                    double finalY = grid.getCellY(selectedObject.row) + cellSize / 2;
+
+                    selectedObject.center_x = finalX;
+                    selectedObject.center_y = finalY;
 
                     // Actualizar también en Main.objects
                     for (GameObject go : Main.objects) {
                         if (go.id.equals(selectedObject.id)) {
-                            go.center_x = selectedObject.center_x;
-                            go.center_y = selectedObject.center_y;
+                            go.center_x = finalX;
+                            go.center_y = finalY;
                             go.row = selectedObject.row;
                             go.col = selectedObject.col;
+                            System.out.println("✅ Updated in Main.objects: " + go.id + " | X: " + go.center_x
+                                    + " | Y: " + go.center_y + " | Row: " + go.row + " | Col: " + go.col);
                             break;
                         }
                     }
