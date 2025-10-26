@@ -52,9 +52,6 @@ public class CtrlSubViewSend {
                 json.put("sendTo", user);
 
                 Main.wsClient.safeSend(json.toString());
-
-                // Desactivar botón para evitar múltiples invitaciones
-                sendButton.setDisable(true);
             }
 
         } else {

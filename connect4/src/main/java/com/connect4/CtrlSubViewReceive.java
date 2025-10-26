@@ -91,7 +91,6 @@ public class CtrlSubViewReceive {
             CtrlOpponentSelection ctrl = (CtrlOpponentSelection) UtilsViews.getController("ViewOpponentSelection");
             if (ctrl != null) {
                 ctrl.reactivateFromSendList(name);
-                ctrl.reactivateFromSendList(Main.clientName);
             }
         }
     }
