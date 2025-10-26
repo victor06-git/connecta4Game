@@ -526,12 +526,35 @@ public class CtrlPlay implements Initializable {
                 // Animación terminada
                 System.out.println("✅ ANIMATION FINISHED for " + selectedObject.id);
 
+                // Eliminar la ficha de Main.objects para que no se pueda mover más
+                String pieceId = selectedObject.id;
+                Main.objects.removeIf(go -> go.id.equals(pieceId));
+                gameObjectsMap.remove(pieceId);
+                System.out.println("🗑️ Removed piece from pool: " + pieceId);
+
                 // Limpiar estado de animación
                 // La ficha ya se dibujará desde boardState en drawBoardPieces()
                 isAnimating = false;
                 selectedObject = null;
             }
         }
+    }
+
+    /**
+     * Check if a piece ID is already placed on the board
+     * 
+     * @param pieceId
+     * @return true if the piece is in boardState
+     */
+    private boolean isPieceInBoardState(String pieceId) {
+        for (int row = 0; row < boardState.length; row++) {
+            for (int col = 0; col < boardState[row].length; col++) {
+                if (pieceId.equals(boardState[row][col])) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     // Expose fields so other controllers or Main can read them (avoid unused
@@ -610,7 +633,10 @@ public class CtrlPlay implements Initializable {
 
         // Draw pieces from pool (not placed on board)
         for (GameObject go : objectsSnapshot) {
-            if (go.row == -1 && go.col == -1) {
+            // Solo dibujar fichas que están en el pool (row=-1, col=-1)
+            // Y además verificar que NO estén en boardState (por si el servidor las envía
+            // con row/col)
+            if (go.row == -1 && go.col == -1 && !isPieceInBoardState(go.id)) {
                 // Skip selected object during animation/dragging - will be drawn on top
                 if (currentSelected != null && go.id.equals(currentSelected.id)) {
                     if (currentAnimating || currentDragging) {
