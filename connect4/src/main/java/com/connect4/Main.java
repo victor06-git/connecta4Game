@@ -308,7 +308,7 @@ public class Main extends Application {
                 ((CtrlOpponentSelection) UtilsViews.getController("ViewOpponentSelection"))
                         .addToSendInvitation(username);
                 break;
-            
+
             case "invitationSentConfirmation":
                 // Confirmación de que mi invitación fue enviada
                 // Debo desactivar el botón del destinatario en mi lista
@@ -320,23 +320,28 @@ public class Main extends Application {
                 break;
 
             case "clientAnswerInvitation":
+                System.out.println("📨 clientAnswerInvitation recibido:");
                 System.out.println(msgObj);
                 // Cuando alguien responde a mi invitación:
                 // - sendFrom: la persona que respondió (ej: María)
                 // - sendTo: yo (Juan)
                 // Necesito el nombre de quien respondió para reactivar su botón
                 String resp = msgObj.getString("sendFrom");
+                System.out.println("👤 Reactivando botón de quien rechazó: " + resp);
                 ((CtrlOpponentSelection) UtilsViews.getController("ViewOpponentSelection"))
                         .removeFromSendInvitation(resp);
                 ((CtrlOpponentSelection) UtilsViews.getController("ViewOpponentSelection"))
                         .reactivateFromSendList(resp);
 
                 break;
-            
+
             case "invitationRejectedByMe":
+                System.out.println("🚫 invitationRejectedByMe recibido:");
+                System.out.println(msgObj);
                 // Cuando yo rechazo una invitación, el servidor me notifica
                 // para reactivar el botón del usuario que me envió la invitación
                 String userToReactivate = msgObj.getString("userName");
+                System.out.println("👤 Reactivando botón de quien me envió invitación: " + userToReactivate);
                 ((CtrlOpponentSelection) UtilsViews.getController("ViewOpponentSelection"))
                         .removeFromSendInvitation(userToReactivate);
                 ((CtrlOpponentSelection) UtilsViews.getController("ViewOpponentSelection"))

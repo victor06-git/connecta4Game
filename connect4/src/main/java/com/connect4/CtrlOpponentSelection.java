@@ -156,20 +156,41 @@ public class CtrlOpponentSelection implements Initializable {
      * @param name
      */
     public void reactivateFromSendList(String name) {
+        System.out.println("🔄 Intentando reactivar botón para: " + name);
+        System.out.println("📋 Número de nodos en list_send: " + list_send.getChildren().size());
+
+        boolean found = false;
         for (Node n : list_send.getChildren()) {
-            if (controllersSend.get(n).getUserName().equals(name)) {
-                n.setDisable(false);
-                break;
+            CtrlSubViewSend ctrl = controllersSend.get(n);
+            if (ctrl != null) {
+                String userName = ctrl.getUserName();
+                System.out.println("   Comparando con: " + userName);
+                if (userName.equals(name)) {
+                    System.out.println("✅ ENCONTRADO! Reactivando botón de: " + name);
+                    n.setDisable(false);
+                    found = true;
+                    break;
+                }
+            } else {
+                System.out.println("⚠️ Controlador nulo para un nodo");
             }
+        }
+
+        if (!found) {
+            System.out.println("❌ NO SE ENCONTRÓ el botón para: " + name);
         }
     }
 
     public void addToSendInvitation(String name) {
+        System.out.println("➕ Añadiendo a sendInvitations: " + name);
         sendInvitations.add(name);
+        System.out.println("📝 Lista sendInvitations: " + sendInvitations);
     }
 
     public void removeFromSendInvitation(String name) {
+        System.out.println("➖ Eliminando de sendInvitations: " + name);
         sendInvitations.remove(name);
+        System.out.println("📝 Lista sendInvitations: " + sendInvitations);
     }
 
     public void rejectAllPetitions() {
