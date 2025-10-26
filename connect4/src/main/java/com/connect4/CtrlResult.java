@@ -3,6 +3,8 @@ package com.connect4;
 import java.net.URL;
 import java.util.ResourceBundle;
 
+import com.shared.ClientData;
+
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.Label;
@@ -46,33 +48,43 @@ public class CtrlResult implements Initializable {
             case "WIN":
                 nameWinner.setText("YOU WIN!");
                 nameWinner.setTextFill(Color.web("#00aa00"));
-                winnerMsg.setText("Winner color: " + (winnerColor != null ? winnerColor : ""));
+                winnerMsg.setText("Winner: " + (winnerColor != null ? winnerColor : ""));
                 break;
             case "LOSE":
                 nameWinner.setText("YOU LOSE!");
                 nameWinner.setTextFill(Color.web("#ff0000"));
-                winnerMsg.setText("Winner color: " + (winnerColor != null ? winnerColor : ""));
+                winnerMsg.setText("Winner: " + (winnerColor != null ? winnerColor : ""));
                 break;
             case "DRAW":
                 nameWinner.setText("DRAW");
                 nameWinner.setTextFill(Color.web("#ffaa00"));
-                winnerMsg.setText("");
+                winnerMsg.setText("DRAW");
                 break;
             default:
                 nameWinner.setText("RESULT");
-                winnerMsg.setText("");
+                winnerMsg.setText("N/A"); // No result available
         }
     }
 
     @FXML
     private void toOpponentSelection() {
-        // Stop play timer if running and go back to opponent selection view
+        // Stop play timer if running
         try {
-            if (Main.ctrlPlay != null)
+            if (Main.ctrlPlay != null) {
                 Main.ctrlPlay.stop();
+                // Reset the board and all game state for a new game
+                Main.ctrlPlay.resetBoard();
+            }
         } catch (Exception ex) {
-            // ignore
+            System.out.println("Error resetting board: " + ex.getMessage());
         }
+
+        // Set isPlaying to false for all clients to re-enable buttons
+        for (ClientData client : Main.clients) {
+            client.SetIsPlaying(false);
+        }
+
+        // Navigate back to opponent selection view
         UtilsViews.setViewAnimating("ViewOpponentSelection");
     }
 

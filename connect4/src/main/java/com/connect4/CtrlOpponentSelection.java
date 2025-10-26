@@ -57,8 +57,6 @@ public class CtrlOpponentSelection implements Initializable {
 
                     list_send.getChildren().add(itemPane);
 
-                    System.out.println(client.isPlaying);
-
                     if (client.isPlaying || sendInvitations.contains(client.name)) {
                         itemPane.setDisable(true);
                     }
@@ -106,7 +104,7 @@ public class CtrlOpponentSelection implements Initializable {
     // Método para eliminar la parte
     public void removeFromReceiveList(Node node) {
         list_receive.getChildren().remove(node);
-        loadSendList();
+        updateLists();
     }
 
     // Añadimos una petición a partir de un nombre de usuario
@@ -167,7 +165,7 @@ public class CtrlOpponentSelection implements Initializable {
 
     public void removeFromSendInvitation(String name) {
         sendInvitations.remove(name);
-        loadSendList();
+        updateLists();
     }
 
     public void rejectAllPetitions() {

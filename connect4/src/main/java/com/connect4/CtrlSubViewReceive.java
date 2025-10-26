@@ -26,15 +26,30 @@ public class CtrlSubViewReceive {
 
     private Node rootNode;
 
+    /**
+     * Get user name
+     * 
+     * @return user name
+     */
     public String getUser() {
         return this.userName.getText();
     }
 
+    /**
+     * Set user name
+     * 
+     * @param user
+     */
     public void setUser(String user) {
         this.userName.setText(user);
         this.name = user;
     }
 
+    /**
+     * Set user image
+     * 
+     * @param imagePath
+     */
     public void setImage(String imagePath) {
         try {
             Image image = new Image(Objects.requireNonNull(getClass().getResourceAsStream(imagePath)));
@@ -45,11 +60,17 @@ public class CtrlSubViewReceive {
         }
     }
 
-    // Método para establecer el nodo raíz desde el controlador padre
+    /**
+     * Set the root node from the parent controller
+     */
     public void setRootNode(Node node) {
         this.rootNode = node;
     }
 
+    /**
+     * Reject invitation
+     * 
+     */
     @FXML
     public void rejectInvitation() {
 
@@ -66,9 +87,19 @@ public class CtrlSubViewReceive {
 
             // Eliminar subView del ControllerOpponentSelection (VBox)
             removeInvitation();
+            // Reactivate button in send list
+            CtrlOpponentSelection ctrl = (CtrlOpponentSelection) UtilsViews.getController("ViewOpponentSelection");
+            if (ctrl != null) {
+                ctrl.reactivateFromSendList(name);
+                ctrl.reactivateFromSendList(Main.clientName);
+            }
         }
     }
 
+    /**
+     * Accept invitation
+     * 
+     */
     @FXML
     public void acceptInvitation() {
 
@@ -89,6 +120,9 @@ public class CtrlSubViewReceive {
         }
     }
 
+    /**
+     * Remove invitation from the list in the parent controller
+     */
     private void removeInvitation() {
         if (rootNode != null) {
             CtrlOpponentSelection ctrl = (CtrlOpponentSelection) UtilsViews.getController("ViewOpponentSelection");

@@ -302,7 +302,8 @@ public class Main extends Application {
                 break;
 
             case "clientSendInvitation":
-                String username = msgObj.getString("sendFrom");
+                String username = msgObj.getString("sendTo");
+                String userInvited = msgObj.getString("sendFrom");
                 ((CtrlOpponentSelection) UtilsViews.getController("ViewOpponentSelection"))
                         .addFromReceiveList(username);
                 ((CtrlOpponentSelection) UtilsViews.getController("ViewOpponentSelection"))

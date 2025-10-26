@@ -2,7 +2,6 @@ package com.server;
 
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -27,7 +26,6 @@ public class Main extends WebSocketServer {
 
     public static final int DEFAULT_PORT = 3000;
 
-    private static final List<String> PLAYER_COLORS = Arrays.asList("RED", "YELLOW");
     private static final int REQUIRED_CLIENTS = 2;
 
     // Claves JSON
@@ -42,7 +40,6 @@ public class Main extends WebSocketServer {
     // Tipos de mensaje
     private static final String T_CLIENT_MOUSE_MOVING = "clientMouseMoving";
     private static final String T_CLIENT_PIECE_MOVING = "clientPieceMoving";
-    private static final String T_CLIENT_PLAY = "clientPlay";
 
     private static final String T_CLIENT_SEND_INVITATION = "clientSendInvitation";
     private static final String T_CLIENT_ANSWER_INVITATION = "clientAnswerInvitation";
@@ -57,7 +54,6 @@ public class Main extends WebSocketServer {
 
     private static final String T_PLAY_ACCEPTED = "playAccepted";
     private static final String T_PLAY_REJECTED = "playRejected";
-    private static final String T_GAME_STATE = "gameState";
 
     private final ClientRegistry clients;
     private final List<String> playersNames = new ArrayList<>();
@@ -96,7 +92,7 @@ public class Main extends WebSocketServer {
     /**
      * Initialize the board state
      */
-    private void resetBoard() {
+    public void resetBoard() {
         for (int i = 0; i < 6; i++) {
             for (int j = 0; j < 7; j++) {
                 boardState[i][j] = null;
@@ -194,9 +190,6 @@ public class Main extends WebSocketServer {
         piece.center_y = original.center_y;
         piece.col = -1;
         piece.row = -1;
-
-        System.out.println("Returned piece " + piece.id + " to pool position: ("
-                + piece.center_x + ", " + piece.center_y + ")");
     }
 
     /**

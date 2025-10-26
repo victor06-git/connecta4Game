@@ -607,7 +607,7 @@ public class CtrlPlay implements Initializable {
         // Crear gradiente simple de madera (marrón medio a claro)
         LinearGradient woodGradient = new LinearGradient(
                 0, 0, 0, 1, true,
-                CycleMethod.NO_CYCLE,
+                CycleMethod.REFLECT, // Cambiar a no_cycle
                 new Stop(0, Color.rgb(139, 90, 43)), // Marrón medio
                 new Stop(1, Color.rgb(120, 80, 40)) // Marrón más oscuro
         );
@@ -671,6 +671,48 @@ public class CtrlPlay implements Initializable {
         if (showFPS) {
             animationTimer.drawFPS(gc);
         }
+    }
+
+    /**
+     * Reset the board and all game state to start a new game
+     * Preserves client names but resets everything else
+     */
+    public void resetBoard() {
+        // Stop any animations
+        isAnimating = false;
+        selectedObject = null;
+        mouseDragging = false;
+        hoveredColumn = -1;
+
+        // Clear board state
+        for (int i = 0; i < 6; i++) {
+            for (int j = 0; j < 7; j++) {
+                boardState[i][j] = null;
+            }
+        }
+
+        // Reset game variables
+        gameEnded = false;
+        winnerColor = null;
+        winningLineCoords = null;
+        currentTurn = "";
+
+        // Clear hover columns
+        clientHoveredColumns.clear();
+
+        // Reset all pieces to original pool positions
+        for (GameObject obj : Main.objects) {
+            GameObject original = originalPoolPositions.get(obj.id);
+            if (original != null) {
+                obj.center_x = original.center_x;
+                obj.center_y = original.center_y;
+                obj.col = -1;
+                obj.row = -1;
+            }
+        }
+
+        // Clear gameObjectsMap to allow re-initialization
+        gameObjectsMap.clear();
     }
 
 }
