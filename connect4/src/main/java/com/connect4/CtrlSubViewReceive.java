@@ -79,8 +79,8 @@ public class CtrlSubViewReceive {
 
             JSONObject json = new JSONObject();
             json.put("type", "clientAnswerInvitation");
-            json.put("sendFrom", name);
-            json.put("sendTo", Main.clientName);
+            json.put("sendFrom", Main.clientName); // Yo, quien rechaza
+            json.put("sendTo", name); // Quien envió la invitación originalmente
             json.put("value", false);
 
             Main.wsClient.safeSend(json.toString());
@@ -103,8 +103,8 @@ public class CtrlSubViewReceive {
 
             JSONObject json = new JSONObject();
             json.put("type", "clientAnswerInvitation");
-            json.put("sendFrom", name);
-            json.put("sendTo", Main.clientName);
+            json.put("sendFrom", Main.clientName); // Yo, quien acepta
+            json.put("sendTo", name); // Quien envió la invitación originalmente
             json.put("value", true);
 
             Main.wsClient.safeSend(json.toString());
