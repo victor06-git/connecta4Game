@@ -500,7 +500,6 @@ public class CtrlPlay implements Initializable {
             boolean continueAnim = anim.updateAnimation(selectedObject, animationTargetY, animationSpeed, fps);
             if (!continueAnim) {
                 // Animación terminada - asegurar posición final exacta
-                isAnimating = false;
 
                 // Asegurar que la ficha está en la posición exacta del tablero
                 if (selectedObject.row != -1 && selectedObject.col != -1) {
@@ -520,6 +519,8 @@ public class CtrlPlay implements Initializable {
                     }
                 }
 
+                // Limpiar DESPUÉS de colocar la ficha en su posición
+                isAnimating = false;
                 selectedObject = null;
             }
         }
