@@ -195,6 +195,13 @@ public class Main extends Application {
 
             case "countdown":
                 if (!UtilsViews.getActiveView().equals("ViewWait")) {
+                    // Resetear el juego antes de empezar uno nuevo
+                    System.out.println("🔄 Reseteando juego para nueva partida...");
+                    if (ctrlPlay != null) {
+                        ctrlPlay.stop();
+                        ctrlPlay.resetBoard();
+                    }
+
                     // Rebutgem la resta de peticions
                     ((CtrlOpponentSelection) UtilsViews.getController("ViewOpponentSelection")).rejectAllPetitions();
                     UtilsViews.setView("ViewWait");
@@ -203,6 +210,7 @@ public class Main extends Application {
                 int value = msgObj.getInt("value");
                 String txt = String.valueOf(value);
                 if (value == 0) {
+                    System.out.println("🎮 Iniciando nueva partida...");
                     UtilsViews.setViewAnimating("ViewPlay");
                     txt = "GO";
                 }

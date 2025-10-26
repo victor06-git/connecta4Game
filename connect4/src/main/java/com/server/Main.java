@@ -205,6 +205,17 @@ public class Main extends WebSocketServer {
                 System.out.println("Not enough players for countdown: " + clientsData.size() + "/" + REQUIRED_CLIENTS);
                 return;
             }
+
+            // Resetear el estado del juego antes de comenzar
+            System.out.println("🔄 Resetting game state for new match...");
+            gameStarted = false;
+            gameEnded = false;
+            winnerColor = null;
+            winningLineCoords = null;
+            resetBoard();
+            initializegameObjects(); // Reinicializar las piezas en el pool
+            currentTurn = null;
+
             countdownRunning = true;
             System.out.println("Starting countdown sequence...");
         }
