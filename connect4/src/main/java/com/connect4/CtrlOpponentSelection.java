@@ -121,7 +121,7 @@ public class CtrlOpponentSelection implements Initializable {
 
             controllersReceive.put(itemPane, itemController);
 
-            // removeFromSendList(name); // Desactivar botón en la lista de envíos
+            removeFromSendList(name); // Desactivar botón en la lista de envíos
             list_receive.getChildren().add(itemPane);
 
         } catch (Exception e) {

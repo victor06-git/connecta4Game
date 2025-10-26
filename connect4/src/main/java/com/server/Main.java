@@ -524,16 +524,17 @@ public class Main extends WebSocketServer {
 
                 else {
                     // SI NO ACCEPTA
-                    // Enviem a l'usuari que ha fet la petició la resposta de l'invitació
-                    String sender = obj.getString("sendFrom");
+                    // Enviem a l'usuari que ha fet la petició original la resposta de l'invitació
+                    // String whoRejected = obj.getString("sendFrom"); // quien rechazó
+                    String originalSender = obj.getString("sendTo"); // quien envió originalmente
 
-                    // Enviar resposta al remitent original
-                    sendSafe(clients.socketByName(sender), obj.toString());
+                    // Enviar resposta al remitent original (quien envió la invitación)
+                    sendSafe(clients.socketByName(originalSender), obj.toString());
 
                     // També notificar al receptor (qui va rebutjar) per reactivar el seu botó
                     JSONObject reactivateMsg = new JSONObject();
                     reactivateMsg.put("type", "invitationRejectedByMe");
-                    reactivateMsg.put("userName", sender);
+                    reactivateMsg.put("userName", originalSender);
                     sendSafe(conn, reactivateMsg.toString());
                 }
                 break;
