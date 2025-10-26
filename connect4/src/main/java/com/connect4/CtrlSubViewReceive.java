@@ -87,11 +87,9 @@ public class CtrlSubViewReceive {
 
             // Eliminar subView del ControllerOpponentSelection (VBox)
             removeInvitation();
-
-            CtrlOpponentSelection ctrl = (CtrlOpponentSelection) UtilsViews.getController("ViewOpponentSelection");
-            if (ctrl != null) {
-                ctrl.reactivateFromSendList(name); // Reactivar botón del usuario que envió la invitación
-            }
+            
+            // Ya no necesitamos reactivar manualmente aquí
+            // El servidor enviará un mensaje "invitationRejectedByMe" para reactivar ambos botones
         }
     }
 

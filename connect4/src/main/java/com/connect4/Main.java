@@ -308,6 +308,16 @@ public class Main extends Application {
                 ((CtrlOpponentSelection) UtilsViews.getController("ViewOpponentSelection"))
                         .addToSendInvitation(username);
                 break;
+            
+            case "invitationSentConfirmation":
+                // Confirmación de que mi invitación fue enviada
+                // Debo desactivar el botón del destinatario en mi lista
+                String recipient = msgObj.getString("sendTo");
+                ((CtrlOpponentSelection) UtilsViews.getController("ViewOpponentSelection"))
+                        .addToSendInvitation(recipient);
+                ((CtrlOpponentSelection) UtilsViews.getController("ViewOpponentSelection"))
+                        .removeFromSendList(recipient);
+                break;
 
             case "clientAnswerInvitation":
                 System.out.println(msgObj);
@@ -321,6 +331,16 @@ public class Main extends Application {
                 ((CtrlOpponentSelection) UtilsViews.getController("ViewOpponentSelection"))
                         .reactivateFromSendList(resp);
 
+                break;
+            
+            case "invitationRejectedByMe":
+                // Cuando yo rechazo una invitación, el servidor me notifica
+                // para reactivar el botón del usuario que me envió la invitación
+                String userToReactivate = msgObj.getString("userName");
+                ((CtrlOpponentSelection) UtilsViews.getController("ViewOpponentSelection"))
+                        .removeFromSendInvitation(userToReactivate);
+                ((CtrlOpponentSelection) UtilsViews.getController("ViewOpponentSelection"))
+                        .reactivateFromSendList(userToReactivate);
                 break;
         }
     }

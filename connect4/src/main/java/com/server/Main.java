@@ -491,9 +491,19 @@ public class Main extends WebSocketServer {
                 // Rebem una petició amb el nom de l'usuari i destinatari a enviar la petició
                 // Rebem l'usuari a qui hem d'enviar la petició
                 String receiver = obj.getString("sendTo");
+                String sender = obj.getString("sendFrom");
 
                 // Enviem a l'usuari rebut, la petició d'invitació
                 sendSafe(clients.socketByName(receiver), obj.toString());
+
+                // També notifiquem al remitent que ha enviat la invitació amb èxit
+                // per desactivar el botó del destinatari en la seva llista
+                JSONObject confirmacion = new JSONObject();
+                confirmacion.put("type", "invitationSentConfirmation");
+                confirmacion.put("sendFrom", sender);
+                confirmacion.put("sendTo", receiver);
+                sendSafe(conn, confirmacion.toString());
+                break;
             }
 
             case T_CLIENT_ANSWER_INVITATION: {
@@ -519,8 +529,17 @@ public class Main extends WebSocketServer {
                     // SI NO ACCEPTA
                     // Enviem a l'usuari que ha fet la petició la resposta de l'invitació
                     String sender = obj.getString("sendFrom");
+
+                    // Enviar resposta al remitent original
                     sendSafe(clients.socketByName(sender), obj.toString());
+
+                    // També notificar al receptor (qui va rebutjar) per reactivar el seu botó
+                    JSONObject reactivateMsg = new JSONObject();
+                    reactivateMsg.put("type", "invitationRejectedByMe");
+                    reactivateMsg.put("userName", sender);
+                    sendSafe(conn, reactivateMsg.toString());
                 }
+                break;
             }
 
             case T_CLIENT_REQUEST_PLAY: {
