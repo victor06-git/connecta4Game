@@ -40,6 +40,8 @@ public class CtrlOpponentSelection implements Initializable {
         try {
             list_send.getChildren().clear();
 
+            System.out.println("📋 loadSendList - sendInvitations actual: " + sendInvitations);
+
             // Iterar sobre todos los clientes conectados
             for (ClientData client : Main.clients) {
                 // Filtrar: no mostrar el propio usuario
@@ -57,7 +59,12 @@ public class CtrlOpponentSelection implements Initializable {
 
                     list_send.getChildren().add(itemPane);
 
-                    if (client.isPlaying || sendInvitations.contains(client.name)) {
+                    boolean shouldDisable = client.isPlaying || sendInvitations.contains(client.name);
+                    System.out.println("  " + client.name + " - isPlaying: " + client.isPlaying +
+                            " | en sendInvitations: " + sendInvitations.contains(client.name) +
+                            " | disabled: " + shouldDisable);
+
+                    if (shouldDisable) {
                         itemPane.setDisable(true);
                     }
                 }
@@ -174,6 +181,11 @@ public class CtrlOpponentSelection implements Initializable {
 
     public void removeFromSendInvitation(String name) {
         sendInvitations.remove(name);
+    }
+
+    public void clearSendInvitations() {
+        System.out.println("🧹 Limpiando lista de sendInvitations");
+        sendInvitations.clear();
     }
 
     public void rejectAllPetitions() {

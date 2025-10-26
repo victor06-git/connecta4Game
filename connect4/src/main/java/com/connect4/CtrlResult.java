@@ -84,6 +84,12 @@ public class CtrlResult implements Initializable {
             client.SetIsPlaying(false);
         }
 
+        // Limpiar las invitaciones pendientes
+        CtrlOpponentSelection ctrl = (CtrlOpponentSelection) UtilsViews.getController("ViewOpponentSelection");
+        if (ctrl != null) {
+            ctrl.clearSendInvitations();
+        }
+
         // Notificar al servidor que el juego ha terminado
         System.out.println("🎮 Enviando mensaje gameEnded al servidor...");
         if (Main.wsClient != null && Main.wsClient.isOpen()) {
