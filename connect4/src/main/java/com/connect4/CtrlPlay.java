@@ -155,6 +155,10 @@ public class CtrlPlay implements Initializable {
             // Initialize drop animation via logic helper (it returns target Y)
             animationTargetY = anim.startDropAnimation(piece, col, row, grid);
             isAnimating = true;
+            System.out.println("🎬 ANIMATION STARTED for " + pieceId + " | Target Y: " + animationTargetY
+                    + " | Start Y: " + piece.center_y + " | isAnimating: " + isAnimating);
+        } else {
+            System.out.println("❌ ERROR: piece is NULL in handlePlayAccepted for " + pieceId);
         }
 
         // Actualizar información del ganador si existe
@@ -497,9 +501,12 @@ public class CtrlPlay implements Initializable {
         }
 
         if (isAnimating && selectedObject != null) {
+            System.out.println("🎮 ANIMATING: " + selectedObject.id + " | Y: " + selectedObject.center_y
+                    + " | Target: " + animationTargetY + " | FPS: " + fps);
             boolean continueAnim = anim.updateAnimation(selectedObject, animationTargetY, animationSpeed, fps);
             if (!continueAnim) {
                 // Animación terminada - asegurar posición final exacta
+                System.out.println("✅ ANIMATION FINISHED for " + selectedObject.id);
 
                 // Asegurar que la ficha está en la posición exacta del tablero
                 if (selectedObject.row != -1 && selectedObject.col != -1) {
@@ -597,13 +604,15 @@ public class CtrlPlay implements Initializable {
         List<GameObject> objectsSnapshot = new ArrayList<>(Main.objects);
         GameObject currentSelected = selectedObject; // Capturar referencia local
         boolean currentAnimating = isAnimating; // Capturar estado local
+        boolean currentDragging = mouseDragging; // Capturar estado de arrastre
 
         // Draw all pieces (pool first, then board)
         // But skip the selected object if animating or dragging to draw it last
         for (GameObject go : objectsSnapshot) {
             // Skip selected object during animation/dragging - will be drawn on top
             if (currentSelected != null && go.id.equals(currentSelected.id)) {
-                if (currentAnimating || (go.row == -1 && go.col == -1)) {
+                // Saltar si está animando O si está en el pool siendo arrastrada
+                if (currentAnimating || currentDragging) {
                     continue; // Skip: will be drawn on top for visibility
                 }
             }
