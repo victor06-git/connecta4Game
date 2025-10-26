@@ -169,6 +169,12 @@ public class CtrlPlay implements Initializable {
                 gameObjectsMap);
 
         if (piece != null) {
+            // Crear una NUEVA ficha en el pool para reemplazar la que va a animar
+            GameObject newPieceInPool = createReplacementPiece(piece);
+            Main.objects.add(newPieceInPool);
+            gameObjectsMap.put(newPieceInPool.id, newPieceInPool);
+            System.out.println("🆕 Created replacement piece in pool: " + newPieceInPool.id);
+
             selectedObject = piece;
             // Initialize drop animation via logic helper (it returns target Y)
             animationTargetY = anim.startDropAnimation(piece, col, row, grid);
@@ -197,6 +203,36 @@ public class CtrlPlay implements Initializable {
                 System.out.println("Error building clientGameEnded message: " + ex.getMessage());
             }
         }
+    }
+
+    /**
+     * Create a replacement piece in the pool when a piece is dropped
+     */
+    private GameObject createReplacementPiece(GameObject original) {
+        // Encontrar la siguiente ficha disponible del mismo color
+        String prefix = original.id.substring(0, 2); // "R_" o "Y_"
+        int maxIndex = -1;
+
+        for (GameObject go : Main.objects) {
+            if (go.id.startsWith(prefix)) {
+                try {
+                    int index = Integer.parseInt(go.id.substring(2));
+                    if (index > maxIndex) {
+                        maxIndex = index;
+                    }
+                } catch (NumberFormatException e) {
+                    // Ignorar IDs que no terminan en número
+                }
+            }
+        }
+
+        // Crear nueva ficha con el siguiente índice
+        String newId = prefix + (maxIndex + 1);
+        double cellSize = grid.getCellSize();
+        GameObject newPiece = new GameObject(newId, original.center_x, original.center_y, cellSize * 0.40, -1, -1);
+        newPiece.color = original.color;
+
+        return newPiece;
     }
 
     /**

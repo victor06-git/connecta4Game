@@ -300,19 +300,8 @@ public class DrawUtils {
      * @param utils
      */
     public void drawObject(GameObject obj, GraphicsContext gc, com.connect4.PlayGrid grid, ColorUtils utils) {
-        // Si la ficha está en el tablero (row/col válidos), usar posición del grid
-        // Si no, usar center_x/center_y (para fichas en pool o siendo arrastradas)
-        double centerX, centerY;
-        if (obj.row != -1 && obj.col != -1) {
-            // Ficha colocada en tablero: usar coordenadas del grid
-            double cellSize = grid.getCellSize();
-            centerX = grid.getCellX(obj.col) + cellSize / 2;
-            centerY = grid.getCellY(obj.row) + cellSize / 2;
-        } else {
-            // Ficha en pool o siendo arrastrada: usar center_x/center_y
-            centerX = obj.center_x;
-            centerY = obj.center_y;
-        }
+        double centerX = obj.center_x;
+        double centerY = obj.center_y;
         double radius = grid.getCellSize() * 0.40;
 
         // Seleccionar color y color de borde basado en el ID de la pieza
