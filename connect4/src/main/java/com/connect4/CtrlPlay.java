@@ -117,6 +117,18 @@ public class CtrlPlay implements Initializable {
         animationTimer = new PlayTimer(this::run, this::draw, 0);
         start();
 
+        // NOTE: gameObjectsMap will be populated later via initializeGameObjects()
+        // when Main.objects is populated by the server
+    }
+
+    /**
+     * Initialize game objects map after Main.objects is populated by server
+     * This must be called after objects are received from server
+     */
+    public void initializeGameObjects() {
+        gameObjectsMap.clear();
+        originalPoolPositions.clear();
+
         for (GameObject obj : Main.objects) {
             originalPoolPositions.put(obj.id,
                     new GameObject(obj.id, obj.center_x, obj.center_y, obj.radius, obj.col, obj.row));

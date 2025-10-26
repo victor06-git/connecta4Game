@@ -175,6 +175,8 @@ public class Main extends Application {
 
                 if (ctrlPlay != null) {
                     ctrlPlay.updateGameState(msgObj);
+                    // Initialize game objects map after objects are populated
+                    ctrlPlay.initializeGameObjects();
                 }
 
                 if (clients.size() == 1) {
