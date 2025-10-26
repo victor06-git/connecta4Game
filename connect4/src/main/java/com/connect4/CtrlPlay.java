@@ -169,12 +169,6 @@ public class CtrlPlay implements Initializable {
                 gameObjectsMap);
 
         if (piece != null) {
-            // Crear una NUEVA ficha en el pool para reemplazar la que va a animar
-            GameObject newPieceInPool = createReplacementPiece(piece);
-            Main.objects.add(newPieceInPool);
-            gameObjectsMap.put(newPieceInPool.id, newPieceInPool);
-            System.out.println("🆕 Created replacement piece in pool: " + newPieceInPool.id);
-
             selectedObject = piece;
             // Initialize drop animation via logic helper (it returns target Y)
             animationTargetY = anim.startDropAnimation(piece, col, row, grid);
@@ -203,36 +197,6 @@ public class CtrlPlay implements Initializable {
                 System.out.println("Error building clientGameEnded message: " + ex.getMessage());
             }
         }
-    }
-
-    /**
-     * Create a replacement piece in the pool when a piece is dropped
-     */
-    private GameObject createReplacementPiece(GameObject original) {
-        // Encontrar la siguiente ficha disponible del mismo color
-        String prefix = original.id.substring(0, 2); // "R_" o "Y_"
-        int maxIndex = -1;
-
-        for (GameObject go : Main.objects) {
-            if (go.id.startsWith(prefix)) {
-                try {
-                    int index = Integer.parseInt(go.id.substring(2));
-                    if (index > maxIndex) {
-                        maxIndex = index;
-                    }
-                } catch (NumberFormatException e) {
-                    // Ignorar IDs que no terminan en número
-                }
-            }
-        }
-
-        // Crear nueva ficha con el siguiente índice
-        String newId = prefix + (maxIndex + 1);
-        double cellSize = grid.getCellSize();
-        GameObject newPiece = new GameObject(newId, original.center_x, original.center_y, cellSize * 0.40, -1, -1);
-        newPiece.color = original.color;
-
-        return newPiece;
     }
 
     /**
@@ -559,33 +523,11 @@ public class CtrlPlay implements Initializable {
                     + " | Target: " + animationTargetY + " | FPS: " + fps);
             boolean continueAnim = anim.updateAnimation(selectedObject, animationTargetY, animationSpeed, fps);
             if (!continueAnim) {
-                // Animación terminada - asegurar posición final exacta
+                // Animación terminada
                 System.out.println("✅ ANIMATION FINISHED for " + selectedObject.id);
 
-                // Asegurar que la ficha está en la posición exacta del tablero
-                if (selectedObject.row != -1 && selectedObject.col != -1) {
-                    double cellSize = grid.getCellSize();
-                    double finalX = grid.getCellX(selectedObject.col) + cellSize / 2;
-                    double finalY = grid.getCellY(selectedObject.row) + cellSize / 2;
-
-                    selectedObject.center_x = finalX;
-                    selectedObject.center_y = finalY;
-
-                    // Actualizar también en Main.objects
-                    for (GameObject go : Main.objects) {
-                        if (go.id.equals(selectedObject.id)) {
-                            go.center_x = finalX;
-                            go.center_y = finalY;
-                            go.row = selectedObject.row;
-                            go.col = selectedObject.col;
-                            System.out.println("✅ Updated in Main.objects: " + go.id + " | X: " + go.center_x
-                                    + " | Y: " + go.center_y + " | Row: " + go.row + " | Col: " + go.col);
-                            break;
-                        }
-                    }
-                }
-
-                // Limpiar DESPUÉS de colocar la ficha en su posición
+                // Limpiar estado de animación
+                // La ficha ya se dibujará desde boardState en drawBoardPieces()
                 isAnimating = false;
                 selectedObject = null;
             }
@@ -661,28 +603,33 @@ public class CtrlPlay implements Initializable {
 
         // Crear una copia snapshot para evitar ConcurrentModificationException
         List<GameObject> objectsSnapshot = new ArrayList<>(Main.objects);
+
         GameObject currentSelected = selectedObject; // Capturar referencia local
         boolean currentAnimating = isAnimating; // Capturar estado local
         boolean currentDragging = mouseDragging; // Capturar estado de arrastre
 
-        // Draw all pieces (pool first, then board)
-        // But skip the selected object if animating or dragging to draw it last
+        // Draw pieces from pool (not placed on board)
         for (GameObject go : objectsSnapshot) {
-            // Skip selected object during animation/dragging - will be drawn on top
-            if (currentSelected != null && go.id.equals(currentSelected.id)) {
-                // Saltar si está animando O si está en el pool siendo arrastrada
-                if (currentAnimating || currentDragging) {
-                    continue; // Skip: will be drawn on top for visibility
+            if (go.row == -1 && go.col == -1) {
+                // Skip selected object during animation/dragging - will be drawn on top
+                if (currentSelected != null && go.id.equals(currentSelected.id)) {
+                    if (currentAnimating || currentDragging) {
+                        continue; // Skip: will be drawn on top for visibility
+                    }
                 }
+                drawUtils.drawObject(go, gc, grid, utils);
             }
-
-            drawUtils.drawObject(go, gc, grid, utils);
         }
 
         // Draw selected/animating piece on top for visibility
         if (currentSelected != null) {
             drawUtils.drawObject(currentSelected, gc, grid, utils);
         }
+
+        // Draw pieces placed on the board from boardState
+        // Pass the ID of the animating piece so it's not drawn twice
+        String animatingPieceId = (currentSelected != null && currentAnimating) ? currentSelected.id : null;
+        drawUtils.drawBoardPieces(gc, boardState, grid, utils, animatingPieceId);
 
         if (winningLineCoords != null) {
             drawUtils.drawWinningCircles(gc, winningLineCoords, grid);

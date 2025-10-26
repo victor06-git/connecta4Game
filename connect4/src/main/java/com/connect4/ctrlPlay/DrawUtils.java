@@ -334,4 +334,52 @@ public class DrawUtils {
         gc.setLineWidth(5);
         gc.strokeOval(centerX - radius, centerY - radius, radius * 2, radius * 2);
     }
+
+    /**
+     * Draw pieces that are placed on the board based on boardState
+     * 
+     * @param gc
+     * @param boardState
+     * @param grid
+     * @param utils
+     * @param animatingPieceId ID of the piece currently animating (to skip drawing
+     *                         it from boardState)
+     */
+    public void drawBoardPieces(GraphicsContext gc, String[][] boardState, com.connect4.PlayGrid grid,
+            ColorUtils utils, String animatingPieceId) {
+        double cellSize = grid.getCellSize();
+        double radius = cellSize * 0.40;
+
+        for (int row = 0; row < grid.getRows(); row++) {
+            for (int col = 0; col < grid.getCols(); col++) {
+                String pieceId = boardState[row][col];
+
+                // Skip if this is the piece currently animating
+                if (pieceId != null && !pieceId.equals(animatingPieceId)) {
+                    double centerX = grid.getCellX(col) + cellSize / 2;
+                    double centerY = grid.getCellY(row) + cellSize / 2;
+
+                    Color color;
+                    Color borderColor;
+                    if (pieceId.startsWith("R_")) {
+                        color = utils.getColor("red");
+                        borderColor = utils.getColor("dark_red");
+                    } else if (pieceId.startsWith("Y_")) {
+                        color = utils.getColor("yellow");
+                        borderColor = utils.getColor("dark_yellow");
+                    } else {
+                        color = utils.getColor("gray");
+                        borderColor = utils.getColor("black");
+                    }
+
+                    gc.setFill(color);
+                    gc.fillOval(centerX - radius, centerY - radius, radius * 2, radius * 2);
+
+                    gc.setStroke(borderColor);
+                    gc.setLineWidth(5);
+                    gc.strokeOval(centerX - radius, centerY - radius, radius * 2, radius * 2);
+                }
+            }
+        }
+    }
 }
