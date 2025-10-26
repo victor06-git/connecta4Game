@@ -54,6 +54,15 @@ public class GameLogicUtils {
         if (piece != null) {
             piece.row = row;
             piece.col = col;
+
+            // CRITICAL: Also update Main.objects to synchronize the piece
+            for (GameObject go : Main.objects) {
+                if (go.id.equals(pieceId)) {
+                    go.row = row;
+                    go.col = col;
+                    break;
+                }
+            }
         }
 
         return piece;

@@ -489,7 +489,27 @@ public class CtrlPlay implements Initializable {
         if (isAnimating && selectedObject != null) {
             boolean continueAnim = anim.updateAnimation(selectedObject, animationTargetY, animationSpeed, fps);
             if (!continueAnim) {
+                // Animación terminada - asegurar posición final exacta
                 isAnimating = false;
+
+                // Asegurar que la ficha está en la posición exacta del tablero
+                if (selectedObject.row != -1 && selectedObject.col != -1) {
+                    double cellSize = grid.getCellSize();
+                    selectedObject.center_x = grid.getCellX(selectedObject.col) + cellSize / 2;
+                    selectedObject.center_y = grid.getCellY(selectedObject.row) + cellSize / 2;
+
+                    // Actualizar también en Main.objects
+                    for (GameObject go : Main.objects) {
+                        if (go.id.equals(selectedObject.id)) {
+                            go.center_x = selectedObject.center_x;
+                            go.center_y = selectedObject.center_y;
+                            go.row = selectedObject.row;
+                            go.col = selectedObject.col;
+                            break;
+                        }
+                    }
+                }
+
                 selectedObject = null;
             }
         }
@@ -567,14 +587,22 @@ public class CtrlPlay implements Initializable {
             }
         }
 
+        // Draw pieces on the board (from Main.objects, not boardState)
+        // This ensures the actual pieces are drawn, not copies
+        for (GameObject go : Main.objects) {
+            if (go.row != -1 && go.col != -1) {
+                // Saltar la ficha que está siendo animada
+                if (selectedObject != null && go.id.equals(selectedObject.id) && isAnimating)
+                    continue;
+                drawUtils.drawObject(go, gc, grid, utils);
+            }
+        }
+
         // Draw piece on client (selected or animating) on top so dragging/animating
         // piece is visible
-        // Hacer que la ficha seleccionada se quede invisible
         if (selectedObject != null) {
             drawUtils.drawObject(selectedObject, gc, grid, utils);
         }
-
-        drawUtils.drawBoardPieces(gc, boardState, grid, utils);
 
         if (winningLineCoords != null) {
             drawUtils.drawWinningCircles(gc, winningLineCoords, grid);

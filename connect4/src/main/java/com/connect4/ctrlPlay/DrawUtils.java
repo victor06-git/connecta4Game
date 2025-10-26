@@ -1,5 +1,7 @@
 package com.connect4.ctrlPlay;
 
+import java.util.List;
+
 import com.shared.GameObject;
 
 import javafx.scene.canvas.GraphicsContext;
@@ -172,7 +174,7 @@ public class DrawUtils {
      */
     public void drawDropZone(GraphicsContext gc, com.connect4.PlayGrid grid, double dropZoneHeight,
             int hoveredColumn, java.util.Map<String, Integer> otherClientsHover,
-            java.util.List<com.shared.ClientData> clients, String myClientName, ColorUtils utils) {
+            List<com.shared.ClientData> clients, String myClientName, ColorUtils utils) {
         double startX = grid.getStartX();
         double startY = grid.getStartY() - dropZoneHeight;
         double cellSize = grid.getCellSize();
