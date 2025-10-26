@@ -50,10 +50,6 @@ public class GameLogicUtils {
             String[][] boardState, Map<String, GameObject> gameObjectsMap) {
         boardState[row][col] = pieceId;
 
-        System.out
-                .println("🔍 Looking for pieceId: '" + pieceId + "' in map with " + gameObjectsMap.size() + " entries");
-        System.out.println("🗝️ Map keys: " + gameObjectsMap.keySet());
-
         GameObject piece = gameObjectsMap.get(pieceId);
         if (piece != null) {
             piece.row = row;
@@ -68,7 +64,7 @@ public class GameLogicUtils {
                 }
             }
         } else {
-            System.out.println("❌ Piece NOT FOUND in map for id: '" + pieceId + "'");
+            System.out.println("❌ ERROR: Piece NOT FOUND in map for id: '" + pieceId + "'");
         }
 
         return piece;

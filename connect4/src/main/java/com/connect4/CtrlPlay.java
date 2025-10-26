@@ -126,6 +126,11 @@ public class CtrlPlay implements Initializable {
      * This must be called after objects are received from server
      */
     public void initializeGameObjects() {
+        // Only initialize if map is empty to avoid redundant initialization
+        if (!gameObjectsMap.isEmpty()) {
+            return;
+        }
+
         gameObjectsMap.clear();
         originalPoolPositions.clear();
 
@@ -133,9 +138,8 @@ public class CtrlPlay implements Initializable {
             originalPoolPositions.put(obj.id,
                     new GameObject(obj.id, obj.center_x, obj.center_y, obj.radius, obj.col, obj.row));
             gameObjectsMap.put(obj.id, obj);
-            System.out.println("📦 Added to gameObjectsMap: " + obj.id);
         }
-        System.out.println("📊 Total objects in map: " + gameObjectsMap.size());
+        System.out.println("✅ Initialized gameObjectsMap with " + gameObjectsMap.size() + " objects");
     }
 
     /**
