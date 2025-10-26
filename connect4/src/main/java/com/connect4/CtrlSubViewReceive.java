@@ -90,7 +90,7 @@ public class CtrlSubViewReceive {
 
             CtrlOpponentSelection ctrl = (CtrlOpponentSelection) UtilsViews.getController("ViewOpponentSelection");
             if (ctrl != null) {
-                ctrl.reactivateFromSendList(Main.clientName); // Reactivar botón en la lista de envíos
+                ctrl.reactivateFromSendList(name); // Reactivar botón del usuario que envió la invitación
             }
         }
     }

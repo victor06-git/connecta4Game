@@ -150,6 +150,11 @@ public class CtrlOpponentSelection implements Initializable {
         }
     }
 
+    /**
+     * Reactivate button in send list
+     * 
+     * @param name
+     */
     public void reactivateFromSendList(String name) {
         for (Node n : list_send.getChildren()) {
             if (controllersSend.get(n).getUserName().equals(name)) {
