@@ -35,7 +35,7 @@ public class GameObject {
         obj.put("radius", radius);
         obj.put("col", col);
         obj.put("row", row);
-        obj.put("color", color != null ? color : "gray");
+        obj.put("color", color != null ? color : "red");
         return obj;
     }
 
@@ -48,7 +48,7 @@ public class GameObject {
                 obj.optDouble("radius", 0.0),
                 obj.optInt("col", 1),
                 obj.optInt("row", 1));
-        go.color = obj.optString("color", "gray");
+        go.color = obj.optString("color", "red");
         return go;
     }
 }

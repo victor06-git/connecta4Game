@@ -159,21 +159,32 @@ public class GameLogicUtils {
      * @return true if can move
      */
     public boolean canMoveThisPiece(GameObject piece, String myColor, String currentTurn, String clientName) {
-        // Get my color if empty
-        if (myColor.isEmpty()) {
-            myColor = Main.clients.stream()
+        // Priorizar Main.myColor sobre el parámetro local
+        String actualColor = !Main.myColor.isEmpty() ? Main.myColor : myColor;
+
+        // Si aún está vacío, buscar en la lista de clientes
+        if (actualColor.isEmpty()) {
+            actualColor = Main.clients.stream()
                     .filter(c -> c.name.equals(clientName))
                     .map(c -> c.color)
                     .findFirst()
                     .orElse("");
         }
 
-        // Debug: show information
-        System.out.println("My color: " + myColor + ", Current turn: " + currentTurn + ", Piece: " + piece.id);
+        // Debug: mostrar información detallada
+        System.out.println("🎮 canMoveThisPiece - Verificando movimiento:");
+        System.out.println("   Main.myColor: '" + Main.myColor + "'");
+        System.out.println("   actualColor: '" + actualColor + "'");
+        System.out.println("   currentTurn: '" + currentTurn + "'");
+        System.out.println("   piece.id: '" + piece.id + "'");
+        System.out.println("   clientName: '" + clientName + "'");
 
-        // Verify it's my turn and the piece is my color
-        boolean isMyTurn = currentTurn.equals(myColor);
-        boolean isMyPiece = piece.id.startsWith(myColor.charAt(0) + "_");
+        // Verificar si es mi turno y si la ficha es de mi color
+        boolean isMyTurn = currentTurn.equalsIgnoreCase(actualColor);
+        boolean isMyPiece = piece.id.toUpperCase().startsWith(actualColor.charAt(0) + "_");
+
+        System.out.println("   isMyTurn: " + isMyTurn + " | isMyPiece: " + isMyPiece);
+        System.out.println("   Resultado: " + (isMyTurn && isMyPiece));
 
         return isMyTurn && isMyPiece;
     }

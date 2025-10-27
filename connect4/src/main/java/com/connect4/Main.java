@@ -155,14 +155,29 @@ public class Main extends Application {
                     JSONObject obj = arrClients.getJSONObject(i);
                     newClients.add(ClientData.fromJSON(obj));
                 }
+
+                // Solo log cuando cambia el número de clientes
+                boolean clientsChanged = clients.size() != newClients.size();
                 clients = newClients;
 
                 // Actualizar mi color basado en el cliente actual
+                String oldColor = myColor;
+                myColor = ""; // Reset primero
                 for (ClientData client : clients) {
                     if (client.name.equals(clientName)) {
                         myColor = client.color;
                         break;
                     }
+                }
+
+                // Solo log cuando cambia el color
+                if (!myColor.equals(oldColor) || clientsChanged) {
+                    System.out.println("🎨 Color asignado: " + myColor + " (cliente: " + clientName + ")");
+                    System.out.println("📋 Clientes totales: " + clients.size());
+                }
+
+                if (myColor.isEmpty()) {
+                    System.out.println("⚠️ WARNING: No se pudo asignar color para " + clientName);
                 }
 
                 JSONArray arrObjects = msgObj.getJSONArray("objectsList");
@@ -194,24 +209,52 @@ public class Main extends Application {
                 break;
 
             case "countdown":
+                int value = msgObj.getInt("value");
+                String txt = String.valueOf(value);
+
                 if (!UtilsViews.getActiveView().equals("ViewWait")) {
-                    // Resetear el juego antes de empezar uno nuevo
-                    System.out.println("🔄 Reseteando juego para nueva partida...");
-                    if (ctrlPlay != null) {
+                    // Solo resetear si ya estuvimos en ViewPlay (segunda partida o posterior)
+                    boolean wasInGame = UtilsViews.getActiveView().equals("ViewPlay") ||
+                            UtilsViews.getActiveView().equals("ViewResult");
+
+                    if (wasInGame && ctrlPlay != null) {
+                        // Resetear solo si es una segunda partida
                         ctrlPlay.stop();
                         ctrlPlay.resetBoard();
                     }
 
-                    // Rebutgem la resta de peticions
+                    // Sincronizar mi color
+                    myColor = "";
+                    for (ClientData client : clients) {
+                        if (client.name.equals(clientName)) {
+                            myColor = client.color;
+                            break;
+                        }
+                    }
+
+                    // Rechazar peticiones pendientes
                     ((CtrlOpponentSelection) UtilsViews.getController("ViewOpponentSelection")).rejectAllPetitions();
                     UtilsViews.setView("ViewWait");
                 }
 
-                int value = msgObj.getInt("value");
-                String txt = String.valueOf(value);
                 if (value == 0) {
-                    System.out.println("🎮 Iniciando nueva partida...");
+                    // Asegurar que myColor esté sincronizado justo antes de iniciar
+                    if (myColor.isEmpty()) {
+                        for (ClientData client : clients) {
+                            if (client.name.equals(clientName)) {
+                                myColor = client.color;
+                                break;
+                            }
+                        }
+                    }
+
                     UtilsViews.setViewAnimating("ViewPlay");
+
+                    // Iniciar el timer de animación
+                    if (ctrlPlay != null) {
+                        ctrlPlay.start();
+                    }
+
                     txt = "GO";
                 }
                 ctrlWait.txtTitle.setText(txt);

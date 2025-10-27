@@ -100,7 +100,7 @@ case T_SET_PLAYER_NAME: {
     
     // Asignar color según orden (primer jugador = RED, segundo = YELLOW)
     String color = (clientsData.isEmpty()) ? "RED" : 
-                   (clientsData.size() == 1) ? "YELLOW" : "GRAY";
+                   (clientsData.size() == 1) ? "YELLOW" : "RED";
     
     ClientData clientData = new ClientData(playerName, color);
     clientsData.put(playerName, clientData);

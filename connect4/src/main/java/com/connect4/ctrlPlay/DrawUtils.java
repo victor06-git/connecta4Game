@@ -74,47 +74,6 @@ public class DrawUtils {
      * @param utils
      */
 
-    /*
-     * public void drawBoardPieces(GraphicsContext gc, String[][] boardState,
-     * com.connect4.PlayGrid grid,
-     * ColorUtils utils) {
-     * double cellSize = grid.getCellSize();
-     * double radius = cellSize * 0.40;
-     * 
-     * for (int row = 0; row < grid.getRows(); row++) {
-     * for (int col = 0; col < grid.getCols(); col++) {
-     * String pieceId = boardState[row][col];
-     * 
-     * if (pieceId != null) {
-     * 
-     * double centerX = grid.getCellX(col) + cellSize / 2;
-     * double centerY = grid.getCellY(row) + cellSize / 2;
-     * 
-     * Color color;
-     * Color borderColor;
-     * if (pieceId.startsWith("R_")) {
-     * color = utils.getColor("red");
-     * borderColor = utils.getColor("dark_red");
-     * } else if (pieceId.startsWith("Y_")) {
-     * color = utils.getColor("yellow");
-     * borderColor = utils.getColor("dark_yellow");
-     * } else {
-     * color = utils.getColor("gray");
-     * borderColor = utils.getColor("black");
-     * }
-     * 
-     * gc.setFill(color);
-     * gc.fillOval(centerX - radius, centerY - radius, radius * 2, radius * 2);
-     * 
-     * gc.setStroke(borderColor);
-     * gc.setLineWidth(5);
-     * gc.strokeOval(centerX - radius, centerY - radius, radius * 2, radius * 2);
-     * }
-     * }
-     * }
-     * }
-     */
-
     /**
      * Function draw winning circles
      * 
@@ -320,8 +279,8 @@ public class DrawUtils {
                 color = utils.getColor(obj.color);
                 borderColor = color.darker();
             } else {
-                color = utils.getColor("gray");
-                borderColor = utils.getColor("black");
+                color = utils.getColor("red");
+                borderColor = utils.getColor("red");
             }
         }
 
@@ -368,7 +327,7 @@ public class DrawUtils {
                         color = utils.getColor("yellow");
                         borderColor = utils.getColor("dark_yellow");
                     } else {
-                        color = utils.getColor("gray");
+                        color = utils.getColor("red");
                         borderColor = utils.getColor("black");
                     }
 

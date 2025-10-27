@@ -443,7 +443,7 @@ public class Main extends WebSocketServer {
                 String playerName = obj.getString("name");
 
                 // Asignar color según el orden de conexión
-                String color = (clientsData.isEmpty()) ? "YELLOW" : (clientsData.size() == 1) ? "RED" : "BLACK";
+                String color = (clientsData.isEmpty()) ? "YELLOW" : (clientsData.size() == 1) ? "RED" : "YELLOW";
 
                 // Registrar el jugador con su color
                 ClientData clientData = new ClientData(playerName, color);
