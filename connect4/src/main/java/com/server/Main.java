@@ -529,6 +529,8 @@ public class Main extends WebSocketServer {
                     clientsData.get(p1).SetIsPlaying(true);
                     clientsData.get(p2).SetIsPlaying(true);
 
+                    sendSafe(clients.socketByName(p2), obj.toString());
+
                     broadcastExcept(null, sendAllClients());
                     sendCountdown();
                 }
