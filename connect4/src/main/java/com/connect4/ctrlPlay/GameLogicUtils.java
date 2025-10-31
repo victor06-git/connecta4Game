@@ -172,7 +172,7 @@ public class GameLogicUtils {
         }
 
         // Debug: mostrar información detallada
-        System.out.println("🎮 canMoveThisPiece - Verificando movimiento:");
+        System.out.println("canMoveThisPiece - Verificando movimiento:");
         System.out.println("   Main.myColor: '" + Main.myColor + "'");
         System.out.println("   actualColor: '" + actualColor + "'");
         System.out.println("   currentTurn: '" + currentTurn + "'");
