@@ -112,10 +112,10 @@ public class Main extends WebSocketServer {
         int numRows = 6;
 
         double marginX = 50;
-        double marginY = 20;
+        double marginY = 12;
         double availableWidth = poolWidth - (2 * marginX);
         double spacingX = availableWidth / piecesPerRow + 6;
-        double spacingY = 85; // vertical spacing between rows
+        double spacingY = 83; // vertical spacing between rows
 
         int yellowCount = 0; // piece counter yellow
         int redCount = 0; // piece counter red
