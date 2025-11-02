@@ -30,7 +30,7 @@ public class CtrlResult implements Initializable {
     private DrawUtils drawUtils = new DrawUtils();
     private ColorUtils utils = new ColorUtils();
     private static final double FIXED_CELL_SIZE = 80;
-    private static final double LEFT_MARGIN = 10;
+    private static final double LEFT_MARGIN = 0;
 
     private String result = ""; // "WIN", "LOSE", "DRAW"
     private String myColor = "";
@@ -45,7 +45,7 @@ public class CtrlResult implements Initializable {
         }
 
         // Create default grid (will be repositioned on size change)
-        grid = new PlayGrid(LEFT_MARGIN, 80, FIXED_CELL_SIZE, 6, 7);
+        grid = new PlayGrid(LEFT_MARGIN, 50, FIXED_CELL_SIZE, 6, 7);
 
         // Listen for parent size changes to adjust canvas
         try {
