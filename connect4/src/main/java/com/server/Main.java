@@ -64,7 +64,6 @@ public class Main extends WebSocketServer {
     private String[][] boardState = new String[6][7];
     private String currentTurn = "";
     private boolean gameStarted = false;
-    // private String playerName = "";
     private volatile boolean countdownRunning = false;
 
     // Variables para controlar el estado del ganador
@@ -79,7 +78,7 @@ public class Main extends WebSocketServer {
         super(address);
         this.clients = new ClientRegistry(new ArrayList<>()); // Inicializa sin nombres predefinidos
         resetBoard();
-        initializegameObjects();
+        initializeGameObjects();
 
         ThreadFactory tf = r -> {
             Thread t = new Thread(r, "ServerTicker");
@@ -103,7 +102,7 @@ public class Main extends WebSocketServer {
     /**
      * Initialize game pieces in the pool
      */
-    private void initializegameObjects() {
+    private void initializeGameObjects() {
         double poolX = 620;
         double poolY = 125;
         double poolWidth = 200;
@@ -116,7 +115,7 @@ public class Main extends WebSocketServer {
         double marginY = 20;
         double availableWidth = poolWidth - (2 * marginX);
         double spacingX = availableWidth / piecesPerRow;
-        double spacingY = 100; // vertical spacing between rows
+        double spacingY = 65; // vertical spacing between rows
 
         int yellowCount = 0; // piece counter yellow
         int redCount = 0; // piece counter red
@@ -213,7 +212,7 @@ public class Main extends WebSocketServer {
             winnerColor = null;
             winningLineCoords = null;
             resetBoard();
-            initializegameObjects(); // Reinicializar las piezas en el pool
+            initializeGameObjects(); // Reinicializar las piezas en el pool
             currentTurn = null;
 
             countdownRunning = true;

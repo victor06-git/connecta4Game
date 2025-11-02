@@ -156,28 +156,14 @@ public class Main extends Application {
                     newClients.add(ClientData.fromJSON(obj));
                 }
 
-                // Solo log cuando cambia el número de clientes
-                boolean clientsChanged = clients.size() != newClients.size();
                 clients = newClients;
 
-                // Actualizar mi color basado en el cliente actual
-                String oldColor = myColor;
                 myColor = ""; // Reset primero
                 for (ClientData client : clients) {
                     if (client.name.equals(clientName)) {
                         myColor = client.color;
                         break;
                     }
-                }
-
-                // Solo log cuando cambia el color
-                if (!myColor.equals(oldColor) || clientsChanged) {
-                    System.out.println("🎨 Color asignado: " + myColor + " (cliente: " + clientName + ")");
-                    System.out.println("📋 Clientes totales: " + clients.size());
-                }
-
-                if (myColor.isEmpty()) {
-                    System.out.println("⚠️ WARNING: No se pudo asignar color para " + clientName);
                 }
 
                 JSONArray arrObjects = msgObj.getJSONArray("objectsList");
@@ -260,7 +246,6 @@ public class Main extends Application {
                 ctrlWait.txtTitle.setText(txt);
                 break;
 
-            // AÑADIDO DE PRUEBA
             case "playAccepted":
                 String pieceId = msgObj.getString("pieceId");
                 int col = msgObj.getInt("column");

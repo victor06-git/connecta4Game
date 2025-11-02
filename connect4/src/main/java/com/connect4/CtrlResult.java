@@ -30,12 +30,12 @@ public class CtrlResult implements Initializable {
     private DrawUtils drawUtils = new DrawUtils();
     private ColorUtils utils = new ColorUtils();
     private static final double FIXED_CELL_SIZE = 80;
-    private static final double LEFT_MARGIN = 20;
+    private static final double LEFT_MARGIN = 10;
 
     private String result = ""; // "WIN", "LOSE", "DRAW"
     private String myColor = "";
     private String winnerColor = "";
-    private String[][] finalBoard = null;
+    private String[][] finalBoard = null; // final board state to draw
 
     @Override
     public void initialize(URL url, ResourceBundle rb) {
@@ -59,6 +59,22 @@ public class CtrlResult implements Initializable {
     }
 
     /**
+     * Return the client name that has the specified color. If not found, returns
+     * empty string.
+     */
+    private String getNameFromColor(String color) {
+        if (color == null || color.isEmpty())
+            return "";
+
+        for (ClientData client : Main.clients) {
+            if (client != null && color.equals(client.color)) {
+                return client.name != null ? client.name : "";
+            }
+        }
+        return "";
+    }
+
+    /**
      * Called from Main when the game ends. Updates labels according to result.
      */
     public void setResultData(String result, String myColor, String winnerColor, String[][] boardState) {
@@ -69,7 +85,7 @@ public class CtrlResult implements Initializable {
 
         updateViewFromResult();
         // Draw the final board snapshot if we have a canvas and board data
-        drawBoardSnapshot();
+        drawBoardResult();
     }
 
     private void onSizeChanged() {
@@ -83,13 +99,13 @@ public class CtrlResult implements Initializable {
         resultCanvas.setHeight(height);
 
         // update grid start positions in case sizes changed
-        grid = new PlayGrid(LEFT_MARGIN, 80, FIXED_CELL_SIZE, 6, 7);
+        grid = new PlayGrid(LEFT_MARGIN, 50, FIXED_CELL_SIZE, 6, 7);
 
         // Redraw if we already have the final board
-        drawBoardSnapshot();
+        drawBoardResult();
     }
 
-    private void drawBoardSnapshot() {
+    private void drawBoardResult() {
         if (resultCanvas == null || gc == null || finalBoard == null)
             return;
 
@@ -102,14 +118,15 @@ public class CtrlResult implements Initializable {
         // Draw pieces from finalBoard
         drawUtils.drawBoardPieces(gc, finalBoard, grid, utils, null);
 
-        // Optionally draw winner highlight if we can infer it - but Main passes only
         // winner color
-        // We could draw a small legend
         if (winnerColor != null && !winnerColor.isEmpty()) {
             gc.setFill(utils.getColor(winnerColor));
             gc.fillOval(resultCanvas.getWidth() - 60, 20, 30, 30);
             gc.setFill(Color.BLACK);
-            gc.fillText("Winner", resultCanvas.getWidth() - 95, 40);
+            String winnerName = getNameFromColor(winnerColor);
+            String label = "Winner: " + (winnerName != null && !winnerName.isEmpty() ? winnerName : winnerColor)
+                    + " (" + winnerColor + ")";
+            gc.fillText(label, resultCanvas.getWidth() - 250, 40);
         }
     }
 
@@ -124,12 +141,17 @@ public class CtrlResult implements Initializable {
             case "WIN":
                 nameWinner.setText("YOU WIN!");
                 nameWinner.setTextFill(Color.web("#00aa00"));
-                winnerMsg.setText("Winner: " + (winnerColor != null ? winnerColor : ""));
+                // Mostrar nombre del ganador y color entre paréntesis
+                String winName = getNameFromColor(winnerColor);
+                winnerMsg.setText("Winner: " + (winName != null && !winName.isEmpty() ? winName : winnerColor)
+                        + " (" + (winnerColor != null ? winnerColor : "") + ")");
                 break;
             case "LOSE":
                 nameWinner.setText("YOU LOSE!");
                 nameWinner.setTextFill(Color.web("#ff0000"));
-                winnerMsg.setText("Winner: " + (winnerColor != null ? winnerColor : ""));
+                String loseName = getNameFromColor(winnerColor);
+                winnerMsg.setText("Winner: " + (loseName != null && !loseName.isEmpty() ? loseName : winnerColor)
+                        + " (" + (winnerColor != null ? winnerColor : "") + ")");
                 break;
             case "DRAW":
                 nameWinner.setText("DRAW");

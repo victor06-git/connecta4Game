@@ -35,7 +35,7 @@ public class DrawUtils {
         }
 
         double indicatorX = 50;
-        double indicatorY = 20;
+        double indicatorY = 15;
 
         // Dibujar fondo
         gc.setFill(Color.rgb(255, 255, 255, 0.8));
@@ -51,7 +51,18 @@ public class DrawUtils {
         gc.setFont(new Font("Arial Bold", 16));
 
         boolean isMyTurn = currentTurn.equals(myColor);
-        gc.fillText("Turn: " + currentTurn, indicatorX + 10, indicatorY + 25);
+
+        // Obtener nombre del jugador a partir del color currentTurn
+        String turnPlayerName = (currentTurn == null) ? "" : currentTurn;
+        if (currentTurn != null && !currentTurn.isEmpty()) {
+            turnPlayerName = com.connect4.Main.clients.stream()
+                    .filter(c -> currentTurn.equals(c.color))
+                    .map(c -> c.name)
+                    .findFirst()
+                    .orElse(currentTurn);
+        }
+
+        gc.fillText("Turn: " + turnPlayerName, indicatorX + 10, indicatorY + 25);
 
         // Indicador de color del turno actual
         Color turnColor = colorUtils.getColor(currentTurn.toLowerCase());
