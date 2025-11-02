@@ -35,7 +35,7 @@ public class DrawUtils {
         }
 
         double indicatorX = 50;
-        double indicatorY = 15;
+        double indicatorY = 9;
 
         // Dibujar fondo
         gc.setFill(Color.rgb(255, 255, 255, 0.8));

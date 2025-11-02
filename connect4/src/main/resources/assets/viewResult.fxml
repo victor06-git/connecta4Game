@@ -10,23 +10,23 @@
 
 <AnchorPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="516.0" prefWidth="670.0" xmlns="http://javafx.com/javafx/23.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.connect4.CtrlResult">
    <children>
-      <VBox alignment="CENTER" layoutX="-4.0" prefHeight="142.0" prefWidth="678.0">
+      <VBox alignment="CENTER" layoutX="-4.0" prefHeight="70.0" prefWidth="678.0">
          <children>
             <Label fx:id="nameWinner" text="NOMBRE">
                <font>
-                  <Font size="35.0" />
+                  <Font size="28.0" />
                </font>
             </Label>
          </children>
       </VBox>
       <!-- Canvas para mostrar el tablero final -->
-      <Canvas fx:id="resultCanvas" height="405.0" layoutX="14.0" layoutY="91.0" width="400.0" />
+      <Canvas fx:id="resultCanvas" height="405.0" layoutX="10.0" layoutY="70.0" width="400.0" />
 
-      <VBox alignment="CENTER" layoutX="401.0" layoutY="142.0" prefHeight="374.0" prefWidth="270.0">
+      <VBox alignment="CENTER" layoutX="420.0" layoutY="70.0" prefHeight="374.0" prefWidth="240.0">
          <children>
-            <Label fx:id="winnerMsg" prefHeight="38.0" prefWidth="187.0" text="WINNER">
+            <Label fx:id="winnerMsg" prefHeight="38.0" prefWidth="229.0" text="WINNER">
                <VBox.margin>
-                  <Insets bottom="50.0" top="100.0" />
+                  <Insets bottom="10.0" top="10.0" />
                </VBox.margin>
                <font>
                   <Font size="26.0" />
@@ -34,7 +34,7 @@
             </Label>
             <Button fx:id="returnButton" mnemonicParsing="false" onAction="#toOpponentSelection" prefHeight="38.0" prefWidth="170.0" text="OPPONENT SELECTION">
                <VBox.margin>
-                  <Insets right="20.0" top="100.0" />
+                  <Insets right="20.0" top="10.0" />
                </VBox.margin>
             </Button>
          </children>

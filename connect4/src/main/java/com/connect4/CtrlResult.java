@@ -30,7 +30,8 @@ public class CtrlResult implements Initializable {
     private DrawUtils drawUtils = new DrawUtils();
     private ColorUtils utils = new ColorUtils();
     private static final double FIXED_CELL_SIZE = 80;
-    private static final double LEFT_MARGIN = 0;
+    private static final double LEFT_MARGIN = 10;
+    private static final double TOP_MARGIN = 10;
 
     private String result = ""; // "WIN", "LOSE", "DRAW"
     private String myColor = "";
@@ -44,8 +45,8 @@ public class CtrlResult implements Initializable {
             gc = resultCanvas.getGraphicsContext2D();
         }
 
-        // Create default grid (will be repositioned on size change)
-        grid = new PlayGrid(LEFT_MARGIN, 50, FIXED_CELL_SIZE, 6, 7);
+    // Create default grid (will be repositioned on size change)
+    grid = new PlayGrid(LEFT_MARGIN, TOP_MARGIN, FIXED_CELL_SIZE, 6, 7);
 
         // Listen for parent size changes to adjust canvas
         try {
@@ -92,14 +93,14 @@ public class CtrlResult implements Initializable {
         if (resultCanvas == null)
             return;
 
-        double width = LEFT_MARGIN + (7 * FIXED_CELL_SIZE) + LEFT_MARGIN; // enough to draw board
-        double height = 80 + (6 * FIXED_CELL_SIZE) + 40;
+    double width = LEFT_MARGIN + (7 * FIXED_CELL_SIZE) + LEFT_MARGIN; // enough to draw board
+    double height = TOP_MARGIN + (6 * FIXED_CELL_SIZE) + 20;
 
         resultCanvas.setWidth(width);
         resultCanvas.setHeight(height);
 
-        // update grid start positions in case sizes changed
-        grid = new PlayGrid(LEFT_MARGIN, 50, FIXED_CELL_SIZE, 6, 7);
+    // update grid start positions in case sizes changed
+    grid = new PlayGrid(LEFT_MARGIN, TOP_MARGIN, FIXED_CELL_SIZE, 6, 7);
 
         // Redraw if we already have the final board
         drawBoardResult();

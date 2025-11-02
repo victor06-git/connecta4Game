@@ -134,12 +134,45 @@ public class CtrlPlay implements Initializable {
         gameObjectsMap.clear();
         originalPoolPositions.clear();
 
+        // Ensure pool dimensions are up-to-date so we can position pieces over the pool
+        updatePoolDimensions();
+
+        // Layout pieces inside the pool area with a small right offset so they appear
+        // slightly more to the right (over the pool). We'll arrange them in rows.
+        double startX = poolX + 20; // padding from left edge of pool
+        double startY = poolY + 20; // padding from top edge of pool
+        double spacing = Math.min(45, FIXED_CELL_SIZE * 0.5); // spacing between pieces
+        int piecesPerRow = Math.max(1, (int) ((poolWidth - 40) / spacing));
+
+        int idx = 0;
         for (GameObject obj : Main.objects) {
-            originalPoolPositions.put(obj.id,
-                    new GameObject(obj.id, obj.center_x, obj.center_y, obj.radius, obj.col, obj.row));
-            gameObjectsMap.put(obj.id, obj);
+            // Only reposition pieces that are in the pool (not placed on board)
+            if (obj.row == -1 && obj.col == -1) {
+                int colIndex = idx % piecesPerRow;
+                int rowIndex = idx / piecesPerRow;
+
+                double newCenterX = startX + colIndex * spacing;
+                double newCenterY = startY + rowIndex * spacing;
+
+                // apply a small extra right offset so they are "over" the pool visually
+                double extraRight = 10; // tweak this value to move more/less to the right
+                obj.center_x = newCenterX + extraRight;
+                obj.center_y = newCenterY;
+
+                // store the computed original pool position
+                originalPoolPositions.put(obj.id,
+                        new GameObject(obj.id, obj.center_x, obj.center_y, obj.radius, obj.col, obj.row));
+                gameObjectsMap.put(obj.id, obj);
+
+                idx++;
+            } else {
+                // Keep objects that are already placed on board as-is
+                originalPoolPositions.put(obj.id,
+                        new GameObject(obj.id, obj.center_x, obj.center_y, obj.radius, obj.col, obj.row));
+                gameObjectsMap.put(obj.id, obj);
+            }
         }
-        System.out.println("✅ Initialized gameObjectsMap with " + gameObjectsMap.size() + " objects");
+
     }
 
     // Para evitar spam en consola
