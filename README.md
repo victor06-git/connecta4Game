@@ -177,4 +177,15 @@ Proposta de serverData (caldrà adaptar-la):
   
   - Introduir comanda per iniciar cada client: ./run.sh com.connect4.Main
 
+## Ports
+
+- **SSH**: 20127
+- **HTTP** 80
+- **WebSockets**: 443
+
+
+## Dependències
+
+- **AnimateFX** -> v.1.3.0 (io.github.typhon0)
+
 
