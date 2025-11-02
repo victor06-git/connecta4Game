@@ -103,7 +103,7 @@ public class Main extends WebSocketServer {
      * Initialize game pieces in the pool
      */
     private void initializeGameObjects() {
-        double poolX = 620;
+        double poolX = 650;
         double poolY = 125;
         double poolWidth = 200;
         double pieceRadius = 80.0 * 0.15; // Radius of each piece
@@ -111,7 +111,7 @@ public class Main extends WebSocketServer {
         int piecesPerRow = 7;
         int numRows = 6;
 
-        double marginX = 20;
+        double marginX = 50;
         double marginY = 20;
         double availableWidth = poolWidth - (2 * marginX);
         double spacingX = availableWidth / piecesPerRow + 6;
