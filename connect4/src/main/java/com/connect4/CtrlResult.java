@@ -29,8 +29,10 @@ public class CtrlResult implements Initializable {
     private PlayGrid grid;
     private DrawUtils drawUtils = new DrawUtils();
     private ColorUtils utils = new ColorUtils();
-    private static final double FIXED_CELL_SIZE = 80;
-    private static final double LEFT_MARGIN = 10;
+    // Use a smaller cell size in the Result preview so the board looks like a compact
+    // snapshot. Adjust LEFT_MARGIN to move it closer to the left edge of the canvas.
+    private static final double FIXED_CELL_SIZE = 50; // preview size (was 80)
+    private static final double LEFT_MARGIN = 10; // move board more to the left
     private static final double TOP_MARGIN = 10;
 
     private String result = ""; // "WIN", "LOSE", "DRAW"
@@ -45,8 +47,8 @@ public class CtrlResult implements Initializable {
             gc = resultCanvas.getGraphicsContext2D();
         }
 
-    // Create default grid (will be repositioned on size change)
-    grid = new PlayGrid(LEFT_MARGIN, TOP_MARGIN, FIXED_CELL_SIZE, 6, 7);
+        // Create default grid (will be repositioned on size change)
+        grid = new PlayGrid(LEFT_MARGIN, TOP_MARGIN, FIXED_CELL_SIZE, 6, 7);
 
         // Listen for parent size changes to adjust canvas
         try {
@@ -93,14 +95,14 @@ public class CtrlResult implements Initializable {
         if (resultCanvas == null)
             return;
 
-    double width = LEFT_MARGIN + (7 * FIXED_CELL_SIZE) + LEFT_MARGIN; // enough to draw board
-    double height = TOP_MARGIN + (6 * FIXED_CELL_SIZE) + 20;
+        double width = LEFT_MARGIN + (7 * FIXED_CELL_SIZE) + LEFT_MARGIN; // enough to draw board
+        double height = TOP_MARGIN + (6 * FIXED_CELL_SIZE) + 20;
 
         resultCanvas.setWidth(width);
         resultCanvas.setHeight(height);
 
-    // update grid start positions in case sizes changed
-    grid = new PlayGrid(LEFT_MARGIN, TOP_MARGIN, FIXED_CELL_SIZE, 6, 7);
+        // update grid start positions in case sizes changed
+        grid = new PlayGrid(LEFT_MARGIN, TOP_MARGIN, FIXED_CELL_SIZE, 6, 7);
 
         // Redraw if we already have the final board
         drawBoardResult();
@@ -119,16 +121,6 @@ public class CtrlResult implements Initializable {
         // Draw pieces from finalBoard
         drawUtils.drawBoardPieces(gc, finalBoard, grid, utils, null);
 
-        // winner color
-        if (winnerColor != null && !winnerColor.isEmpty()) {
-            gc.setFill(utils.getColor(winnerColor));
-            gc.fillOval(resultCanvas.getWidth() - 60, 20, 30, 30);
-            gc.setFill(Color.BLACK);
-            String winnerName = getNameFromColor(winnerColor);
-            String label = "Winner: " + (winnerName != null && !winnerName.isEmpty() ? winnerName : winnerColor)
-                    + " (" + winnerColor + ")";
-            gc.fillText(label, resultCanvas.getWidth() - 250, 40);
-        }
     }
 
     /**
