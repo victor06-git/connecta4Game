@@ -35,7 +35,6 @@ public class UtilsWS {
                 @Override
                 public void onOpen(ServerHandshake handshake) {
                     String message = "WS connected to: " + getURI();
-                    System.out.println(message);
                     if (onOpenCallBack != null) {
                         onOpenCallBack.accept(message);
                     }
@@ -51,7 +50,6 @@ public class UtilsWS {
                 @Override
                 public void onClose(int code, String reason, boolean remote) {
                     String message = "WS closed connection from: " + getURI() + " with reason: " + reason;
-                    System.out.println(message);
                     if (onCloseCallBack != null) {
                         onCloseCallBack.accept(message);
                     }
@@ -63,7 +61,6 @@ public class UtilsWS {
                 @Override
                 public void onError(Exception e) {
                     String message = "WS connection error: " + e.getMessage();
-                    System.out.println(message);
                     if (onErrorCallBack != null) {
                         onErrorCallBack.accept(message);
                     }
@@ -75,7 +72,6 @@ public class UtilsWS {
             this.client.connect();
         } catch (URISyntaxException e) {
             e.printStackTrace();
-            System.out.println("WS Error, " + location + " is not a valid URI");
         }
     }
 
@@ -89,8 +85,6 @@ public class UtilsWS {
         if (exitRequested.get()) {
             return;
         }
-
-        System.out.println("WS reconnecting to: " + this.location);
 
         if (client != null) {
             client.close();
@@ -126,23 +120,20 @@ public class UtilsWS {
             if (client != null && client.isOpen()) {
                 client.send(text);
             } else {
-                System.out.println("WS Error: Client is not connected. Attempting to reconnect...");
                 scheduleReconnect();
             }
         } catch (Exception e) {
-            System.out.println("WS Error sending message: " + e.getMessage());
+            throw new RuntimeException("WS Send Error: " + e.getMessage());
         }
     }
 
     public void forceExit() {
-        System.out.println("WS Closing ...");
         exitRequested.set(true);
         try {
             if (client != null && !client.isClosed()) {
                 client.closeBlocking();
             }
         } catch (Exception e) {
-            System.out.println("WS Interrupted while closing WebSocket connection: " + e.getMessage());
             Thread.currentThread().interrupt();
         } finally {
             scheduler.shutdownNow();

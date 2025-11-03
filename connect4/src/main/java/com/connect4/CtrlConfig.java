@@ -34,11 +34,20 @@ public class CtrlConfig implements Initializable {
     @FXML
     private void connectToServer() {
         String playerName = txtPlayerName.getText().trim();
-        System.out.println("Player name: " + playerName);
         // Mensaje de error si no se ha introducido un nombre de jugador
-        if (playerName.isEmpty()) {
+        // O si el nombre ya existe en la lista de clientes (nombre duplicado en
+        // servidor)
+        boolean nameExists = false;
+        for (int i = 0; i < Main.clients.size(); i++) {
+            if (Main.clients.get(i).name.equals(playerName)) {
+                nameExists = true;
+                break;
+            }
+        }
+
+        if (playerName.isEmpty() || nameExists) {
             txtMessage.setStyle("-fx-text-fill: red;");
-            txtMessage.setText("Please enter a player name");
+            txtMessage.setText("Please enter a valid player name");
 
             // Shake del campo de texto con velocidad personalizada
             new Shake(txtPlayerName).setSpeed(1.5).play();

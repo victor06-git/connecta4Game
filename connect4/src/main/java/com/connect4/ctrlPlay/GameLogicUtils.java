@@ -63,8 +63,6 @@ public class GameLogicUtils {
                     break;
                 }
             }
-        } else {
-            System.out.println("❌ ERROR: Piece NOT FOUND in map for id: '" + pieceId + "'");
         }
 
         return piece;
@@ -171,20 +169,9 @@ public class GameLogicUtils {
                     .orElse("");
         }
 
-        // Debug: mostrar información detallada
-        System.out.println("canMoveThisPiece - Verificando movimiento:");
-        System.out.println("   Main.myColor: '" + Main.myColor + "'");
-        System.out.println("   actualColor: '" + actualColor + "'");
-        System.out.println("   currentTurn: '" + currentTurn + "'");
-        System.out.println("   piece.id: '" + piece.id + "'");
-        System.out.println("   clientName: '" + clientName + "'");
-
         // Verificar si es mi turno y si la ficha es de mi color
         boolean isMyTurn = currentTurn.equalsIgnoreCase(actualColor);
         boolean isMyPiece = piece.id.toUpperCase().startsWith(actualColor.charAt(0) + "_");
-
-        System.out.println("   isMyTurn: " + isMyTurn + " | isMyPiece: " + isMyPiece);
-        System.out.println("   Resultado: " + (isMyTurn && isMyPiece));
 
         return isMyTurn && isMyPiece;
     }

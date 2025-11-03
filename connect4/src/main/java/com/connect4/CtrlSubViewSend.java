@@ -54,8 +54,6 @@ public class CtrlSubViewSend {
                 Main.wsClient.safeSend(json.toString());
             }
 
-        } else {
-            System.out.println("No hay conexión");
         }
     }
 }

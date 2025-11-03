@@ -40,8 +40,6 @@ public class CtrlOpponentSelection implements Initializable {
         try {
             list_send.getChildren().clear();
 
-            System.out.println("📋 loadSendList - sendInvitations actual: " + sendInvitations);
-
             // Iterar sobre todos los clientes conectados
             for (ClientData client : Main.clients) {
                 // Filtrar: no mostrar el propio usuario
@@ -184,7 +182,6 @@ public class CtrlOpponentSelection implements Initializable {
     }
 
     public void clearSendInvitations() {
-        System.out.println("🧹 Limpiando lista de sendInvitations");
         sendInvitations.clear();
     }
 

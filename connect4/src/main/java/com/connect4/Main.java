@@ -108,19 +108,15 @@ public class Main extends Application {
             String port = ctrlConfig.txtPort.getText();
             playerName = ctrlConfig.txtPlayerName.getText(); // Nombre elegido por el jugador
 
-            System.out.println(playerName); // DEBUG
-
             wsClient = UtilsWS.getSharedInstance(protocol + "://" + host + ":" + port); // Create WebSocket client
 
             // Define playerName on open server connection
             wsClient.onOpen((response) -> {
-                System.out.println("WebSocket conectado, enviando nombre del jugador: " + playerName);
                 // Enviar el nombre del jugador al servidor
                 JSONObject msgObj = new JSONObject();
                 msgObj.put("type", "setPlayerName");
                 msgObj.put("name", playerName);
                 wsClient.safeSend(msgObj.toString());
-                System.out.println("Mensaje enviado al servidor: " + msgObj.toString());
             });
 
             wsClient.onMessage((response) -> {
@@ -193,13 +189,12 @@ public class Main extends Application {
                 }
 
                 break;
-            
+
             case "clientDisconnected":
 
                 if (UtilsViews.getActiveView().equals("ViewWait")) {
                     UtilsViews.setViewAnimating("ViewOpponentSelection");
-                }
-                else if (UtilsViews.getActiveView().equals("ViewPlay")) {
+                } else if (UtilsViews.getActiveView().equals("ViewPlay")) {
                     String winner = msgObj.getString("winner");
                     CtrlResult ctrlResult = (CtrlResult) UtilsViews.getController("ViewResult");
                     ctrlResult.setResultData("WIN", myColor, winner, ctrlPlay.boardState);
@@ -304,7 +299,6 @@ public class Main extends Application {
             case "playRejected":
                 String rejectedPieceId = msgObj.getString("pieceId");
                 String reason = msgObj.optString("reason", "Invalid move");
-                System.out.println("Play rejected: " + reason);
                 if (ctrlPlay != null) {
                     ctrlPlay.handlePlayRejected(rejectedPieceId);
                 }
@@ -334,10 +328,8 @@ public class Main extends Application {
                 JSONArray arr = msgObj.getJSONArray("clientsList");
                 clients.clear();
 
-                System.out.println("📋 Actualizando lista de clientes:");
                 for (int i = 0; i < arr.length(); i++) {
                     JSONObject object = arr.getJSONObject(i);
-                    System.out.println("  " + object);
                     String name = object.getString("name");
                     String color = object.getString("color");
                     boolean isPlaying = object.getBoolean("play");
@@ -346,17 +338,14 @@ public class Main extends Application {
                     cd.SetIsPlaying(isPlaying);
 
                     clients.add(cd);
-                    System.out.println("  Cliente: " + name + " - isPlaying: " + isPlaying);
                 }
 
-                System.out.println("🔄 Recargando lista de envío...");
                 ((CtrlOpponentSelection) UtilsViews.getController("ViewOpponentSelection")).loadSendList();
 
                 break;
 
             case "clientSendInvitation":
                 String username = msgObj.getString("sendFrom");
-                System.out.println("📧 clientSendInvitation recibido de: " + username);
                 ((CtrlOpponentSelection) UtilsViews.getController("ViewOpponentSelection"))
                         .addFromReceiveList(username);
                 ((CtrlOpponentSelection) UtilsViews.getController("ViewOpponentSelection"))
@@ -367,9 +356,6 @@ public class Main extends Application {
                 // El servidor me confirma que debo desactivar el botón de este usuario
                 // porque le acabo de enviar una invitación
                 String userToDisable = msgObj.getString("userName");
-                System.out.println("🔒 disableButtonFor recibido para: " + userToDisable);
-                System.out.println("   Yo soy: " + Main.clientName);
-                System.out.println("   Debo desactivar botón de: " + userToDisable);
                 ((CtrlOpponentSelection) UtilsViews.getController("ViewOpponentSelection"))
                         .addToSendInvitation(userToDisable);
                 ((CtrlOpponentSelection) UtilsViews.getController("ViewOpponentSelection"))
@@ -377,15 +363,11 @@ public class Main extends Application {
                 break;
 
             case "clientAnswerInvitation":
-                System.out.println("📨 clientAnswerInvitation recibido:");
-                System.out.println(msgObj);
-                System.out.println("   Yo soy: " + Main.clientName);
                 // Cuando alguien rechaza mi invitación:
                 // - sendFrom: la persona que rechazó (ej: f)
                 // - sendTo: yo, quien envió la invitación (ej: v)
                 // Debo reactivar el botón de "sendFrom" (f) en MI lista (v)
                 String whoRejected = msgObj.getString("sendFrom");
-                System.out.println("👤 Reactivando botón de quien rechazó: " + whoRejected);
                 ((CtrlOpponentSelection) UtilsViews.getController("ViewOpponentSelection"))
                         .removeFromSendInvitation(whoRejected);
                 ((CtrlOpponentSelection) UtilsViews.getController("ViewOpponentSelection"))
@@ -394,12 +376,10 @@ public class Main extends Application {
                 break;
 
             case "invitationRejectedByMe":
-                System.out.println("🚫 invitationRejectedByMe recibido:");
-                System.out.println(msgObj);
+
                 // Cuando yo rechazo una invitación, el servidor me notifica
                 // para reactivar el botón del usuario que me envió la invitación
                 String userToReactivate = msgObj.getString("userName");
-                System.out.println("👤 Reactivando botón de quien me envió invitación: " + userToReactivate);
                 ((CtrlOpponentSelection) UtilsViews.getController("ViewOpponentSelection"))
                         .removeFromSendInvitation(userToReactivate);
                 ((CtrlOpponentSelection) UtilsViews.getController("ViewOpponentSelection"))

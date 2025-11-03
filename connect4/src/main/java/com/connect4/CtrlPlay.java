@@ -175,9 +175,6 @@ public class CtrlPlay implements Initializable {
 
     }
 
-    // Para evitar spam en consola
-    private String lastLoggedState = "";
-
     /**
      * Function that updates the boardState matrix
      * 
@@ -188,24 +185,6 @@ public class CtrlPlay implements Initializable {
         currentTurn = logic.updateGameState(state, boardState);
         // Ensure local myColor is in sync with Main.myColor
         myColor = Main.myColor;
-
-        // DEBUG: Solo mostrar cuando hay cambios importantes (turno cambia o número de
-        // clientes cambia)
-        String currentState = myColor + "|" + currentTurn + "|" + Main.clients.size();
-        if (!currentState.equals(lastLoggedState)) {
-            System.out.println("🎨 updateGameState - myColor: " + myColor + " | currentTurn: " + currentTurn);
-            System.out.println("📋 Clientes conectados: " + Main.clients.size());
-            for (ClientData client : Main.clients) {
-                System.out.println("  - " + client.name + " (" + client.color + ")");
-            }
-
-            // Advertencia si solo hay 1 jugador
-            if (Main.clients.size() < 2) {
-                System.out.println("⚠️ WARNING: Se necesitan 2 jugadores para comenzar la partida!");
-            }
-
-            lastLoggedState = currentState;
-        }
     }
 
     /**
@@ -244,7 +223,7 @@ public class CtrlPlay implements Initializable {
                     Main.wsClient.safeSend(endMsg.toString());
                 }
             } catch (Exception e) {
-                System.out.println("Error building clientGameEnded message: " + e.getMessage());
+                throw new RuntimeException(e);
             }
         }
     }
@@ -432,7 +411,6 @@ public class CtrlPlay implements Initializable {
                 // Check if mouse is inside piece circle
                 if (isMouseInsidePiece(mouseX, mouseY, go.center_x, go.center_y, correctRadius)) {
                     if (!canMoveThisPiece(go)) {
-                        System.out.println("Cannot move piece " + go.id + " - not your turn or not your piece");
                         return;
                     }
 
@@ -441,7 +419,6 @@ public class CtrlPlay implements Initializable {
                     mouseOffsetX = mouseX - go.center_x; // Calculate offset to center the piece under the mouse
                     mouseOffsetY = mouseY - go.center_y; // Calculate offset to center the piece under the mouse
 
-                    System.out.println("Selected piece: " + go.id); // R_4 / Y_2 etc.
                     break;
                 }
             }
@@ -566,18 +543,13 @@ public class CtrlPlay implements Initializable {
         }
 
         if (isAnimating && selectedObject != null) {
-            System.out.println("🎮 ANIMATING: " + selectedObject.id + " | Y: " + selectedObject.center_y
-                    + " | Target: " + animationTargetY + " | FPS: " + fps);
             boolean continueAnim = anim.updateAnimation(selectedObject, animationTargetY, animationSpeed, fps);
             if (!continueAnim) {
-                // Animación terminada
-                System.out.println("✅ ANIMATION FINISHED for " + selectedObject.id);
 
                 // Eliminar la ficha de Main.objects para que no se pueda mover más
                 String pieceId = selectedObject.id;
                 Main.objects.removeIf(go -> go.id.equals(pieceId));
                 gameObjectsMap.remove(pieceId);
-                System.out.println("🗑️ Removed piece from pool: " + pieceId);
 
                 // Limpiar estado de animación
                 // La ficha ya se dibujará desde boardState en drawBoardPieces()
@@ -725,7 +697,6 @@ public class CtrlPlay implements Initializable {
      * Preserves client names but resets everything else
      */
     public void resetBoard() {
-        System.out.println("🔄 Reseteando tablero...");
 
         // Stop any animations
         isAnimating = false;
@@ -748,7 +719,6 @@ public class CtrlPlay implements Initializable {
 
         // Sincronizar myColor con Main.myColor
         myColor = Main.myColor;
-        System.out.println("🎨 Color sincronizado: " + myColor + " (clientName: " + Main.clientName + ")");
 
         // Clear hover columns
         clientHoveredColumns.clear();
@@ -767,7 +737,6 @@ public class CtrlPlay implements Initializable {
         // Clear gameObjectsMap to allow re-initialization
         gameObjectsMap.clear();
 
-        System.out.println("✅ Reset completado");
     }
 
 }

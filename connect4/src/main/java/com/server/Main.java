@@ -197,16 +197,14 @@ public class Main extends WebSocketServer {
     private void sendCountdown() {
         synchronized (this) {
             if (countdownRunning) {
-                System.out.println("Countdown already running, skipping...");
                 return;
             }
             if (clientsData.size() != REQUIRED_CLIENTS) {
-                System.out.println("Not enough players for countdown: " + clientsData.size() + "/" + REQUIRED_CLIENTS);
+
                 return;
             }
 
             // Resetear el estado del juego antes de comenzar
-            System.out.println("🔄 Resetting game state for new match...");
             gameStarted = false;
             gameEnded = false;
             winnerColor = null;
@@ -216,7 +214,7 @@ public class Main extends WebSocketServer {
             currentTurn = null;
 
             countdownRunning = true;
-            System.out.println("Starting countdown sequence...");
+
         }
 
         new Thread(() -> {
@@ -227,11 +225,10 @@ public class Main extends WebSocketServer {
                             gameStarted = false;
                             countdownRunning = false;
                         }
-                        System.out.println("Countdown cancelled: player disconnected");
+
                         break;
                     }
 
-                    System.out.println("Countdown: " + i);
                     sendCountdownToAll(i);
 
                     if (i == 0) {
@@ -239,7 +236,6 @@ public class Main extends WebSocketServer {
                             gameStarted = true;
                             currentTurn = "RED";
                         }
-                        System.out.println("Game started! Turn: " + currentTurn);
                         broadcastStatus(); // Enviamos el estado inicial del juego
                     }
 
@@ -278,7 +274,6 @@ public class Main extends WebSocketServer {
         } catch (WebsocketNotConnectedException e) {
             String name = clients.cleanupDisconnected(to);
             clientsData.remove(name);
-            System.out.println("Client desconnectat durant send: " + name);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -353,9 +348,6 @@ public class Main extends WebSocketServer {
      */
     @Override
     public void onOpen(WebSocket conn, ClientHandshake handshake) {
-        System.out.println("==============================================");
-        System.out.println("New client connected! Waiting for player name...");
-        System.out.println("==============================================");
 
         JSONObject welcome = new JSONObject();
         welcome.put("type", "welcome");
@@ -404,9 +396,9 @@ public class Main extends WebSocketServer {
     public void onClose(WebSocket conn, int code, String reason, boolean remote) {
         String name = clients.nameBySocket(conn);
 
-        if (playersNames.contains(name)) { 
+        if (playersNames.contains(name)) {
             String toSendName;
-            
+
             if (playersNames.get(0).equals(name)) {
                 toSendName = playersNames.get(1);
             } else {
@@ -414,10 +406,9 @@ public class Main extends WebSocketServer {
             }
 
             JSONObject response = msg("clientDisconnected");
-            response.put("winner", toSendName  + " by disconnection");
+            response.put("winner", toSendName + " by disconnection");
             sendSafe(clients.socketByName(toSendName), response.toString());
 
-            System.out.println(response);
         }
 
         clients.remove(conn);
@@ -432,9 +423,6 @@ public class Main extends WebSocketServer {
             resetBoard(); // Reset board
             currentTurn = null;
         }
-
-        System.out.println("WebSocket client disconnected: " + name);
-        System.out.println("Game reset due to player disconnection");
     }
 
     /**
@@ -453,7 +441,6 @@ public class Main extends WebSocketServer {
         }
 
         String type = obj.optString(K_TYPE, "");
-        System.out.println("Mensaje recibido del cliente tipo: " + type);
 
         switch (type) {
             case T_SET_PLAYER_NAME: {
@@ -532,9 +519,7 @@ public class Main extends WebSocketServer {
             }
 
             case T_CLIENT_ANSWER_INVITATION: {
-                // Rebem una petició amb el nom de l'usuari i destinatari a enviar la petició i
-                // un boolà amb la resposta
-                System.out.println(obj);
+                // Rebem una petició amb el nom de l'usuari i destinatari a enviar la petició
                 if (obj.getBoolean(K_VALUE)) {
                     // SI ACCEPTA
                     // Comencen countdown per a la partida
@@ -593,9 +578,6 @@ public class Main extends WebSocketServer {
                 String playerName = clients.nameBySocket(conn);
                 ClientData playerData = clientsData.get(playerName);
 
-                System.out.println("Play request: Player=" + playerName + ", Color=" + playerData.color +
-                        ", Piece=" + pieceId + ", CurrentTurn=" + currentTurn);
-
                 if (playerData == null || !playerData.color.equals(currentTurn)) {
                     JSONObject response = msg(T_PLAY_REJECTED)
                             .put("pieceId", pieceId)
@@ -618,9 +600,6 @@ public class Main extends WebSocketServer {
                         checkWinner();
 
                         switchTurn();
-
-                        System.out.println("Play accepted: " + pieceId + " at [" + row + "," + col + "]. Next turn: "
-                                + currentTurn);
 
                         JSONObject response = msg(T_PLAY_ACCEPTED)
                                 .put("pieceId", pieceId)
@@ -664,12 +643,10 @@ public class Main extends WebSocketServer {
                 String clientName = obj.optString("clientName", "");
 
                 if (!clientName.isEmpty() && clientsData.containsKey(clientName)) {
-                    System.out.println("Client " + clientName + " ended the game");
 
                     // Poner isPlaying a false para TODOS los jugadores que estaban jugando
                     for (String playerName : playersNames) {
                         if (clientsData.containsKey(playerName)) {
-                            System.out.println("Setting isPlaying=false for: " + playerName);
                             clientsData.get(playerName).SetIsPlaying(false);
                         }
                     }
@@ -688,10 +665,8 @@ public class Main extends WebSocketServer {
                     }
 
                     // Notificar a TODOS los clientes con la lista actualizada
-                    System.out.println("Broadcasting updated client list");
                     broadcastExcept(null, sendAllClients());
 
-                    System.out.println("Game ended, all players reset to not playing");
                 }
                 break;
             }
@@ -715,7 +690,6 @@ public class Main extends WebSocketServer {
      */
     @Override
     public void onStart() {
-        System.out.println("WebSocket server started on port: " + getPort());
         setConnectionLostTimeout(100); // Set high timeout to avoid disconnections
         startTicker(); // Start the ticker to broadcast game status
     }
@@ -727,7 +701,6 @@ public class Main extends WebSocketServer {
      */
     private static void registerShutdownHook(Main server) {
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-            System.out.println("Aturant servidor (shutdown hook)...");
             try {
                 server.stopTicker();
                 server.stop(1000);
@@ -735,7 +708,6 @@ public class Main extends WebSocketServer {
                 e.printStackTrace();
                 Thread.currentThread().interrupt();
             }
-            System.out.println("Servidor aturat.");
         }));
     }
 
@@ -895,7 +867,6 @@ public class Main extends WebSocketServer {
         server.start();
         registerShutdownHook(server);
 
-        System.out.println("Server running on port " + DEFAULT_PORT + ". Press Ctrl+C to stop it.");
         awaitForever();
     }
 }

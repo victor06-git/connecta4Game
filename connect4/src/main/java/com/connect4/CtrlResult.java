@@ -29,8 +29,10 @@ public class CtrlResult implements Initializable {
     private PlayGrid grid;
     private DrawUtils drawUtils = new DrawUtils();
     private ColorUtils utils = new ColorUtils();
-    // Use a smaller cell size in the Result preview so the board looks like a compact
-    // snapshot. Adjust LEFT_MARGIN to move it closer to the left edge of the canvas.
+    // Use a smaller cell size in the Result preview so the board looks like a
+    // compact
+    // snapshot. Adjust LEFT_MARGIN to move it closer to the left edge of the
+    // canvas.
     private static final double FIXED_CELL_SIZE = 50; // preview size (was 80)
     private static final double LEFT_MARGIN = 10; // move board more to the left
     private static final double TOP_MARGIN = 10;
@@ -170,7 +172,7 @@ public class CtrlResult implements Initializable {
                 Main.ctrlPlay.resetBoard();
             }
         } catch (Exception ex) {
-            System.out.println("Error resetting board: " + ex.getMessage());
+            throw new RuntimeException(ex);
         }
 
         // Set isPlaying to false for all clients to re-enable buttons
@@ -185,15 +187,11 @@ public class CtrlResult implements Initializable {
         }
 
         // Notificar al servidor que el juego ha terminado
-        System.out.println("🎮 Enviando mensaje gameEnded al servidor...");
         if (Main.wsClient != null && Main.wsClient.isOpen()) {
             org.json.JSONObject json = new org.json.JSONObject();
             json.put("type", "gameEnded");
             json.put("clientName", Main.clientName);
             Main.wsClient.safeSend(json.toString());
-            System.out.println("Mensaje gameEnded enviado: " + json.toString());
-        } else {
-            System.out.println("No se pudo enviar gameEnded - WebSocket no conectado");
         }
 
         // Navigate back to opponent selection view
