@@ -402,7 +402,25 @@ public class Main extends WebSocketServer {
      */
     @Override
     public void onClose(WebSocket conn, int code, String reason, boolean remote) {
-        String name = clients.remove(conn);
+        String name = clients.nameBySocket(conn);
+
+        if (playersNames.contains(name)) { 
+            String toSendName;
+            
+            if (playersNames.get(0).equals(name)) {
+                toSendName = playersNames.get(1);
+            } else {
+                toSendName = playersNames.get(0);
+            }
+
+            JSONObject response = msg("clientDisconnected");
+            response.put("winner", toSendName  + " by disconnection");
+            sendSafe(clients.socketByName(toSendName), response.toString());
+
+            System.out.println(response);
+        }
+
+        clients.remove(conn);
         clientsData.remove(name);
         playersNames.remove(name);
         broadcastExcept(null, sendAllClients());

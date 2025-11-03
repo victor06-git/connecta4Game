@@ -193,6 +193,20 @@ public class Main extends Application {
                 }
 
                 break;
+            
+            case "clientDisconnected":
+
+                if (UtilsViews.getActiveView().equals("ViewWait")) {
+                    UtilsViews.setViewAnimating("ViewOpponentSelection");
+                }
+                else if (UtilsViews.getActiveView().equals("ViewPlay")) {
+                    String winner = msgObj.getString("winner");
+                    CtrlResult ctrlResult = (CtrlResult) UtilsViews.getController("ViewResult");
+                    ctrlResult.setResultData("WIN", myColor, winner, ctrlPlay.boardState);
+                    UtilsViews.setViewAnimating("ViewResult");
+                }
+
+                break;
 
             case "countdown":
                 int value = msgObj.getInt("value");
